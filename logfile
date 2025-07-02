@@ -1,0 +1,275 @@
+2025-06-18 11:50:35.485 IST [4479] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-06-18 11:50:35.489 IST [4479] LOG:  listening on IPv6 address "::1", port 5432
+2025-06-18 11:50:35.489 IST [4479] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-06-18 11:50:35.491 IST [4479] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-06-18 11:50:35.506 IST [4480] LOG:  database system was shut down at 2025-06-16 21:54:34 IST
+2025-06-18 11:50:35.515 IST [4479] LOG:  database system is ready to accept connections
+2025-06-18 12:11:42.331 IST [4635] ERROR:  column "t" does not exist at character 65
+2025-06-18 12:11:42.331 IST [4635] STATEMENT:  select * from ads where location_id = 'NANAK23421' and isactive=t
+2025-06-18 12:11:47.353 IST [4635] ERROR:  operator does not exist: boolean = integer at character 64
+2025-06-18 12:11:47.353 IST [4635] HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+2025-06-18 12:11:47.353 IST [4635] STATEMENT:  select * from ads where location_id = 'NANAK23421' and isactive=1
+2025-06-18 12:11:51.855 IST [4635] ERROR:  operator does not exist: boolean = integer at character 64
+2025-06-18 12:11:51.855 IST [4635] HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+2025-06-18 12:11:51.855 IST [4635] STATEMENT:  select * from ads where location_id = 'NANAK23421' and isactive=0
+2025-06-18 12:17:36.834 IST [4635] ERROR:  syntax error at or near "column" at character 19
+2025-06-18 12:17:36.834 IST [4635] STATEMENT:  alter table alter column rename times_played to total_times_played
+2025-06-18 12:37:20.240 IST [4635] ERROR:  relation "alter" does not exist
+2025-06-18 12:37:20.240 IST [4635] STATEMENT:  alter table alter rename times_played to total_times_played
+2025-06-18 12:37:32.671 IST [4635] ERROR:  syntax error at or near "times_played" at character 39
+2025-06-18 12:37:32.671 IST [4635] STATEMENT:  alter table stats alter column rename times_played to total_times_played
+2025-06-18 12:55:41.974 IST [4635] ERROR:  syntax error at or near "default" at character 40
+2025-06-18 12:55:41.974 IST [4635] STATEMENT:  alter table stats add column timestamp default now()
+	
+2025-06-18 16:12:26.057 IST [4635] ERROR:  relation "devices" does not exist at character 15
+2025-06-18 16:12:26.057 IST [4635] STATEMENT:  select * from devices
+2025-06-18 16:12:30.243 IST [4635] ERROR:  relation "device" does not exist at character 15
+2025-06-18 16:12:30.243 IST [4635] STATEMENT:  select * from device
+2025-06-18 16:40:21.096 IST [36050] ERROR:  relation "location" does not exist at character 25
+2025-06-18 16:40:21.096 IST [36050] STATEMENT:  select location_id from location where device_id='DID-12345'
+2025-06-18 16:43:29.460 IST [36486] LOG:  could not receive data from client: Connection reset by peer
+2025-06-18 18:49:21.371 IST [49284] FATAL:  lock file "postmaster.pid" already exists
+2025-06-18 18:49:21.371 IST [49284] HINT:  Is another postmaster (PID 4479) running in data directory "/usr/local/var/postgres@14"?
+2025-06-18 18:49:35.159 IST [49368] LOG:  could not receive data from client: Connection reset by peer
+2025-06-18 19:00:44.935 IST [4479] LOG:  received smart shutdown request
+2025-06-18 19:00:44.938 IST [4479] LOG:  background worker "logical replication launcher" (PID 4486) exited with exit code 1
+2025-06-18 19:00:44.938 IST [4481] LOG:  shutting down
+2025-06-18 19:00:44.953 IST [4479] LOG:  database system is shut down
+2025-06-19 16:55:52.822 IST [50094] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-06-19 16:55:52.828 IST [50094] LOG:  listening on IPv6 address "::1", port 5432
+2025-06-19 16:55:52.828 IST [50094] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-06-19 16:55:52.839 IST [50094] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-06-19 16:55:52.860 IST [50096] LOG:  database system was shut down at 2025-06-18 19:00:44 IST
+2025-06-19 16:55:52.876 IST [50094] LOG:  database system is ready to accept connections
+2025-06-19 17:03:58.323 IST [51520] ERROR:  relation "users" does not exist at character 15
+2025-06-19 17:03:58.323 IST [51520] STATEMENT:  select * from users
+2025-06-19 17:05:06.584 IST [51520] ERROR:  syntax error at or near "delete" at character 27
+2025-06-19 17:05:06.584 IST [51520] STATEMENT:  alter table hording_users delete column user_id 
+2025-06-19 17:05:51.378 IST [51520] ERROR:  syntax error at or near "int" at character 51
+2025-06-19 17:05:51.378 IST [51520] STATEMENT:  alter table hording_users add column user_id type int SERIAL primary key
+2025-06-19 17:05:55.705 IST [51520] ERROR:  syntax error at or near "SERIAL" at character 51
+2025-06-19 17:05:55.705 IST [51520] STATEMENT:  alter table hording_users add column user_id  int SERIAL primary key
+2025-06-19 17:06:09.313 IST [51520] ERROR:  syntax error at or near "SERIAL" at character 62
+2025-06-19 17:06:09.313 IST [51520] STATEMENT:  alter table hording_users add column user_id int primary key SERIAL
+2025-06-19 17:06:23.142 IST [51520] ERROR:  syntax error at or near "SERIAL" at character 62
+2025-06-19 17:06:23.142 IST [51520] STATEMENT:  alter table hording_users add column user_id int primary key SERIAL
+2025-06-19 17:09:44.233 IST [51520] ERROR:  column "user_id" of relation "hording_users" already exists
+2025-06-19 17:09:44.233 IST [51520] STATEMENT:  alter table hording_users add column user_id serial
+2025-06-19 17:10:20.018 IST [51520] ERROR:  syntax error at or near "primary" at character 44
+2025-06-19 17:10:20.018 IST [51520] STATEMENT:  alter table hording_users add column email primary key
+2025-06-19 17:10:52.098 IST [51520] ERROR:  multiple primary keys for table "hording_users" are not allowed
+2025-06-19 17:10:52.098 IST [51520] STATEMENT:  alter table hording_users add column mobile_number varchar primary key
+2025-06-19 17:14:17.197 IST [51520] ERROR:  column "mobile_number" of relation "hording_users" does not exist
+2025-06-19 17:14:17.197 IST [51520] STATEMENT:  alter table hording_users drop column mobile_number 
+	
+2025-06-19 17:16:41.343 IST [51520] ERROR:  syntax error at or near "email" at character 60
+2025-06-19 17:16:41.343 IST [51520] STATEMENT:  alter table hording_users add column mobile_number varchar,email varchar primary key(mobile_numer,email)
+2025-06-19 17:16:56.297 IST [51520] ERROR:  syntax error at or near "," at character 51
+2025-06-19 17:16:56.297 IST [51520] STATEMENT:  alter table hording_users add column mobile_number,email  primary key(mobile_numer,email)
+2025-06-19 17:20:12.020 IST [51520] ERROR:  syntax error at or near "," at character 43
+2025-06-19 17:20:12.020 IST [51520] STATEMENT:  alter table hording_users add column email,add column mobile_number
+2025-06-19 17:21:27.394 IST [51520] ERROR:  syntax error at or near "primary" at character 46
+2025-06-19 17:21:27.394 IST [51520] STATEMENT:  alter table hording_users alter column email primary key
+	
+2025-06-19 17:22:26.809 IST [51520] ERROR:  syntax error at or near "email" at character 68
+2025-06-19 17:22:26.809 IST [51520] STATEMENT:  ALTER TABLE hording_users
+	ADD CONSTRAINT hording_users PRIMARY KEY email;
+	
+2025-06-19 17:22:42.906 IST [51520] ERROR:  relation "hording_users" already exists
+2025-06-19 17:22:42.906 IST [51520] STATEMENT:  ALTER TABLE hording_users
+	ADD CONSTRAINT hording_users PRIMARY KEY (email);
+	
+2025-06-19 17:26:08.626 IST [51365] ERROR:  duplicate key value violates unique constraint "hording_users_pkey"
+2025-06-19 17:26:08.626 IST [51365] DETAIL:  Key (email)=(krupa@gmail.com) already exists.
+2025-06-19 17:26:08.626 IST [51365] STATEMENT:  INSERT INTO hording_users(email,password,name,mobile_number,isActive,fcmtoken)VALUES($1,$2,$3,$4,$5,$6)
+2025-06-19 17:39:53.380 IST [57549] ERROR:  relation "users" does not exist at character 20
+2025-06-19 17:39:53.380 IST [57549] STATEMENT:  SELECT tokens FROM users WHERE email=$1
+2025-06-19 17:40:26.809 IST [57549] ERROR:  relation "users" does not exist at character 20
+2025-06-19 17:40:26.809 IST [57549] STATEMENT:  SELECT tokens FROM users WHERE email=$1
+2025-06-20 17:14:09.875 IST [50094] LOG:  received smart shutdown request
+2025-06-20 17:14:09.877 IST [50094] LOG:  background worker "logical replication launcher" (PID 50102) exited with exit code 1
+2025-06-20 17:14:09.877 IST [50097] LOG:  shutting down
+2025-06-20 17:14:09.889 IST [50094] LOG:  database system is shut down
+2025-06-21 18:34:05.425 IST [2379] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-06-21 18:34:05.428 IST [2379] LOG:  listening on IPv6 address "::1", port 5432
+2025-06-21 18:34:05.428 IST [2379] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-06-21 18:34:05.428 IST [2379] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-06-21 18:34:05.446 IST [2380] LOG:  database system was shut down at 2025-06-20 17:14:09 IST
+2025-06-21 18:34:05.457 IST [2379] LOG:  database system is ready to accept connections
+2025-06-21 19:01:13.072 IST [4765] ERROR:  type "varcahr" does not exist at character 26
+2025-06-21 19:01:13.072 IST [4765] STATEMENT:  create table otp(
+		email varcahr,otp bigint,created_at timestamp default now()
+	)
+2025-06-21 23:13:59.171 IST [2379] LOG:  received smart shutdown request
+2025-06-21 23:13:59.173 IST [2379] LOG:  background worker "logical replication launcher" (PID 2386) exited with exit code 1
+2025-06-21 23:13:59.173 IST [2381] LOG:  shutting down
+2025-06-21 23:13:59.186 IST [2379] LOG:  database system is shut down
+2025-06-22 15:06:17.071 IST [2978] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-06-22 15:06:17.073 IST [2978] LOG:  listening on IPv6 address "::1", port 5432
+2025-06-22 15:06:17.073 IST [2978] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-06-22 15:06:17.074 IST [2978] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-06-22 15:06:17.090 IST [2979] LOG:  database system was shut down at 2025-06-21 23:13:59 IST
+2025-06-22 15:06:17.099 IST [2978] LOG:  database system is ready to accept connections
+2025-06-23 22:10:37.356 IST [10106] FATAL:  lock file "postmaster.pid" already exists
+2025-06-23 22:10:37.356 IST [10106] HINT:  Is another postmaster (PID 2978) running in data directory "/usr/local/var/postgres@14"?
+2025-06-24 19:21:15.879 IST [2978] LOG:  received smart shutdown request
+2025-06-24 19:21:15.883 IST [2978] LOG:  background worker "logical replication launcher" (PID 2985) exited with exit code 1
+2025-06-24 19:21:15.883 IST [2980] LOG:  shutting down
+2025-06-24 19:21:15.903 IST [2978] LOG:  database system is shut down
+2025-06-25 18:25:43.214 IST [46194] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-06-25 18:25:43.220 IST [46194] LOG:  listening on IPv6 address "::1", port 5432
+2025-06-25 18:25:43.220 IST [46194] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-06-25 18:25:43.221 IST [46194] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-06-25 18:25:43.244 IST [46195] LOG:  database system was shut down at 2025-06-24 19:21:15 IST
+2025-06-25 18:25:43.272 IST [46194] LOG:  database system is ready to accept connections
+2025-06-26 00:56:21.493 IST [49698] ERROR:  syntax error at or near "table" at character 13
+2025-06-26 00:56:21.493 IST [49698] STATEMENT:  delete from table ads
+2025-06-26 01:03:07.839 IST [90118] ERROR:  unterminated quoted string at or near "'DID-12345" at character 79
+2025-06-26 01:03:07.839 IST [90118] STATEMENT:  SELECT * FROM ads WHERE NOW() BETWEEN start_date AND end_date AND location_id='DID-12345
+2025-06-26 01:03:38.005 IST [90212] ERROR:  column "location_id" does not exist at character 67
+2025-06-26 01:03:38.005 IST [90212] STATEMENT:  SELECT * FROM ads WHERE NOW() BETWEEN start_date AND end_date AND location_id='DID-12345'
+2025-06-26 01:03:40.007 IST [90212] ERROR:  column "location_id" does not exist at character 67
+2025-06-26 01:03:40.007 IST [90212] STATEMENT:  SELECT * FROM ads WHERE NOW() BETWEEN start_date AND end_date AND location_id='DID-12345'
+2025-06-26 01:03:40.049 IST [90212] LOG:  could not receive data from client: Connection reset by peer
+2025-06-26 01:04:56.510 IST [90286] LOG:  could not receive data from client: Connection reset by peer
+2025-06-26 01:07:02.192 IST [90448] LOG:  could not receive data from client: Connection reset by peer
+2025-06-26 01:36:54.996 IST [95666] ERROR:  column "is_approved" of relation "ads" does not exist at character 42
+2025-06-26 01:36:54.996 IST [95666] STATEMENT:  insert into ads(ad_id, ad_data, user_id, is_approved, meme_type, isactive, start_date, end_date, title, description, device_id)
+	  VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+2025-06-26 01:39:14.531 IST [95666] ERROR:  column "is_approved" of relation "ads" does not exist at character 42
+2025-06-26 01:39:14.531 IST [95666] STATEMENT:  insert into ads(ad_id, ad_data, user_id, is_approved, meme_type, isactive, start_date, end_date, title, description, device_id)
+	  VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+2025-06-26 01:42:35.895 IST [96863] ERROR:  column "is_approved" of relation "ads" does not exist at character 42
+2025-06-26 01:42:35.895 IST [96863] STATEMENT:  insert into ads(ad_id, ad_data, user_id, is_approved, meme_type, isactive, start_date, end_date, title, description, device_id)
+	  VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+2025-06-26 02:05:50.480 IST [46194] LOG:  received smart shutdown request
+2025-06-26 02:05:50.482 IST [46194] LOG:  background worker "logical replication launcher" (PID 46201) exited with exit code 1
+2025-06-26 02:05:50.482 IST [46196] LOG:  shutting down
+2025-06-26 02:05:50.494 IST [46194] LOG:  database system is shut down
+2025-06-26 12:39:20.701 IST [8417] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-06-26 12:39:20.704 IST [8417] LOG:  listening on IPv6 address "::1", port 5432
+2025-06-26 12:39:20.704 IST [8417] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-06-26 12:39:20.705 IST [8417] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-06-26 12:39:20.729 IST [8418] LOG:  database system was shut down at 2025-06-26 02:05:50 IST
+2025-06-26 12:39:20.741 IST [8417] LOG:  database system is ready to accept connections
+2025-06-26 13:29:31.382 IST [16868] ERROR:  column "is_approved" of relation "ads" does not exist at character 42
+2025-06-26 13:29:31.382 IST [16868] STATEMENT:  insert into ads(ad_id, ad_data, user_id, is_approved, meme_type, isactive, start_date, end_date, title, description, device_id)
+	  VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+2025-06-26 13:33:42.788 IST [16868] ERROR:  column "is_approved" of relation "ads" does not exist at character 42
+2025-06-26 13:33:42.788 IST [16868] STATEMENT:  insert into ads(ad_id, ad_data, user_id, is_approved, meme_type, isactive, start_date, end_date, title, description, device_id)
+	  VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+2025-06-26 13:34:15.261 IST [17640] ERROR:  column "is_approved" of relation "ads" does not exist at character 42
+2025-06-26 13:34:15.261 IST [17640] STATEMENT:  insert into ads(ad_id, ad_data, user_id, is_approved, meme_type, isactive, start_date, end_date, title, description, device_id)
+	  VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+2025-06-26 13:35:01.979 IST [17788] ERROR:  column "is_approved" of relation "ads" does not exist at character 42
+2025-06-26 13:35:01.979 IST [17788] STATEMENT:  insert into ads(ad_id, ad_data, user_id, is_approved, meme_type, isactive, start_date, end_date, title, description, device_id)
+	  VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+2025-06-26 13:35:03.042 IST [17788] LOG:  could not receive data from client: Connection reset by peer
+2025-06-26 13:45:37.594 IST [19270] ERROR:  column "is_approved" of relation "ads" does not exist at character 42
+2025-06-26 13:45:37.594 IST [19270] STATEMENT:  insert into ads(ad_id, ad_data, user_id, is_approved, meme_type, isactive, start_date, end_date, title, description, device_id)
+	  VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+2025-06-26 14:49:37.777 IST [22795] ERROR:  column "is_approved" of relation "ads" does not exist at character 42
+2025-06-26 14:49:37.777 IST [22795] STATEMENT:  insert into ads(ad_id, ad_data, user_id, is_approved, meme_type, isactive, start_date, end_date, title, description, device_id)
+	  VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+2025-06-26 14:51:34.269 IST [23123] ERROR:  column "is_approved" of relation "ads" does not exist at character 42
+2025-06-26 14:51:34.269 IST [23123] STATEMENT:  insert into ads(ad_id, ad_data, user_id, is_approved, meme_type, isactive, start_date, end_date, title, description, device_id)
+	  VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+2025-06-26 19:45:48.082 IST [8417] LOG:  received fast shutdown request
+2025-06-26 19:45:48.086 IST [8417] LOG:  aborting any active transactions
+2025-06-26 19:45:48.093 IST [8417] LOG:  background worker "logical replication launcher" (PID 8424) exited with exit code 1
+2025-06-26 19:45:48.094 IST [8419] LOG:  shutting down
+2025-06-26 19:45:48.120 IST [8417] LOG:  database system is shut down
+2025-06-27 15:04:46.738 IST [21340] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-06-27 15:04:46.754 IST [21340] LOG:  listening on IPv6 address "::1", port 5432
+2025-06-27 15:04:46.754 IST [21340] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-06-27 15:04:46.755 IST [21340] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-06-27 15:04:46.780 IST [21341] LOG:  database system was shut down at 2025-06-26 19:45:48 IST
+2025-06-27 15:04:46.790 IST [21340] LOG:  database system is ready to accept connections
+2025-06-27 16:46:27.849 IST [22052] ERROR:  syntax error at or near "ads" at character 10
+2025-06-27 16:46:27.849 IST [22052] STATEMENT:  select * ads
+2025-06-27 16:49:10.073 IST [22052] ERROR:  syntax error at or near "$" at character 61
+2025-06-27 16:49:10.073 IST [22052] STATEMENT:  SELECT * FROM ads WHERE CURRENT_DATE > end_date and user_id=${user_id}
+2025-06-27 16:51:37.049 IST [22052] ERROR:  syntax error at or near "CURRENT_DATE" at character 1
+2025-06-27 16:51:37.049 IST [22052] STATEMENT:  CURRENT_DATE
+2025-06-27 19:40:26.520 IST [21340] LOG:  received smart shutdown request
+2025-06-27 19:40:26.523 IST [21340] LOG:  background worker "logical replication launcher" (PID 21347) exited with exit code 1
+2025-06-27 19:40:26.523 IST [21342] LOG:  shutting down
+2025-06-27 19:40:26.540 IST [21340] LOG:  database system is shut down
+2025-06-28 21:27:59.528 IST [1163] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-06-28 21:27:59.553 IST [1163] LOG:  listening on IPv6 address "::1", port 5432
+2025-06-28 21:27:59.553 IST [1163] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-06-28 21:27:59.554 IST [1163] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-06-28 21:27:59.576 IST [1164] LOG:  database system was shut down at 2025-06-27 19:40:26 IST
+2025-06-28 21:27:59.585 IST [1163] LOG:  database system is ready to accept connections
+2025-06-29 00:08:57.764 IST [1163] LOG:  received fast shutdown request
+2025-06-29 00:08:57.766 IST [1163] LOG:  aborting any active transactions
+2025-06-29 00:08:57.770 IST [1163] LOG:  background worker "logical replication launcher" (PID 1170) exited with exit code 1
+2025-06-29 00:08:57.770 IST [1165] LOG:  shutting down
+2025-06-29 00:08:57.787 IST [1163] LOG:  database system is shut down
+2025-06-29 00:17:49.373 IST [16980] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-06-29 00:17:49.378 IST [16980] LOG:  listening on IPv6 address "::1", port 5432
+2025-06-29 00:17:49.379 IST [16980] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-06-29 00:17:49.380 IST [16980] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-06-29 00:17:49.406 IST [16982] LOG:  database system was shut down at 2025-06-29 00:08:57 IST
+2025-06-29 00:17:49.416 IST [16980] LOG:  database system is ready to accept connections
+2025-06-29 00:56:25.822 IST [16980] LOG:  received fast shutdown request
+2025-06-29 00:56:25.824 IST [16980] LOG:  aborting any active transactions
+2025-06-29 00:56:25.827 IST [16980] LOG:  background worker "logical replication launcher" (PID 16990) exited with exit code 1
+2025-06-29 00:56:25.827 IST [16985] LOG:  shutting down
+2025-06-29 00:56:25.844 IST [16980] LOG:  database system is shut down
+2025-06-30 12:15:06.441 IST [12551] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-06-30 12:15:06.446 IST [12551] LOG:  listening on IPv6 address "::1", port 5432
+2025-06-30 12:15:06.446 IST [12551] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-06-30 12:15:06.448 IST [12551] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-06-30 12:15:06.471 IST [12552] LOG:  database system was shut down at 2025-06-29 00:56:25 IST
+2025-06-30 12:15:06.483 IST [12551] LOG:  database system is ready to accept connections
+2025-06-30 16:56:24.314 IST [60334] ERROR:  invalid input syntax for type timestamp: "DID-12345"
+2025-06-30 16:56:24.314 IST [60334] CONTEXT:  unnamed portal parameter $3 = '...'
+2025-06-30 16:56:24.314 IST [60334] STATEMENT:  insert into stats(ad_id,user_id,time_at,device_id,end_time)VALUES($1,$2,$3,$4,$5)
+2025-06-30 16:56:27.319 IST [60334] ERROR:  invalid input syntax for type timestamp: "DID-12345"
+2025-06-30 16:56:27.319 IST [60334] CONTEXT:  unnamed portal parameter $3 = '...'
+2025-06-30 16:56:27.319 IST [60334] STATEMENT:  insert into stats(ad_id,user_id,time_at,device_id,end_time)VALUES($1,$2,$3,$4,$5)
+2025-06-30 16:56:30.378 IST [60334] ERROR:  invalid input syntax for type timestamp: "DID-12345"
+2025-06-30 16:56:30.378 IST [60334] CONTEXT:  unnamed portal parameter $3 = '...'
+2025-06-30 16:56:30.378 IST [60334] STATEMENT:  insert into stats(ad_id,user_id,time_at,device_id,end_time)VALUES($1,$2,$3,$4,$5)
+2025-06-30 16:56:33.336 IST [60334] ERROR:  invalid input syntax for type timestamp: "DID-12345"
+2025-06-30 16:56:33.336 IST [60334] CONTEXT:  unnamed portal parameter $3 = '...'
+2025-06-30 16:56:33.336 IST [60334] STATEMENT:  insert into stats(ad_id,user_id,time_at,device_id,end_time)VALUES($1,$2,$3,$4,$5)
+2025-06-30 16:58:03.123 IST [60334] ERROR:  invalid input syntax for type timestamp: "DID-12345"
+2025-06-30 16:58:03.123 IST [60334] CONTEXT:  unnamed portal parameter $3 = '...'
+2025-06-30 16:58:03.123 IST [60334] STATEMENT:  insert into stats(ad_id,user_id,time_at,device_id,end_time)VALUES($1,$2,$3,$4,$5)
+2025-06-30 16:58:06.317 IST [60334] ERROR:  invalid input syntax for type timestamp: "DID-12345"
+2025-06-30 16:58:06.317 IST [60334] CONTEXT:  unnamed portal parameter $3 = '...'
+2025-06-30 16:58:06.317 IST [60334] STATEMENT:  insert into stats(ad_id,user_id,time_at,device_id,end_time)VALUES($1,$2,$3,$4,$5)
+2025-06-30 16:58:09.140 IST [60334] ERROR:  invalid input syntax for type timestamp: "DID-12345"
+2025-06-30 16:58:09.140 IST [60334] CONTEXT:  unnamed portal parameter $3 = '...'
+2025-06-30 16:58:09.140 IST [60334] STATEMENT:  insert into stats(ad_id,user_id,time_at,device_id,end_time)VALUES($1,$2,$3,$4,$5)
+2025-06-30 16:58:12.256 IST [60334] ERROR:  invalid input syntax for type timestamp: "DID-12345"
+2025-06-30 16:58:12.256 IST [60334] CONTEXT:  unnamed portal parameter $3 = '...'
+2025-06-30 16:58:12.256 IST [60334] STATEMENT:  insert into stats(ad_id,user_id,time_at,device_id,end_time)VALUES($1,$2,$3,$4,$5)
+2025-06-30 17:00:25.064 IST [60334] ERROR:  invalid input syntax for type timestamp: "DID-12345"
+2025-06-30 17:00:25.064 IST [60334] CONTEXT:  unnamed portal parameter $3 = '...'
+2025-06-30 17:00:25.064 IST [60334] STATEMENT:  insert into stats(ad_id,user_id,time_at,device_id,end_time)VALUES($1,$2,$3,$4,$5)
+2025-06-30 17:03:22.276 IST [60930] ERROR:  invalid input syntax for type timestamp: "DID-12345"
+2025-06-30 17:03:22.276 IST [60930] CONTEXT:  unnamed portal parameter $3 = '...'
+2025-06-30 17:03:22.276 IST [60930] STATEMENT:  insert into stats(ad_id,user_id,time_at,device_id,end_time)VALUES($1,$2,$3,$4,$5)
+2025-06-30 17:03:33.221 IST [60930] LOG:  could not receive data from client: Connection reset by peer
+2025-06-30 17:03:40.139 IST [61042] ERROR:  invalid input syntax for type timestamp: "DID-12345"
+2025-06-30 17:03:40.139 IST [61042] CONTEXT:  unnamed portal parameter $3 = '...'
+2025-06-30 17:03:40.139 IST [61042] STATEMENT:  insert into stats(ad_id,user_id,time_at,device_id,end_time)VALUES($1,$2,$3,$4,$5)
+2025-06-30 17:04:05.523 IST [61042] LOG:  could not receive data from client: Connection reset by peer
+2025-06-30 17:05:23.859 IST [61187] LOG:  could not receive data from client: Connection reset by peer
+2025-06-30 19:07:59.082 IST [12551] LOG:  received smart shutdown request
+2025-06-30 19:07:59.085 IST [12551] LOG:  background worker "logical replication launcher" (PID 12558) exited with exit code 1
+2025-06-30 19:07:59.085 IST [12553] LOG:  shutting down
+2025-06-30 19:07:59.098 IST [12551] LOG:  database system is shut down
+2025-07-01 14:28:47.218 IST [9491] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-07-01 14:28:47.236 IST [9491] LOG:  listening on IPv6 address "::1", port 5432
+2025-07-01 14:28:47.236 IST [9491] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-07-01 14:28:47.299 IST [9491] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-07-01 14:28:47.346 IST [9492] LOG:  database system was shut down at 2025-06-30 19:07:59 IST
+2025-07-01 14:28:47.367 IST [9491] LOG:  database system is ready to accept connections
+2025-07-01 19:28:11.894 IST [9491] LOG:  received smart shutdown request
+2025-07-01 19:28:11.900 IST [9491] LOG:  background worker "logical replication launcher" (PID 9498) exited with exit code 1
+2025-07-01 19:28:11.900 IST [9493] LOG:  shutting down
+2025-07-01 19:28:11.918 IST [9491] LOG:  database system is shut down
