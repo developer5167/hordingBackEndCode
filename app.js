@@ -1,4 +1,7 @@
 const express = require("./express_file");
+const { Server } = require("socket.io");
+const http = require("http");
+const client = require("./db");
 const app = express()
 
 const cors = require("cors");
@@ -14,8 +17,31 @@ const apiRoutes = require("./routes/index");
 
 app.use("/", rootRouter);        // e.g. GET /
 app.use("/api", apiRoutes);      // e.g. GET /api/users
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "*", // allow Android app
+    methods: ["GET", "POST"]
+  }
+});
 
+client.query("LISTEN pause_all_ads_channel");
+
+client.on("notification", (msg) => {
+  const payload = JSON.parse(msg.payload);
+  console.log('DB change:', payload);
+
+  // Send to connected clients
+  io.emit("pauseAllAdsUpdate", payload);
+});
+
+io.on("connection", (socket) => {
+  console.log("Client connected:", socket.id);
+  socket.on("disconnect", () => {
+    console.log("Client disconnected:", socket.id);
+  });
+});
 // Start Server
-app.listen(port,"0.0.0.0",() => {
+server.listen(port,"0.0.0.0",() => {
   console.log(`🚀 Server running at: http://localhost:${port}`);
 });

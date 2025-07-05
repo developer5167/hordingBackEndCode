@@ -273,3 +273,49 @@
 2025-07-01 19:28:11.900 IST [9491] LOG:  background worker "logical replication launcher" (PID 9498) exited with exit code 1
 2025-07-01 19:28:11.900 IST [9493] LOG:  shutting down
 2025-07-01 19:28:11.918 IST [9491] LOG:  database system is shut down
+2025-07-02 11:53:37.400 IST [5309] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-07-02 11:53:37.404 IST [5309] LOG:  listening on IPv6 address "::1", port 5432
+2025-07-02 11:53:37.404 IST [5309] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-07-02 11:53:37.405 IST [5309] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-07-02 11:53:37.432 IST [5310] LOG:  database system was shut down at 2025-07-01 19:28:11 IST
+2025-07-02 11:53:37.442 IST [5309] LOG:  database system is ready to accept connections
+2025-07-02 11:59:44.564 IST [5309] LOG:  received smart shutdown request
+2025-07-02 11:59:44.566 IST [5309] LOG:  background worker "logical replication launcher" (PID 5316) exited with exit code 1
+2025-07-02 11:59:44.567 IST [5311] LOG:  shutting down
+2025-07-02 11:59:44.579 IST [5309] LOG:  database system is shut down
+2025-07-03 15:43:15.706 IST [27466] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-07-03 15:43:15.732 IST [27466] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-07-03 15:43:15.733 IST [27466] LOG:  listening on IPv6 address "::1", port 5432
+2025-07-03 15:43:15.734 IST [27466] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-07-03 15:43:15.763 IST [27467] LOG:  database system was shut down at 2025-07-02 11:59:44 IST
+2025-07-03 15:43:15.780 IST [27466] LOG:  database system is ready to accept connections
+2025-07-03 19:08:33.333 IST [27466] LOG:  received smart shutdown request
+2025-07-03 19:08:33.336 IST [27466] LOG:  background worker "logical replication launcher" (PID 27473) exited with exit code 1
+2025-07-03 19:08:33.336 IST [27468] LOG:  shutting down
+2025-07-03 19:08:33.351 IST [27466] LOG:  database system is shut down
+2025-07-04 12:58:15.085 IST [6201] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-07-04 12:58:15.090 IST [6201] LOG:  listening on IPv6 address "::1", port 5432
+2025-07-04 12:58:15.090 IST [6201] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-07-04 12:58:15.091 IST [6201] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-07-04 12:58:15.121 IST [6202] LOG:  database system was shut down at 2025-07-03 19:08:33 IST
+2025-07-04 12:58:15.134 IST [6201] LOG:  database system is ready to accept connections
+2025-07-04 17:28:43.825 IST [32984] ERROR:  relation "show_client_ads" does not exist at character 15
+2025-07-04 17:28:43.825 IST [32984] STATEMENT:  select * from show_client_ads where device_id ='DID-12345'
+2025-07-04 17:30:24.780 IST [33323] ERROR:  column "undefined" does not exist at character 41
+2025-07-04 17:30:24.780 IST [33323] STATEMENT:  update show_ad_type set show_client_ads=undefined where device_id = 'DID-12345'
+2025-07-04 17:35:23.276 IST [33781] ERROR:  column "undefined" does not exist at character 41
+2025-07-04 17:35:23.276 IST [33781] STATEMENT:  update show_ad_type set show_client_ads=undefined where device_id = 'DID-12345'
+2025-07-05 20:29:50.274 IST [66195] ERROR:  trigger "trigger_pause_all_ads_change" for relation "show_ad_type" already exists
+2025-07-05 20:29:50.274 IST [66195] STATEMENT:  CREATE TRIGGER trigger_pause_all_ads_change
+	AFTER UPDATE ON show_ad_type
+	FOR EACH ROW
+	EXECUTE FUNCTION notify_pause_all_ads_change();
+	
+2025-07-05 23:34:08.696 IST [72258] ERROR:  column "isapprove" does not exist at character 8
+2025-07-05 23:34:08.696 IST [72258] HINT:  Perhaps you meant to reference the column "ads.isapproved".
+2025-07-05 23:34:08.696 IST [72258] STATEMENT:  select isapprove from ads
+	
+2025-07-05 23:35:14.382 IST [72258] ERROR:  column "isapproved" of relation "company_ads" does not exist at character 24
+2025-07-05 23:35:14.382 IST [72258] STATEMENT:  update company_ads set isapproved = true
+2025-07-05 23:41:41.051 IST [83187] ERROR:  column "show_client_ads" of relation "show_ad_type" does not exist at character 25
+2025-07-05 23:41:41.051 IST [83187] STATEMENT:  update show_ad_type set show_client_ads=true where device_id = 'DID-12345' RETURNING *

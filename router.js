@@ -8,6 +8,8 @@ const jwtToken = require("jsonwebtoken");
 const { v4: uuidv4 } = require("uuid");
 const auth = require("./middleware/auth");
 const client = require("./db");
+const WebSocket = require("ws");
+
 const router = express.Router();
 const timers = {};
 const { admin, fcm } = require("./firebaseAdmin");
@@ -22,6 +24,7 @@ router.use("/.well-known", express.static(path.join(__dirname, ".well-known")));
 router.get("/", (req, res) => {
   res.send("welcome");
 });
+
 router.post("/createUser", async function (req, res) {
   const { email, password, name, mobile_number, isActive, fcmtoken } = req.body;
   const hashedPassword = await bcrypt.hash(password, 8);
@@ -42,10 +45,10 @@ router.post("/createUser", async function (req, res) {
     }
   }
 });
+
 router.post("/upload", auth, upload.single("file"), async (req, res) => {
   const file = req.file;
   const userId = req.body.user_id;
-
   if (!file || !userId) {
     return res.status(400).json({ error: "File and user_id are required" });
   }
@@ -62,21 +65,22 @@ router.post("/upload", auth, upload.single("file"), async (req, res) => {
       },
     });
 
-    blobStream.on("error", (err) => reject(err));
-    blobStream.on("finish", async () => {
+    blobStream.on("error", (err) => {
+      console.error("Upload error:", err);
+      res.status(500).send({ error: "Upload failed" });
+    });
+
+    blobStream.on("finish", () => {
       const url = `https://firebasestorage.googleapis.com/v0/b/${
         bucket.name
       }/o/${encodeURIComponent(fileUpload.name)}?alt=media&token=${uuid}`;
-
-      // const [url] = await fileUpload.getSignedUrl({
-      //   action: "read",
-      //   expires: "03-01-2500", // or any future date
-      // });
-      res.status(200).send({ url: url, filename: filename });
+      res.status(200).send({ url, filename });
     });
+
     blobStream.end(file.buffer);
   } catch (error) {
-    res.status(500).send(error.message);
+    console.error("Unexpected error:", error);
+    res.status(500).send({ error: error.message });
   }
 });
 
@@ -262,6 +266,35 @@ router.post("/saveAdData", async (req, res) => {
     res.status(500).send({ message: "Something went wrong" });
   }
 });
+router.post("/saveCompanyAdData", async (req, res) => {
+  const {
+    fileName,
+    device_id,
+    description,
+    title,
+    ad_data,
+    isactive,
+    meme_type,
+  } = req.body;
+  const query = `insert into company_ads(ad_id, ad_data, meme_type, isactive, title, description, device_id)
+  VALUES($1,$2,$3,$4,$5,$6,$7)`;
+  try {
+    await client.query(query, [
+      generateAdId(),
+      ad_data,
+      meme_type,
+      isactive,
+      title,
+      description,
+      device_id,
+    ]);
+    res.status(200).send({ message: "Saved Successfully" });
+  } catch (e) {
+    console.log(`Exception: ${e}`);
+    deleteFileFromStorage(fileName);
+    res.status(500).send({ message: "Something went wrong" });
+  }
+});
 async function deleteFileFromStorage(filePath) {
   try {
     await bucket.file(filePath).delete();
@@ -337,17 +370,56 @@ router.post("/login", async (request, response) => {
 
 router.get("/fetchAds", async (req, response) => {
   const { device_id } = req.query;
-  const query = `SELECT * FROM ads WHERE NOW() BETWEEN start_date AND end_date AND device_id='${device_id}' AND isapproved=false and isactive=true`;
-  const result2 = await client.query(query);
-  if (result2.rowCount > 0) {
-    response.status(200).json(result2.rows);
-  } else {
-    response.status(200).json({ message: "no data found" });
+
+  const showClientAdsStatusQuery = `SELECT * FROM show_ad_type WHERE device_id=$1`;
+  const companyAdsQuery = `SELECT * FROM company_ads WHERE device_id=$1 and isactive =true`;
+  const mainQuery = `SELECT * FROM ads WHERE NOW() BETWEEN start_date AND end_date AND device_id=$1 AND isapproved=true AND isactive=true`;
+
+  // Default fallback values
+  let showClientAdsStatusResult = { device_id: true };
+  let pauseAllAdsResult = { device_id: false };
+  let companyAdsResult = [];
+
+  try {
+    // Try to fetch showClientAdsStatus
+    try {
+      const result = await client.query(showClientAdsStatusQuery, [device_id]);
+      if (result.rows.length > 0) {
+        showClientAdsStatusResult = result.rows[0]["disable_client_ads"];
+        pauseAllAdsResult = result.rows[0]["pause_all_ads"];
+      }
+    } catch (err) {
+      console.warn("showClientAdsStatus query failed, using default.");
+    }
+
+    // Try to fetch companyAds
+    try {
+      const result = await client.query(companyAdsQuery, [device_id]);
+      companyAdsResult = result.rows;
+    } catch (err) {
+      console.warn("companyAds query failed, using default.");
+    }
+
+    // Fetch main ads
+    const result2 = await client.query(mainQuery, [device_id]);
+
+    const adsData = result2.rows;
+
+    response.status(200).json({
+      ads: adsData,
+      isClientAdsDisabled: showClientAdsStatusResult,
+      pauseAllAds: pauseAllAdsResult,
+      companyAds: companyAdsResult,
+    });
+  } catch (e) {
+    console.error("Main query failed", e);
+    response.status(500).json({ message: "Internal Server Error" });
   }
 });
+
 router.get("/fetchUserActiveAds", async (req, response) => {
   const { user_id } = req.query;
-  const query = `SELECT * FROM ads WHERE NOW() BETWEEN start_date AND end_date AND isapproved=false and isactive=true and user_id=${user_id}`;
+  const query = `SELECT * FROM ads WHERE NOW() BETWEEN start_date AND end_date AND isapproved=true and isactive=true and user_id=${user_id}`;
   const result2 = await client.query(query);
   if (result2.rowCount > 0) {
     response.status(200).json(result2.rows);
@@ -418,7 +490,7 @@ router.post("/addStats", async (request, response) => {
   const { ad_id, user_id, device_id, time_at, end_time } = request.body;
   const insertQuery = `insert into stats(ad_id,user_id,time_at,device_id,end_time)VALUES($1,$2,$3,$4,$5)`;
   try {
-     await client.query(insertQuery, [
+    await client.query(insertQuery, [
       ad_id,
       user_id,
       time_at,
@@ -427,7 +499,45 @@ router.post("/addStats", async (request, response) => {
     ]);
     response.status(200).send();
   } catch (e) {
-    console.log(e)
+    console.log(e);
+    response.status(500);
+  }
+});
+router.get("/turnOfClientAds", async (request, response) => {
+  const { device_id, isEnabled } = request.query;
+  const insertQuery = `update show_ad_type set disable_client_ads=${isEnabled} where device_id = '${device_id}' RETURNING *`;
+  try {
+    const result = await client.query(insertQuery);
+    response.status(200).send(result.rows[0]["disable_client_ads"]);
+  } catch (e) {
+    console.log(e);
+    response.status(500);
+  }
+});
+router.get("/turnOffAllAds", async (request, response) => {
+  const { device_id, isEnabled } = request.query;
+  const insertQuery = `update show_ad_type set pause_all_ads=${isEnabled} where device_id = '${device_id}' RETURNING *`;
+  try {
+    const result = await client.query(insertQuery);
+    response.status(200).send(result.rows[0]["pause_all_ads"]);
+  } catch (e) {
+    console.log(e);
+    response.status(500);
+  }
+});
+router.get("/getAllSettingsEvent", async (request, response) => {
+  const { device_id } = request.query;
+  const insertQuery = `select * from show_ad_type where device_id ='${device_id}'`;
+  try {
+    const result = await client.query(insertQuery);
+    const device_id = result.rows[0]["device_id"];
+    const disable_client_ads = result.rows[0]["disable_client_ads"];
+    const pause_all_ads = result.rows[0]["pause_all_ads"];
+    response
+      .status(200)
+      .json({ deviceId: device_id, showClientAds: disable_client_ads,pauseAllAds:pause_all_ads });
+  } catch (e) {
+    console.log(e);
     response.status(500);
   }
 });
