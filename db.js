@@ -4,7 +4,7 @@ const client = new Client({
   port: 5432,
   user: "kcs", // replace with your PostgreSQL username
   password: "", // replace with your PostgreSQL password
-  database: "hordings_db", // replace with your PostgreSQL database name
+  database: "hording_tenant_based", // replace with your PostgreSQL database name
 });
 client
   .connect()

@@ -319,3 +319,338 @@
 2025-07-05 23:35:14.382 IST [72258] STATEMENT:  update company_ads set isapproved = true
 2025-07-05 23:41:41.051 IST [83187] ERROR:  column "show_client_ads" of relation "show_ad_type" does not exist at character 25
 2025-07-05 23:41:41.051 IST [83187] STATEMENT:  update show_ad_type set show_client_ads=true where device_id = 'DID-12345' RETURNING *
+2025-07-06 01:28:06.083 IST [6201] LOG:  received smart shutdown request
+2025-07-06 01:28:06.086 IST [6201] LOG:  background worker "logical replication launcher" (PID 6208) exited with exit code 1
+2025-07-06 01:28:06.086 IST [6203] LOG:  shutting down
+2025-07-06 01:28:06.102 IST [6201] LOG:  database system is shut down
+2025-07-07 11:57:01.153 IST [2624] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-07-07 11:57:01.158 IST [2624] LOG:  listening on IPv6 address "::1", port 5432
+2025-07-07 11:57:01.158 IST [2624] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-07-07 11:57:01.158 IST [2624] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-07-07 11:57:01.185 IST [2625] LOG:  database system was shut down at 2025-07-06 01:28:06 IST
+2025-07-07 11:57:01.195 IST [2624] LOG:  database system is ready to accept connections
+2025-07-07 13:02:26.500 IST [7247] ERROR:  syntax error at or near "SERIAL" at character 34
+2025-07-07 13:02:26.500 IST [7247] STATEMENT:  create table users(
+		user_id int SERIAL Primary key,
+		email varchar,
+		password varchar,
+		name varchar
+	)
+2025-07-07 13:04:13.238 IST [7247] ERROR:  syntax error at or near "users" at character 10
+2025-07-07 13:04:13.238 IST [7247] STATEMENT:  select * users
+2025-07-07 13:04:18.203 IST [7247] ERROR:  relation "users" does not exist at character 15
+2025-07-07 13:04:18.203 IST [7247] STATEMENT:  select * from users
+2025-07-07 14:28:40.191 IST [10494] ERROR:  relation "to_do_users" does not exist at character 15
+2025-07-07 14:28:40.191 IST [10494] STATEMENT:  select * from to_do_users
+	
+2025-07-07 15:07:59.213 IST [10494] ERROR:  relation "to_do_users" does not exist at character 15
+2025-07-07 15:07:59.213 IST [10494] STATEMENT:  select * from to_do_users
+	
+2025-07-07 15:08:03.108 IST [10494] ERROR:  relation "users" does not exist
+2025-07-07 15:08:03.108 IST [10494] STATEMENT:  alter table users Rename to to_do_users
+	
+2025-07-07 15:08:11.149 IST [10494] ERROR:  table "to_do_users" does not exist
+2025-07-07 15:08:11.149 IST [10494] STATEMENT:  drop table to_do_users
+2025-07-07 15:26:05.006 IST [21316] ERROR:  duplicate key value violates unique constraint "to_do_users_pkey"
+2025-07-07 15:26:05.006 IST [21316] DETAIL:  Key (email)=(kruparao@gmail.com) already exists.
+2025-07-07 15:26:05.006 IST [21316] STATEMENT:  insert into to_do_users(email,password)VALUES($1,$2)
+2025-07-07 15:26:40.670 IST [21457] ERROR:  duplicate key value violates unique constraint "to_do_users_pkey"
+2025-07-07 15:26:40.670 IST [21457] DETAIL:  Key (email)=(kruparao@gmail.com) already exists.
+2025-07-07 15:26:40.670 IST [21457] STATEMENT:  insert into to_do_users(email,password)VALUES($1,$2)
+2025-07-07 15:33:08.439 IST [22608] ERROR:  duplicate key value violates unique constraint "to_do_users_pkey"
+2025-07-07 15:33:08.439 IST [22608] DETAIL:  Key (email)=(kruparao@gmail.com) already exists.
+2025-07-07 15:33:08.439 IST [22608] STATEMENT:  insert into to_do_users(email,password)VALUES($1,$2)
+2025-07-07 15:34:43.944 IST [22941] LOG:  could not receive data from client: Connection reset by peer
+2025-07-07 15:51:39.716 IST [10494] ERROR:  syntax error at end of input at character 42
+2025-07-07 15:51:39.716 IST [10494] STATEMENT:  alter table to_do_users add column token
+	
+2025-07-07 16:27:07.337 IST [27146] ERROR:  null value in column "email" of relation "to_do_users" violates not-null constraint
+2025-07-07 16:27:07.337 IST [27146] DETAIL:  Failing row contains (7, null, null, null, ydWOIzhxQBcB1dkYAR5bozMSNRSNo91F).
+2025-07-07 16:27:07.337 IST [27146] STATEMENT:  insert into to_do_users(email,password,token)VALUES($1,$2,$3)
+2025-07-07 16:31:29.638 IST [31096] ERROR:  null value in column "email" of relation "to_do_users" violates not-null constraint
+2025-07-07 16:31:29.638 IST [31096] DETAIL:  Failing row contains (8, null, null, null, Jy7IiiKBxVqo5y4DtOLDux5kybWo83a4).
+2025-07-07 16:31:29.638 IST [31096] STATEMENT:  insert into to_do_users(email,password,token)VALUES($1,$2,$3)
+2025-07-07 16:31:51.005 IST [31096] LOG:  could not receive data from client: Connection reset by peer
+2025-07-07 16:32:07.284 IST [31703] ERROR:  null value in column "email" of relation "to_do_users" violates not-null constraint
+2025-07-07 16:32:07.284 IST [31703] DETAIL:  Failing row contains (9, null, null, null, ySd7ITiV7T9ayF61hvFhuBH5kKfcmbl1).
+2025-07-07 16:32:07.284 IST [31703] STATEMENT:  insert into to_do_users(email,password,token)VALUES($1,$2,$3)
+2025-07-07 16:32:29.659 IST [31802] ERROR:  null value in column "email" of relation "to_do_users" violates not-null constraint
+2025-07-07 16:32:29.659 IST [31802] DETAIL:  Failing row contains (10, null, null, null, 8khR0Y9vJyOeO89afzJgO0AGVAg0aa8D).
+2025-07-07 16:32:29.659 IST [31802] STATEMENT:  insert into to_do_users(email,password,token)VALUES($1,$2,$3)
+2025-07-07 16:33:32.288 IST [31802] LOG:  could not receive data from client: Connection reset by peer
+2025-07-07 17:06:17.549 IST [10494] ERROR:  syntax error at or near "delete" at character 17
+2025-07-07 17:06:17.549 IST [10494] STATEMENT:  alter table ads delete column isRejected
+2025-07-07 17:06:36.118 IST [10494] ERROR:  syntax error at or near "boolean" at character 40
+2025-07-07 17:06:36.118 IST [10494] STATEMENT:  alter table ads drop column isRejected boolean DEFAULT false
+	
+2025-07-07 17:06:43.497 IST [10494] ERROR:  syntax error at or near "DEFAULT" at character 41
+2025-07-07 17:06:43.497 IST [10494] STATEMENT:  alter table ads drop column isRejected  DEFAULT false
+	
+2025-07-07 17:06:50.763 IST [10494] ERROR:  syntax error at or near "DEFAULT" at character 41
+2025-07-07 17:06:50.763 IST [10494] STATEMENT:  alter table ads drop column isRejected  DEFAULT boolean false
+	
+2025-07-07 17:08:21.547 IST [10494] ERROR:  operator does not exist: boolean == boolean at character 35
+2025-07-07 17:08:21.547 IST [10494] HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+2025-07-07 17:08:21.547 IST [10494] STATEMENT:  SELECT * FROM ads WHERE isRejected==false and user_id=4
+2025-07-08 13:08:49.280 IST [62725] FATAL:  lock file "postmaster.pid" already exists
+2025-07-08 13:08:49.280 IST [62725] HINT:  Is another postmaster (PID 2624) running in data directory "/usr/local/var/postgres@14"?
+2025-07-08 13:08:58.685 IST [2624] LOG:  received fast shutdown request
+2025-07-08 13:08:58.688 IST [2624] LOG:  aborting any active transactions
+2025-07-08 13:08:58.689 IST [45896] FATAL:  terminating connection due to administrator command
+2025-07-08 13:08:58.689 IST [45897] FATAL:  terminating connection due to administrator command
+2025-07-08 13:08:58.689 IST [45893] FATAL:  terminating connection due to administrator command
+2025-07-08 13:08:58.694 IST [2624] LOG:  background worker "logical replication launcher" (PID 2631) exited with exit code 1
+2025-07-08 13:08:58.695 IST [2626] LOG:  shutting down
+2025-07-08 13:08:58.732 IST [2624] LOG:  database system is shut down
+2025-07-08 13:09:02.096 IST [62899] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-07-08 13:09:02.101 IST [62899] LOG:  listening on IPv6 address "::1", port 5432
+2025-07-08 13:09:02.101 IST [62899] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-07-08 13:09:02.102 IST [62899] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-07-08 13:09:02.128 IST [62900] LOG:  database system was shut down at 2025-07-08 13:08:58 IST
+2025-07-08 13:09:02.141 IST [62899] LOG:  database system is ready to accept connections
+2025-07-08 18:09:21.814 IST [98045] ERROR:  relation "to_do_user_data" does not exist at character 15
+2025-07-08 18:09:21.814 IST [98045] STATEMENT:  select * from to_do_user_data
+2025-07-08 18:12:55.201 IST [98045] ERROR:  syntax error at or near "to_do_users_data" at character 7
+2025-07-08 18:12:55.201 IST [98045] STATEMENT:  alter to_do_users_data add column id varchar ,add column updated_on DEFAULT now(),add column status varchar
+2025-07-08 18:13:02.968 IST [98045] ERROR:  syntax error at or near "DEFAULT" at character 75
+2025-07-08 18:13:02.968 IST [98045] STATEMENT:  alter table to_do_users_data add column id varchar ,add column updated_on DEFAULT now(),add column status varchar
+2025-07-08 18:13:19.352 IST [98045] ERROR:  syntax error at or near "DEFAULT" at character 74
+2025-07-08 18:13:19.352 IST [98045] STATEMENT:  alter table to_do_users_data add column id varchar,add column updated_on DEFAULT NOW(),add column status varchar
+2025-07-08 18:13:34.513 IST [98045] ERROR:  type "currentitmestamp" does not exist at character 74
+2025-07-08 18:13:34.513 IST [98045] STATEMENT:  alter table to_do_users_data add column id varchar,add column updated_on currentitmestamp DEFAULT NOW(),add column status varchar
+2025-07-08 18:13:42.351 IST [98045] ERROR:  type "currenttime" does not exist at character 74
+2025-07-08 18:13:42.351 IST [98045] STATEMENT:  alter table to_do_users_data add column id varchar,add column updated_on currenttime DEFAULT NOW(),add column status varchar
+2025-07-08 18:13:48.591 IST [98045] ERROR:  type "current" does not exist at character 74
+2025-07-08 18:13:48.591 IST [98045] STATEMENT:  alter table to_do_users_data add column id varchar,add column updated_on current DEFAULT NOW(),add column status varchar
+2025-07-09 12:32:48.401 IST [27673] LOG:  could not receive data from client: Connection reset by peer
+2025-07-09 12:34:42.642 IST [28037] LOG:  could not receive data from client: Connection reset by peer
+2025-07-09 12:37:02.901 IST [28380] LOG:  could not receive data from client: Connection reset by peer
+2025-07-09 12:38:57.901 IST [28601] LOG:  could not receive data from client: Connection reset by peer
+2025-07-09 12:59:50.362 IST [32138] ERROR:  syntax error at or near "WHERE" at character 78
+2025-07-09 12:59:50.362 IST [32138] STATEMENT:  UPDATE to_do_users_data SET title = $1, description = $2, status = 'synced', WHERE id = $3; RETURNING *
+2025-07-09 13:00:10.229 IST [32138] LOG:  could not receive data from client: Connection reset by peer
+2025-07-09 13:00:19.921 IST [32234] ERROR:  syntax error at or near "RETURNING" at character 92
+2025-07-09 13:00:19.921 IST [32234] STATEMENT:  UPDATE to_do_users_data SET title = $1, description = $2, status = 'synced' WHERE id = $3; RETURNING *
+2025-07-09 13:00:46.903 IST [32234] LOG:  could not receive data from client: Connection reset by peer
+2025-07-09 19:08:29.116 IST [62899] LOG:  received smart shutdown request
+2025-07-09 19:08:29.119 IST [62899] LOG:  background worker "logical replication launcher" (PID 62906) exited with exit code 1
+2025-07-09 19:08:29.119 IST [62901] LOG:  shutting down
+2025-07-09 19:08:29.129 IST [62899] LOG:  database system is shut down
+2025-07-10 15:09:44.417 IST [26782] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-07-10 15:09:44.444 IST [26782] LOG:  listening on IPv6 address "::1", port 5432
+2025-07-10 15:09:44.444 IST [26782] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-07-10 15:09:44.446 IST [26782] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-07-10 15:09:44.477 IST [26783] LOG:  database system was shut down at 2025-07-09 19:08:29 IST
+2025-07-10 15:09:44.491 IST [26782] LOG:  database system is ready to accept connections
+2025-07-11 19:17:33.645 IST [26782] LOG:  received smart shutdown request
+2025-07-11 19:17:33.649 IST [26782] LOG:  background worker "logical replication launcher" (PID 26789) exited with exit code 1
+2025-07-11 19:17:33.649 IST [26784] LOG:  shutting down
+2025-07-11 19:17:33.666 IST [26782] LOG:  database system is shut down
+2025-07-12 16:33:34.470 IST [18492] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-07-12 16:33:34.474 IST [18492] LOG:  listening on IPv6 address "::1", port 5432
+2025-07-12 16:33:34.474 IST [18492] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-07-12 16:33:34.475 IST [18492] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-07-12 16:33:34.500 IST [18493] LOG:  database system was shut down at 2025-07-11 19:17:33 IST
+2025-07-12 16:33:34.532 IST [18492] LOG:  database system is ready to accept connections
+2025-07-13 00:26:34.694 IST [18492] LOG:  received smart shutdown request
+2025-07-13 00:26:34.696 IST [18492] LOG:  background worker "logical replication launcher" (PID 18499) exited with exit code 1
+2025-07-13 00:26:34.696 IST [18494] LOG:  shutting down
+2025-07-13 00:26:34.710 IST [18492] LOG:  database system is shut down
+2025-07-13 22:39:07.908 IST [4979] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-07-13 22:39:07.912 IST [4979] LOG:  listening on IPv6 address "::1", port 5432
+2025-07-13 22:39:07.912 IST [4979] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-07-13 22:39:07.914 IST [4979] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-07-13 22:39:07.945 IST [4980] LOG:  database system was shut down at 2025-07-13 00:26:34 IST
+2025-07-13 22:39:07.957 IST [4979] LOG:  database system is ready to accept connections
+2025-07-13 23:13:39.005 IST [4979] LOG:  received smart shutdown request
+2025-07-13 23:13:39.007 IST [4979] LOG:  background worker "logical replication launcher" (PID 4986) exited with exit code 1
+2025-07-13 23:13:39.008 IST [4981] LOG:  shutting down
+2025-07-13 23:13:39.020 IST [4979] LOG:  database system is shut down
+2025-07-14 11:47:46.904 IST [7870] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-07-14 11:47:46.907 IST [7870] LOG:  listening on IPv6 address "::1", port 5432
+2025-07-14 11:47:46.907 IST [7870] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-07-14 11:47:46.908 IST [7870] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-07-14 11:47:46.932 IST [7871] LOG:  database system was shut down at 2025-07-13 23:13:39 IST
+2025-07-14 11:47:46.941 IST [7870] LOG:  database system is ready to accept connections
+2025-07-14 19:42:28.154 IST [7870] LOG:  received fast shutdown request
+2025-07-14 19:42:28.167 IST [7870] LOG:  aborting any active transactions
+2025-07-14 19:42:28.173 IST [7870] LOG:  background worker "logical replication launcher" (PID 7877) exited with exit code 1
+2025-07-14 19:42:28.188 IST [7872] LOG:  shutting down
+2025-07-14 19:42:28.261 IST [7870] LOG:  database system is shut down
+2025-07-16 14:58:47.806 IST [28458] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-07-16 14:58:47.811 IST [28458] LOG:  listening on IPv6 address "::1", port 5432
+2025-07-16 14:58:47.811 IST [28458] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-07-16 14:58:47.814 IST [28458] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-07-16 14:58:47.847 IST [28459] LOG:  database system was shut down at 2025-07-14 19:42:28 IST
+2025-07-16 14:58:47.862 IST [28458] LOG:  database system is ready to accept connections
+2025-07-16 19:08:29.135 IST [66059] LOG:  could not receive data from client: Connection reset by peer
+2025-07-16 19:09:28.033 IST [66118] LOG:  could not receive data from client: Connection reset by peer
+2025-07-16 23:24:57.515 IST [28458] LOG:  received smart shutdown request
+2025-07-16 23:24:57.519 IST [28458] LOG:  background worker "logical replication launcher" (PID 28465) exited with exit code 1
+2025-07-16 23:24:57.519 IST [28460] LOG:  shutting down
+2025-07-16 23:24:57.546 IST [28458] LOG:  database system is shut down
+2025-07-17 11:43:02.113 IST [1177] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-07-17 11:43:02.116 IST [1177] LOG:  listening on IPv6 address "::1", port 5432
+2025-07-17 11:43:02.116 IST [1177] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-07-17 11:43:02.117 IST [1177] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-07-17 11:43:02.139 IST [1178] LOG:  database system was shut down at 2025-07-17 11:39:29 IST
+2025-07-17 11:43:02.148 IST [1177] LOG:  database system is ready to accept connections
+2025-07-17 12:51:36.764 IST [4371] ERROR:  relation "ads" does not exist
+2025-07-17 12:51:36.764 IST [4371] STATEMENT:  CREATE TABLE ad_reviews (
+	    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+	    ad_id UUID REFERENCES ads(id) ON DELETE CASCADE,
+	    reviewer_id UUID REFERENCES users(id) ON DELETE SET NULL,
+	    status TEXT NOT NULL CHECK (status IN ('approved', 'rejected')),
+	    comment TEXT,
+	    reviewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	);
+2025-07-17 12:51:48.488 IST [4371] ERROR:  relation "ads" does not exist
+2025-07-17 12:51:48.488 IST [4371] STATEMENT:  CREATE TABLE ad_reviews (
+	    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+	    ad_id UUID REFERENCES ads(id) ON DELETE CASCADE,
+	    reviewer_id UUID REFERENCES users(id) ON DELETE SET NULL,
+	    status TEXT NOT NULL CHECK (status IN ('approved', 'rejected')),
+	    comment TEXT,
+	    reviewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	);
+2025-07-17 14:30:56.196 IST [7971] ERROR:  duplicate key value violates unique constraint "clients_email_key"
+2025-07-17 14:30:56.196 IST [7971] DETAIL:  Key (email)=(admin@prakashads.com) already exists.
+2025-07-17 14:30:56.196 IST [7971] STATEMENT:  INSERT INTO clients ( name, email)
+	VALUES ( 'Prakash Ads', 'admin@prakashads.com');
+	
+2025-07-17 18:27:05.114 IST [1177] LOG:  received smart shutdown request
+2025-07-17 18:27:05.117 IST [1177] LOG:  background worker "logical replication launcher" (PID 1184) exited with exit code 1
+2025-07-17 18:27:05.117 IST [1179] LOG:  shutting down
+2025-07-17 18:27:05.134 IST [1177] LOG:  database system is shut down
+2025-07-22 12:41:57.457 IST [12397] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-07-22 12:41:57.459 IST [12397] LOG:  listening on IPv6 address "::1", port 5432
+2025-07-22 12:41:57.460 IST [12397] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-07-22 12:41:57.460 IST [12397] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-07-22 12:41:57.480 IST [12398] LOG:  database system was shut down at 2025-07-21 19:55:27 IST
+2025-07-22 12:41:57.490 IST [12397] LOG:  database system is ready to accept connections
+2025-07-22 12:51:03.639 IST [13949] ERROR:  relation "clients" does not exist at character 14
+2025-07-22 12:51:03.639 IST [13949] STATEMENT:   INSERT INTO clients (name, email)VALUES ($1, $2);
+2025-07-22 12:51:03.652 IST [13949] LOG:  could not receive data from client: Connection reset by peer
+2025-07-22 12:54:06.351 IST [14552] ERROR:  relation "users" does not exist at character 14
+2025-07-22 12:54:06.351 IST [14552] STATEMENT:   INSERT INTO users(name, email,password,role)VALUES ($1,$2,$3,$4);
+2025-07-22 12:54:11.183 IST [14552] ERROR:  relation "users" does not exist at character 14
+2025-07-22 12:54:11.183 IST [14552] STATEMENT:   INSERT INTO users(name, email,password,role)VALUES ($1,$2,$3,$4);
+2025-07-22 12:54:13.940 IST [14552] ERROR:  relation "clients" does not exist at character 14
+2025-07-22 12:54:13.940 IST [14552] STATEMENT:   INSERT INTO clients (name, email)VALUES ($1, $2);
+2025-07-22 12:55:17.278 IST [14552] ERROR:  relation "clients" does not exist at character 14
+2025-07-22 12:55:17.278 IST [14552] STATEMENT:   INSERT INTO clients (name, email)VALUES ($1, $2);
+2025-07-22 12:57:16.751 IST [15038] ERROR:  relation "clients" does not exist at character 14
+2025-07-22 12:57:16.751 IST [15038] STATEMENT:   INSERT INTO clients (name, email)VALUES ($1, $2);
+2025-07-22 12:57:58.522 IST [15224] ERROR:  relation "clients" does not exist at character 13
+2025-07-22 12:57:58.522 IST [15224] STATEMENT:  INSERT INTO clients (name, email)VALUES ($1, $2);
+2025-07-22 12:59:50.212 IST [15386] ERROR:  duplicate key value violates unique constraint "clients_email_key"
+2025-07-22 12:59:50.212 IST [15386] DETAIL:  Key (email)=(leadspace@gmail.com) already exists.
+2025-07-22 12:59:50.212 IST [15386] STATEMENT:  INSERT INTO clients (name, email)VALUES ($1, $2);
+2025-07-22 13:02:04.852 IST [15386] ERROR:  duplicate key value violates unique constraint "clients_email_key"
+2025-07-22 13:02:04.852 IST [15386] DETAIL:  Key (email)=(leadspace@gmail.com) already exists.
+2025-07-22 13:02:04.852 IST [15386] STATEMENT:  INSERT INTO clients (name, email)VALUES ($1, $2);
+2025-07-22 13:04:46.961 IST [16135] ERROR:  duplicate key value violates unique constraint "clients_email_key"
+2025-07-22 13:04:46.961 IST [16135] DETAIL:  Key (email)=(leadspace@gmail.com) already exists.
+2025-07-22 13:04:46.961 IST [16135] STATEMENT:  INSERT INTO clients (name, email)VALUES ($1, $2);
+2025-07-22 13:04:49.859 IST [16135] LOG:  could not receive data from client: Connection reset by peer
+2025-07-22 13:05:10.654 IST [16378] ERROR:  duplicate key value violates unique constraint "clients_email_key"
+2025-07-22 13:05:10.654 IST [16378] DETAIL:  Key (email)=(leadspace@gmail.com) already exists.
+2025-07-22 13:05:10.654 IST [16378] STATEMENT:  INSERT INTO clients (name, email)VALUES ($1, $2);
+2025-07-22 13:05:49.876 IST [16523] ERROR:  duplicate key value violates unique constraint "clients_email_key"
+2025-07-22 13:05:49.876 IST [16523] DETAIL:  Key (email)=(leadspace@gmail.com) already exists.
+2025-07-22 13:05:49.876 IST [16523] STATEMENT:  INSERT INTO clients (name, email)VALUES ($1, $2);
+2025-07-22 13:07:43.304 IST [16523] ERROR:  column "password" of relation "users" does not exist at character 32
+2025-07-22 13:07:43.304 IST [16523] STATEMENT:   INSERT INTO users(name, email,password,role)VALUES ($1,$2,$3,$4);
+2025-07-22 13:08:10.586 IST [16966] ERROR:  column "password" of relation "users" does not exist at character 31
+2025-07-22 13:08:10.586 IST [16966] STATEMENT:  INSERT INTO users(name, email,password,role)VALUES ($1,$2,$3,$4);
+2025-07-22 14:30:30.792 IST [29157] ERROR:  column "password" of relation "users" does not exist at character 31
+2025-07-22 14:30:30.792 IST [29157] STATEMENT:  INSERT INTO users(name, email,password,role)VALUES ($1,$2,$3,$4);
+2025-07-22 14:31:41.372 IST [29620] ERROR:  column "password" of relation "users" does not exist at character 31
+2025-07-22 14:31:41.372 IST [29620] STATEMENT:  INSERT INTO users(name, email,password,role)VALUES ($1,$2,$3,$4);
+2025-07-22 14:31:54.524 IST [29620] LOG:  could not receive data from client: Connection reset by peer
+2025-07-22 14:32:09.184 IST [29780] ERROR:  column "password" of relation "users" does not exist at character 31
+2025-07-22 14:32:09.184 IST [29780] STATEMENT:  INSERT INTO users(name, email,password,role)VALUES ($1,$2,$3,$4);
+2025-07-22 16:06:40.394 IST [43173] ERROR:  invalid input syntax for type uuid: "checkValidClient"
+2025-07-22 16:06:40.394 IST [43173] CONTEXT:  unnamed portal parameter $5 = '...'
+2025-07-22 16:06:40.394 IST [43173] STATEMENT:  INSERT INTO users(name, email,password_hash,role,client_id)VALUES ($1,$2,$3,$4,$5);
+2025-07-22 16:08:13.534 IST [43381] ERROR:  invalid input syntax for type uuid: "checkValidClient"
+2025-07-22 16:08:13.534 IST [43381] CONTEXT:  unnamed portal parameter $5 = '...'
+2025-07-22 16:08:13.534 IST [43381] STATEMENT:  INSERT INTO users(name, email,password_hash,role,client_id)VALUES ($1,$2,$3,$4,$5);
+2025-07-22 16:08:45.671 IST [43451] ERROR:  invalid input syntax for type uuid: "checkValidClient"
+2025-07-22 16:08:45.671 IST [43451] CONTEXT:  unnamed portal parameter $5 = '...'
+2025-07-22 16:08:45.671 IST [43451] STATEMENT:  INSERT INTO users(name, email,password_hash,role,client_id)VALUES ($1,$2,$3,$4,$5);
+2025-07-22 16:09:04.613 IST [43503] ERROR:  invalid input syntax for type uuid: "checkValidClient"
+2025-07-22 16:09:04.613 IST [43503] CONTEXT:  unnamed portal parameter $5 = '...'
+2025-07-22 16:09:04.613 IST [43503] STATEMENT:  INSERT INTO users(name, email,password_hash,role,client_id)VALUES ($1,$2,$3,$4,$5);
+2025-07-22 16:09:33.213 IST [43574] ERROR:  invalid input syntax for type uuid: "checkValidClient"
+2025-07-22 16:09:33.213 IST [43574] CONTEXT:  unnamed portal parameter $5 = '...'
+2025-07-22 16:09:33.213 IST [43574] STATEMENT:  INSERT INTO users(name, email,password_hash,role,client_id)VALUES ($1,$2,$3,$4,$5);
+2025-07-22 16:09:40.367 IST [43626] ERROR:  invalid input syntax for type uuid: "checkValidClient"
+2025-07-22 16:09:40.367 IST [43626] CONTEXT:  unnamed portal parameter $5 = '...'
+2025-07-22 16:09:40.367 IST [43626] STATEMENT:  INSERT INTO users(name, email,password_hash,role,client_id)VALUES ($1,$2,$3,$4,$5);
+2025-07-22 16:10:44.266 IST [43712] ERROR:  invalid input syntax for type uuid: "checkValidClient"
+2025-07-22 16:10:44.266 IST [43712] CONTEXT:  unnamed portal parameter $5 = '...'
+2025-07-22 16:10:44.266 IST [43712] STATEMENT:  INSERT INTO users(name, email,password_hash,role,client_id)VALUES ($1,$2,$3,$4,$5);
+2025-07-22 16:11:06.069 IST [43773] ERROR:  invalid input syntax for type uuid: "checkValidClient"
+2025-07-22 16:11:06.069 IST [43773] CONTEXT:  unnamed portal parameter $5 = '...'
+2025-07-22 16:11:06.069 IST [43773] STATEMENT:  INSERT INTO users(name, email,password_hash,role,client_id)VALUES ($1,$2,$3,$4,$5);
+2025-07-22 16:11:30.644 IST [43969] ERROR:  invalid input syntax for type uuid: "checkValidClient"
+2025-07-22 16:11:30.644 IST [43969] CONTEXT:  unnamed portal parameter $5 = '...'
+2025-07-22 16:11:30.644 IST [43969] STATEMENT:  INSERT INTO users(name, email,password_hash,role,client_id)VALUES ($1,$2,$3,$4,$5);
+2025-07-22 16:12:03.357 IST [44032] ERROR:  invalid input syntax for type uuid: "checkValidClient"
+2025-07-22 16:12:03.357 IST [44032] CONTEXT:  unnamed portal parameter $5 = '...'
+2025-07-22 16:12:03.357 IST [44032] STATEMENT:  INSERT INTO users(name, email,password_hash,role,client_id)VALUES ($1,$2,$3,$4,$5);
+2025-07-22 16:13:23.581 IST [44130] ERROR:  invalid input syntax for type uuid: "checkValidClient"
+2025-07-22 16:13:23.581 IST [44130] CONTEXT:  unnamed portal parameter $5 = '...'
+2025-07-22 16:13:23.581 IST [44130] STATEMENT:  INSERT INTO users(name, email,password_hash,role,client_id)VALUES ($1,$2,$3,$4,$5);
+2025-07-22 16:13:52.135 IST [44194] ERROR:  invalid input syntax for type uuid: "checkValidClient"
+2025-07-22 16:13:52.135 IST [44194] CONTEXT:  unnamed portal parameter $5 = '...'
+2025-07-22 16:13:52.135 IST [44194] STATEMENT:  INSERT INTO users(name, email,password_hash,role,client_id)VALUES ($1,$2,$3,$4,$5);
+2025-07-22 16:15:14.463 IST [44285] ERROR:  invalid input syntax for type uuid: "checkValidClient"
+2025-07-22 16:15:14.463 IST [44285] CONTEXT:  unnamed portal parameter $5 = '...'
+2025-07-22 16:15:14.463 IST [44285] STATEMENT:  INSERT INTO users(name, email,password_hash,role,client_id)VALUES ($1,$2,$3,$4,$5);
+2025-07-22 16:16:05.309 IST [44419] ERROR:  invalid input syntax for type uuid: "checkValidClient"
+2025-07-22 16:16:05.309 IST [44419] CONTEXT:  unnamed portal parameter $5 = '...'
+2025-07-22 16:16:05.309 IST [44419] STATEMENT:  INSERT INTO users(name, email,password_hash,role,client_id)VALUES ($1,$2,$3,$4,$5);
+2025-07-22 16:16:20.942 IST [44473] ERROR:  invalid input syntax for type uuid: "checkValidClient"
+2025-07-22 16:16:20.942 IST [44473] CONTEXT:  unnamed portal parameter $5 = '...'
+2025-07-22 16:16:20.942 IST [44473] STATEMENT:  INSERT INTO users(name, email,password_hash,role,client_id)VALUES ($1,$2,$3,$4,$5);
+2025-07-22 16:33:41.134 IST [45589] ERROR:  column "client_id" does not exist at character 8
+2025-07-22 16:33:41.134 IST [45589] STATEMENT:  select client_id from clients where client_id = $1
+2025-07-22 16:33:41.147 IST [45589] LOG:  could not receive data from client: Connection reset by peer
+2025-07-22 16:36:01.098 IST [45745] ERROR:  column "client_id" does not exist at character 8
+2025-07-22 16:36:01.098 IST [45745] STATEMENT:  select client_id from clients where client_id = $1
+2025-07-22 16:41:26.899 IST [14934] ERROR:  relation "client" does not exist at character 14
+2025-07-22 16:41:26.899 IST [14934] STATEMENT:  delete  from client
+2025-07-22 16:48:15.792 IST [45984] ERROR:  duplicate key value violates unique constraint "clients_email_key"
+2025-07-22 16:48:15.792 IST [45984] DETAIL:  Key (email)=(prakashartss@gmail.com) already exists.
+2025-07-22 16:48:15.792 IST [45984] STATEMENT:  INSERT INTO clients (name, email)VALUES ($1, $2);
+2025-07-22 18:20:58.106 IST [45984] ERROR:  duplicate key value violates unique constraint "users_email_key"
+2025-07-22 18:20:58.106 IST [45984] DETAIL:  Key (email)=(nihar@gmail.com) already exists.
+2025-07-22 18:20:58.106 IST [45984] STATEMENT:  INSERT INTO users(name, email,password_hash,role,client_id)VALUES ($1,$2,$3,$4,$5);
+2025-07-22 18:21:55.737 IST [45984] ERROR:  duplicate key value violates unique constraint "users_email_key"
+2025-07-22 18:21:55.737 IST [45984] DETAIL:  Key (email)=(nihar@gmail.com) already exists.
+2025-07-22 18:21:55.737 IST [45984] STATEMENT:  INSERT INTO users(name, email,password_hash,role,client_id)VALUES ($1,$2,$3,$4,$5);
+2025-07-22 18:23:04.068 IST [45984] ERROR:  duplicate key value violates unique constraint "users_email_key"
+2025-07-22 18:23:04.068 IST [45984] DETAIL:  Key (email)=(nihar@gmail.com) already exists.
+2025-07-22 18:23:04.068 IST [45984] STATEMENT:  INSERT INTO users(name, email,password_hash,role,client_id)VALUES ($1,$2,$3,$4,$5);
+2025-07-22 18:23:26.913 IST [52218] ERROR:  duplicate key value violates unique constraint "users_email_key"
+2025-07-22 18:23:26.913 IST [52218] DETAIL:  Key (email)=(nihar@gmail.com) already exists.
+2025-07-22 18:23:26.913 IST [52218] STATEMENT:  INSERT INTO users(name, email,password_hash,role,client_id)VALUES ($1,$2,$3,$4,$5);
+2025-07-22 19:47:55.303 IST [14934] ERROR:  insert or update on table "devices" violates foreign key constraint "devices_client_id_fkey"
+2025-07-22 19:47:55.303 IST [14934] DETAIL:  Key (client_id)=(00000000-0000-0000-0000-000000000001) is not present in table "clients".
+2025-07-22 19:47:55.303 IST [14934] STATEMENT:  INSERT INTO devices (id, client_id, device_id, location)VALUES ('00000000-0000-0000-0000-000000000021','00000000-0000-0000-0000-000000000001','DID-1234','City Mall, Pune');
+2025-07-22 19:56:52.922 IST [12397] LOG:  received smart shutdown request
+2025-07-22 19:56:52.925 IST [12397] LOG:  background worker "logical replication launcher" (PID 12404) exited with exit code 1
+2025-07-22 19:56:52.925 IST [12399] LOG:  shutting down
+2025-07-22 19:56:52.945 IST [12397] LOG:  database system is shut down
+2025-07-23 12:41:15.960 IST [6218] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-07-23 12:41:15.966 IST [6218] LOG:  listening on IPv6 address "::1", port 5432
+2025-07-23 12:41:15.966 IST [6218] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-07-23 12:41:15.967 IST [6218] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-07-23 12:41:15.997 IST [6219] LOG:  database system was shut down at 2025-07-22 19:56:52 IST
+2025-07-23 12:41:16.010 IST [6218] LOG:  database system is ready to accept connections
+2025-07-23 19:40:10.317 IST [6218] LOG:  received smart shutdown request
+2025-07-23 19:40:10.318 IST [6218] LOG:  background worker "logical replication launcher" (PID 6225) exited with exit code 1
+2025-07-23 19:40:10.319 IST [6220] LOG:  shutting down
+2025-07-23 19:40:10.329 IST [6218] LOG:  database system is shut down

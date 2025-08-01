@@ -1,14 +1,13 @@
-var serviceAccount = require("./serviceAccount/serviceAccount.json");
+var serviceAccount = require("./serviceAccount/serviceAccoun.json");
 const admin = require("firebase-admin");
 console.log("Initializing Firebase...");
 
 admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    storageBucket: "gs://swap-80375.appspot.com",
-  });
-  console.log("Firebase initialized successfully!");
+  credential: admin.credential.cert(serviceAccount),
+  storageBucket: "gs://swap-80375.appspot.com",
+});
+console.log("Firebase initialized successfully!");
 
+const fcm = admin.messaging();
 
-  const fcm = admin.messaging();
-
-module.exports = {admin,  fcm}
+module.exports = { admin, fcm };

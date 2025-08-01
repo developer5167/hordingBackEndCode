@@ -3,6 +3,7 @@ const jwtToken = require("jsonwebtoken");
 const { route } = require("../router");
 const router = require("../router");
 const auth = async (req, res, next) => {
+  const {client_id} = req.body
   var auth = req.header("Authorization");
   if (!auth) {
     res.status(400).send({ message: "unauthorised access"});
@@ -11,9 +12,9 @@ const auth = async (req, res, next) => {
     auth = auth.replace("Bearer ", "");
   }
   try {
-    const decode = jwtToken.verify(auth, "THISISTESTAPP");
-    var sql = "SELECT tokens FROM hording_users WHERE email=$1";
-    const { rows } = await client.query(sql, [decode["email"]]);
+    const decode = jwtToken.verify(auth, "THISISTESTAPPFORHORDING");
+    var sql = "SELECT tokens FROM users WHERE email=$1 and client_id = $2";
+    const { rows } = await client.query(sql, [decode["email"],req.client_id]);
     if (rows.length != 0) {
       if (rows[0].tokens.includes(auth)) {
         next();

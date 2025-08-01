@@ -7,12 +7,17 @@ const multer = require("multer");
 const jwtToken = require("jsonwebtoken");
 const { v4: uuidv4 } = require("uuid");
 const auth = require("./middleware/auth");
+const checkValidClient = require("./middleware/checkValidClient");
+const checkDomainAndReturnClientId = require("./middleware/checkDomainAndReturnClientId");
 const client = require("./db");
 const WebSocket = require("ws");
 
 const router = express.Router();
 const timers = {};
 const { admin, fcm } = require("./firebaseAdmin");
+const { secureHeapUsed } = require("crypto");
+const { log } = require("console");
+const e = require("cors");
 
 const upload = multer({ storage: multer.memoryStorage() });
 const bucket = admin.storage().bucket();
@@ -26,13 +31,14 @@ router.get("/", (req, res) => {
 });
 
 router.post("/createUser", async function (req, res) {
-  const { email, password, name, mobile_number, isActive, fcmtoken } = req.body;
+  const { email, password, name, mobile_number, isActive, role, client_id } =
+    req.body;
   const hashedPassword = await bcrypt.hash(password, 8);
-  console.log(email, hashedPassword.length, fcmtoken);
+  console.log(email, hashedPassword.length);
   try {
     await client.query(
-      "INSERT INTO hording_users(email,password,name,mobile_number,isActive,fcmtoken)VALUES($1,$2,$3,$4,$5,$6)",
-      [email, hashedPassword, name, mobile_number, isActive, fcmtoken]
+      "INSERT INTO users(email,password_hash,name,mobile_number,isActive,role,client_id)VALUES($1,$2,$3,$4,$5,$6,$7)",
+      [email, hashedPassword, name, mobile_number, isActive, role, client_id]
     );
     res.status(201).send({ message: "User Created Successfully" });
   } catch (err) {
@@ -85,12 +91,20 @@ router.post("/upload", auth, upload.single("file"), async (req, res) => {
 });
 
 router.post("/sendOtp", async (req, res) => {
-  const { email } = req.body;
+  const { email, client_id } = req.body;
+  if (!email) {
+    res.send({ message: "please enter valid email" });
+    return;
+  }
+  if (!client_id) {
+    res.send({ message: "invalid client_id" });
+    return;
+  }
   try {
-    const validation = await checkEmail(email);
+    const validation = await checkEmail(email, client_id);
     // const validation = true;
     validation
-      ? (await sendEmail(email))
+      ? (await sendEmail(email, client_id))
         ? res.status(200).json({
             message: "OTP sent successfully",
             status: 201,
@@ -104,10 +118,10 @@ router.post("/sendOtp", async (req, res) => {
     res.status(500).json({ error: err });
   }
 });
-async function checkEmail(email) {
-  const query = `SELECT count(*) email from hording_users where email=$1`;
+async function checkEmail(email, client_id) {
+  const query = `SELECT count(*) email from users where email=$1 and client_id = $2`;
   try {
-    const rowss = await client.query(query, [email]);
+    const rowss = await client.query(query, [email, client_id]);
     console.log(rowss.rows[0]["email"]);
     return rowss.rows[0]["email"] == 0 ? false : true;
   } catch (exception) {
@@ -115,7 +129,7 @@ async function checkEmail(email) {
     return false;
   }
 }
-async function sendEmail(email) {
+async function sendEmail(email, client_id) {
   const OTP = Math.floor(100000 + Math.random() * 900000).toString();
   const mailRequest = nodemailer.createTransport({
     host: "smtpout.secureserver.net",
@@ -134,15 +148,15 @@ async function sendEmail(email) {
   try {
     const data = await mailRequest.sendMail(mailingOptions);
     console.log(data);
-    const query = `insert into otp (email,otp) values($1,$2)`;
-    await client.query(query, [email, OTP]);
-    countdown(3 * 60, email);
+    const query = `insert into otp (email,otp,client_id) values($1,$2,$3)`;
+    await client.query(query, [email, OTP, client_id]);
+    countdown(3 * 60, email, client_id);
     return true;
   } catch (excemption) {
     return false;
   }
 }
-const countdown = (duration, email) => {
+const countdown = (duration, email, client_id) => {
   let remainingTime = duration; // Time in seconds
   const timerInterval = setInterval(() => {
     const minutes = Math.floor(remainingTime / 60);
@@ -156,7 +170,7 @@ const countdown = (duration, email) => {
     remainingTime--;
     // Stop the timer when it reaches 0
     if (remainingTime < 0) {
-      deleteOtpFromDB(email);
+      deleteOtpFromDB(email, client_id);
       clearInterval(timerInterval);
       delete timers[timerInterval];
       console.log("Time is up!");
@@ -164,14 +178,14 @@ const countdown = (duration, email) => {
   }, 1000);
   timers[email] = timerInterval;
 };
-const deleteOtpFromDB = async (email) => {
-  const query = "delete from otp where email =$1";
-  await client.query(query, [email]);
+const deleteOtpFromDB = async (email, client_id) => {
+  const query = "delete from otp where email =$1 and client_id = $2";
+  await client.query(query, [email, client_id]);
   console.log("OTP DELETED");
 };
 router.post("/verifyOtp", async (req, res) => {
-  const { email, otp } = req.body;
-  const query = `select otp from otp where email='${email}' order by created_at desc limit 1`;
+  const { email, otp, client_id } = req.body;
+  const query = `select otp from otp where email='${email}' and client_id ='${client_id}' order by created_at desc limit 1`;
   console.log(email, otp);
   try {
     const result = await client.query(query);
@@ -180,8 +194,8 @@ router.post("/verifyOtp", async (req, res) => {
       const DbOtp = result.rows[0]["otp"];
       console.log(DbOtp, otp);
       if (DbOtp === otp) {
-        const query = "delete from otp where email =$1";
-        await client.query(query, [email]);
+        const query = "delete from otp where email =$1 and client_id =$2";
+        await client.query(query, [email, client_id]);
         res.status(200).json({
           message: "OTP Verified successfully",
           email: email,
@@ -201,71 +215,184 @@ router.post("/verifyOtp", async (req, res) => {
       res.status(200).json({ message: "Invalid OTP", status: 203 });
     }
   } catch (err) {
+    console.log(err);
+
     clearInterval(timers[email]); // Cancel the timer
     delete timers[email];
     res.status(500).json({ error: err });
   }
 });
 
-router.post("/changeLoginPassword", async (req, res) => {
-  const { password, email } = req.body;
-  console.log(password, email);
-  if (password == undefined || email == undefined) {
-    res.status(400).json({ message: "Bad request" });
-    return;
+router.post(
+  "/changeLoginPassword",
+  checkValidClient,
+  auth,
+  async (req, res) => {
+    const { password, email } = req.body;
+    console.log(password, email);
+    if (password == undefined || email == undefined) {
+      res.status(400).json({ message: "Bad request" });
+      return;
+    }
+    const encryptPassword = await bcrypt.hash(password, 8);
+    const query = `Update users set password_hash=$1,tokens=$2 where email=$3 and client_id = $4`;
+    try {
+      await client.query(query, [encryptPassword, [], email, req.client_id]);
+      res.status(200).json({
+        message:
+          "Password updated successfully, You have been loggedout of all devices",
+        status: 201,
+      });
+    } catch (excemption) {
+      res.status(500).json({
+        message: "Oops! unable to update password ,please try again later",
+      });
+    }
   }
-  const encryptPassword = await bcrypt.hash(password, 8);
-  const query = `Update hording_users set password=$1,tokens=$2 where email=$3`;
-  try {
-    await client.query(query, [encryptPassword, [], email]);
-    res.status(200).json({
-      message:
-        "Password updated successfully, You have been loggedout of all devices",
-      status: 201,
-    });
-  } catch (excemption) {
-    res.status(500).json({
-      message: "Oops! unable to update password ,please try again later",
-    });
+);
+
+router.get(
+  "/getAdminDashboardCounts",
+  checkValidClient,
+  auth,
+  async (req, res) => {
+    const query = `select count(*) from devices where client_id = '${req.client_id}' and status='active'`;
+    const pendingRewviewAdsCount = `select count(*) from ads where client_id = '${req.client_id}' and status='in_review'`;
+    const emergencyAdsCount = `select count(*) from emergency_ads where client_id ='${req.client_id}' and status='approved'`;
+    const teamMembersCount = `select count(*) from users where client_id ='${req.client_id}' and role!='advertiser'`;
+    try {
+      const deviceCount = await client.query(query);
+      const pendingCount = await client.query(pendingRewviewAdsCount);
+      const emergencyCount = await client.query(emergencyAdsCount);
+      const teamCount = await client.query(teamMembersCount);
+      console.log(
+        deviceCount.rows[0]["count"],
+        pendingCount.rows[0]["count"],
+        emergencyCount.rows[0]["count"],
+        teamCount.rows[0]["count"]
+      );
+      res.status(200).send({
+        active: deviceCount.rows[0]["count"],
+        pendingReviews: pendingCount.rows[0]["count"],
+        emergencyAds: emergencyCount.rows[0]["count"],
+        teamMembers: teamCount.rows[0]["count"],
+      });
+    } catch (excemption) {
+      console.log(excemption);
+
+      res.status(500).json({
+        message: "Oops! unable fetData",
+      });
+    }
   }
-});
+);
 router.post("/saveAdData", async (req, res) => {
   const {
     user_id,
     fileName,
     end_date,
     start_date,
-    device_id,
     description,
     title,
     ad_data,
+    selected_devices,
     isactive,
     isapproved,
     meme_type,
   } = req.body;
-  const query = `insert into ads(ad_id, ad_data, user_id, isapproved, meme_type, isactive, start_date, end_date, title, description, device_id)
-  VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`;
+
+  const query = `
+    INSERT INTO ads (
+      ad_id, ad_data, user_id, isapproved, meme_type,
+      isactive, start_date, end_date, title, description,
+      device_id, file_name
+    )
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+  `;
+
+  const failedDevices = [];
+
   try {
-    await client.query(query, [
-      generateAdId(),
-      ad_data,
-      user_id,
-      isapproved,
-      meme_type,
-      isactive,
-      start_date,
-      end_date,
-      title,
-      description,
-      device_id,
-    ]);
-    res.status(200).send({ message: "Saved Successfully" });
+    for (const device_id of selected_devices || []) {
+      try {
+        await client.query(query, [
+          generateAdId(),
+          ad_data,
+          user_id,
+          isapproved,
+          meme_type,
+          isactive,
+          start_date,
+          end_date,
+          title,
+          description,
+          device_id,
+          fileName,
+        ]);
+      } catch (e) {
+        console.error(`Error inserting for device ${device_id}:`, e);
+        failedDevices.push(device_id);
+        await deleteFileFromStorage(fileName); // Only if needed
+      }
+    }
+
+    if (failedDevices.length > 0) {
+      return res.status(500).json({
+        message: "Some inserts failed",
+        failedDevices,
+      });
+    }
+
+    return res.status(200).json({ message: "All ads saved successfully" });
   } catch (e) {
-    console.log(`Exception: ${e}`);
-    deleteFileFromStorage(fileName);
-    res.status(500).send({ message: "Something went wrong" });
+    console.error("Unexpected error:", e);
+    return res.status(500).json({ message: "Server error", error: e.message });
   }
 });
+
+// router.post("/saveAdData", async (req, res) => {
+//   const {
+//     user_id,
+//     fileName,
+//     end_date,
+//     start_date,
+//     device_id,
+//     description,
+//     title,
+//     ad_data,
+//     selected_devices,
+//     isactive,
+//     isapproved,
+//     meme_type,
+//   } = req.body;
+//   const query = `insert into ads(ad_id, ad_data, user_id, isapproved, meme_type, isactive, start_date, end_date, title, description, device_id,file_name)
+//   VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`;
+
+//   selected_devices.forEach(async(item, index) => {
+// try {
+//     await client.query(query, [
+//       generateAdId(),
+//       ad_data,
+//       user_id,
+//       isapproved,
+//       meme_type,
+//       isactive,
+//       start_date,
+//       end_date,
+//       title,
+//       description,
+//       item,
+//       fileName,
+//     ]);
+//   } catch (e) {
+//     console.log(`Exception: ${e}`);
+//     deleteFileFromStorage(fileName);
+
+//   }
+// });
+//   res.status(500).send({ message: "Something went wrong" });
+//   res.status(200).send({ message: "Saved Successfully" });
+// });
 router.post("/saveCompanyAdData", async (req, res) => {
   const {
     fileName,
@@ -276,8 +403,8 @@ router.post("/saveCompanyAdData", async (req, res) => {
     isactive,
     meme_type,
   } = req.body;
-  const query = `insert into company_ads(ad_id, ad_data, meme_type, isactive, title, description, device_id)
-  VALUES($1,$2,$3,$4,$5,$6,$7)`;
+  const query = `insert into company_ads(ad_id, ad_data, meme_type, isactive, title, description, device_id,file_name)
+  VALUES($1,$2,$3,$4,$5,$6,$7,$8)`;
   try {
     await client.query(query, [
       generateAdId(),
@@ -287,6 +414,7 @@ router.post("/saveCompanyAdData", async (req, res) => {
       title,
       description,
       device_id,
+      fileName,
     ]);
     res.status(200).send({ message: "Saved Successfully" });
   } catch (e) {
@@ -300,73 +428,86 @@ async function deleteFileFromStorage(filePath) {
     await bucket.file(filePath).delete();
     console.log("File deleted successfully");
   } catch (err) {
-    console.error("Error deleting file:", err.message);
+    throw new exception("File Delete failed");
   }
 }
 function generateAdId() {
   const randomNumber = Math.floor(10000000 + Math.random() * 90000000);
   return `AD-${randomNumber}`;
 }
-router.post("/login", async (request, response) => {
-  const { email, password, fcmtoken } = request.body;
-  console.log(email, password);
-  try {
-    var sql = "SELECT email,tokens,password FROM hording_users WHERE email=$1";
-    const { rows } = await client.query(sql, [email]);
-    console.log(rows);
-    const newTokenList = [];
-    if (rows.length != 0) {
-      const existingToken = rows[0].tokens;
+router.post(
+  "/login",
+  checkDomainAndReturnClientId,
+  async (request, response) => {
+    const { email, password } = request.body;
+    console.log(email, password);
+    try {
+      var sql = "SELECT email,tokens,password_hash,client_id FROM users WHERE client_id=$1 and email=$2";
+      
 
-      if (existingToken != null) {
-        for (let i = 0; i < existingToken.length; i++) {
-          newTokenList.push(existingToken[i]);
-        }
+      const rows = await client.query(sql, [request.client_id, email]);
+      console.log(rows);
+      const newTokenList = [];
+      if (rows.rowCount == 0) {
+        response.status(200).send({ message: "Invalid credentials" });
+        return;
       }
-      const DbPassword = rows[0].password;
+      // const existingToken = rows.rows[0].tokens;
+
+      // if (existingToken != null) {
+      // for (let i = 0; i < existingToken.length; i++) {
+      // newTokenList.push(existingToken[i]);
+      // }
+      const DbPassword = rows.rows[0].password_hash;
+      const client_id = rows.rows[0].client_id;
       const isMatched = await bcrypt.compare(password, DbPassword);
       console.log(isMatched);
       if (isMatched) {
-        const newToken = jwtToken.sign({ email }, "THISISTESTAPP");
+        const newToken = jwtToken.sign({ email }, "THISISTESTAPPFORHORDING");
         newTokenList.push(newToken);
         const queryText =
-          "UPDATE hording_users SET tokens =$1,fcmtoken=$3 WHERE email = $2 RETURNING *";
-        await client.query(
-          queryText,
-          [newTokenList, email, fcmtoken],
-          function (err, result) {
-            if (result) {
-              var token = "";
-              if (result.rows[0].tokens.length > 0) {
-                token = result.rows[0].tokens[result.rows[0].tokens.length - 1];
-              } else {
-                token = newToken;
-              }
-              response.status(200).send({
-                email: result.rows[0].email,
-                token: token,
-                user_id: result.rows[0].user_id,
-                name: result.rows[0].name,
-                joined: result.rows[0].joined_date,
-                mobile_number: result.rows[0].mobile_number,
-              });
-            } else {
-              response.status(200).send({
-                message: err["details"],
-              });
-            }
+          "UPDATE users SET tokens =$1 WHERE email = $2  and client_id = $3 RETURNING *";
+        const result = await client.query(queryText, [
+          newTokenList,
+          email,
+          client_id,
+        ]);
+        if (result.rowCount > 0) {
+          var token = "";
+          if (result.rows[0].tokens.length > 0) {
+            token = result.rows[0].tokens[result.rows[0].tokens.length - 1];
+            console.log(token);
+          } else {
+            token = newToken;
           }
-        );
+          var companyDetails = `select name,subscription_status from clients where id ='${client_id}'`;
+          const companyRows = await client.query(companyDetails);
+          response.status(200).send({
+            email: result.rows[0].email,
+            token: token,
+            user_id: result.rows[0].id,
+            name: result.rows[0].name,
+            joined: result.rows[0].created_at,
+            client_id: result.rows[0].client_id,
+            role: result.rows[0].role,
+            companyName:companyRows.rows[0].name,
+            subscriptionStatus:companyRows.rows[0].subscription_status, 
+          });
+        } else {
+          response.status(200).send({
+            message: err["details"],
+          });
+        }
       } else {
-        response.status(500).send({ message: "invalid credentials" });
+        response.status(200).send({ message: "Invalid credentials" });
       }
-    } else {
-      response.status(500).send({ message: "invalid credentials" });
+    } catch (e) {
+      response.status(500).send({ message: "Something went wrong" });
+
+      console.log(e);
     }
-  } catch (e) {
-    console.log(e);
   }
-});
+);
 
 router.get("/fetchAds", async (req, response) => {
   const { device_id } = req.query;
@@ -417,7 +558,7 @@ router.get("/fetchAds", async (req, response) => {
   }
 });
 
-router.get("/fetchUserActiveAds", async (req, response) => {
+router.get("/fetchUserActiveAds", auth, async (req, response) => {
   const { user_id } = req.query;
   const query = `SELECT * FROM ads WHERE NOW() BETWEEN start_date AND end_date AND isapproved=true and isactive=true and user_id=${user_id}`;
   const result2 = await client.query(query);
@@ -427,7 +568,7 @@ router.get("/fetchUserActiveAds", async (req, response) => {
     response.status(200).json([]);
   }
 });
-router.get("/fetchUserPausedAds", async (req, response) => {
+router.get("/fetchUserPausedAds", auth, async (req, response) => {
   const { user_id } = req.query;
   const query = `SELECT * FROM ads WHERE NOW() BETWEEN start_date AND end_date AND isactive=false and user_id=${user_id}`;
   const result2 = await client.query(query);
@@ -437,9 +578,9 @@ router.get("/fetchUserPausedAds", async (req, response) => {
     response.status(200).json([]);
   }
 });
-router.get("/fetchUserInReviewAds", async (req, response) => {
+router.get("/fetchUserInReviewAds", auth, async (req, response) => {
   const { user_id } = req.query;
-  const query = `SELECT * FROM ads WHERE NOW() BETWEEN start_date AND end_date AND isapproved=false and isactive=false and user_id=${user_id}`;
+  const query = `SELECT * FROM ads WHERE NOW() BETWEEN start_date AND end_date AND isapproved=false and isactive=true and user_id=${user_id}`;
   const result2 = await client.query(query);
   if (result2.rowCount > 0) {
     response.status(200).json(result2.rows);
@@ -447,7 +588,7 @@ router.get("/fetchUserInReviewAds", async (req, response) => {
     response.status(200).json([]);
   }
 });
-router.get("/fetchUserExpiredAds", async (req, response) => {
+router.get("/fetchUserExpiredAds", auth, async (req, response) => {
   const { user_id } = req.query;
   const query = `SELECT * FROM ads WHERE NOW() > end_date and user_id=${user_id}`;
   const result2 = await client.query(query);
@@ -457,8 +598,18 @@ router.get("/fetchUserExpiredAds", async (req, response) => {
     response.status(200).json([]);
   }
 });
+router.get("/p", auth, async (req, response) => {
+  const { user_id } = req.query;
+  const query = `SELECT * FROM ads WHERE isRejected=true and user_id=${user_id}`;
+  const result2 = await client.query(query);
+  if (result2.rowCount > 0) {
+    response.status(200).json(result2.rows);
+  } else {
+    response.status(200).json([]);
+  }
+});
 
-router.get("/getDeviceIds", async (request, response) => {
+router.get("/getDeviceIds", auth, async (request, response) => {
   const query = `select * from hording_devices`;
   try {
     const result = await client.query(query);
@@ -472,7 +623,7 @@ router.get("/getDeviceIds", async (request, response) => {
   }
 });
 
-router.get("/getStatics", async (request, response) => {
+router.get("/getStatics", auth, async (request, response) => {
   const { ad_id } = request.query;
   const query = `select * from stats where ad_id = '${ad_id}'`;
   try {
@@ -486,7 +637,7 @@ router.get("/getStatics", async (request, response) => {
     response.status(500);
   }
 });
-router.post("/addStats", async (request, response) => {
+router.post("/addStats", auth, async (request, response) => {
   const { ad_id, user_id, device_id, time_at, end_time } = request.body;
   const insertQuery = `insert into stats(ad_id,user_id,time_at,device_id,end_time)VALUES($1,$2,$3,$4,$5)`;
   try {
@@ -503,7 +654,7 @@ router.post("/addStats", async (request, response) => {
     response.status(500);
   }
 });
-router.get("/turnOfClientAds", async (request, response) => {
+router.get("/turnOfClientAds", auth, async (request, response) => {
   const { device_id, isEnabled } = request.query;
   const insertQuery = `update show_ad_type set disable_client_ads=${isEnabled} where device_id = '${device_id}' RETURNING *`;
   try {
@@ -514,7 +665,7 @@ router.get("/turnOfClientAds", async (request, response) => {
     response.status(500);
   }
 });
-router.get("/turnOffAllAds", async (request, response) => {
+router.get("/turnOffAllAds", auth, async (request, response) => {
   const { device_id, isEnabled } = request.query;
   const insertQuery = `update show_ad_type set pause_all_ads=${isEnabled} where device_id = '${device_id}' RETURNING *`;
   try {
@@ -525,7 +676,7 @@ router.get("/turnOffAllAds", async (request, response) => {
     response.status(500);
   }
 });
-router.get("/getAllSettingsEvent", async (request, response) => {
+router.get("/getAllSettingsEvent", auth, async (request, response) => {
   const { device_id } = request.query;
   const insertQuery = `select * from show_ad_type where device_id ='${device_id}'`;
   try {
@@ -533,13 +684,106 @@ router.get("/getAllSettingsEvent", async (request, response) => {
     const device_id = result.rows[0]["device_id"];
     const disable_client_ads = result.rows[0]["disable_client_ads"];
     const pause_all_ads = result.rows[0]["pause_all_ads"];
-    response
-      .status(200)
-      .json({ deviceId: device_id, showClientAds: disable_client_ads,pauseAllAds:pause_all_ads });
+    response.status(200).json({
+      deviceId: device_id,
+      showClientAds: disable_client_ads,
+      pauseAllAds: pause_all_ads,
+    });
   } catch (e) {
     console.log(e);
     response.status(500);
   }
 });
+
+router.get("/deleteAd", auth, async (request, response) => {
+  const { user_id, ad_id } = request.query;
+  const selectQuery = `select file_name from ads where user_id=$1 and ad_id=$2`;
+  try {
+    const result = await client.query(selectQuery, [user_id, ad_id]);
+    const fileName = result.rows[0]["file_name"];
+    deleteFileFromStorage(fileName);
+    const query = `delete from ads where user_id=$1 and ad_id=$2`;
+    try {
+      await client.query(query, [user_id, ad_id]);
+      response.status(200).send({ message: "Ad deleted successfully" });
+    } catch (e) {
+      response.status(500);
+    }
+  } catch (e) {
+    response.status(500);
+  }
+});
+router.post("/pausePlayAds", auth, async (request, response) => {
+  const { pauseOrPlay, ad_id, user_id } = request.body;
+  const query = `update ads set isActive = $1 where ad_id = $2 and user_id = $3 RETURNING *`;
+  try {
+    const result = await client.query(query, [pauseOrPlay, ad_id, user_id]);
+    response.status(200).json(result.rows[0]);
+  } catch (e) {
+    console.log(e);
+    response.status(500);
+  }
+});
+
+router.post("/add_client", async (request, response) => {
+  const { name, email } = request.body;
+  const query = `INSERT INTO clients (name, email)VALUES ($1, $2);`;
+  try {
+    const result = await client.query(query, [name, email]);
+    response.status(200).send({ message: "client added successfully" });
+  } catch (e) {
+    if (
+      e.toString().includes("duplicate key value violates unique constraint")
+    ) {
+      console.log(e);
+      response.status(200).send({ message: "email already exists" });
+    }
+  }
+});
+router.post("/createAccount", checkValidClient, async (request, response) => {
+  const { name, email, password, role } = request.body;
+  const query = `INSERT INTO users(name, email,password_hash,role,client_id)VALUES ($1,$2,$3,$4,$5);`;
+  try {
+    await client.query(query, [name, email, password, role, request.client_id]);
+    response.status(200).send({ message: "account created successfully" });
+  } catch (e) {
+    console.log(e);
+    if (
+      e.toString().includes("duplicate key value violates unique constraint")
+    ) {
+      console.log(e);
+      response.status(200).send({ message: "email already exists" });
+    }
+  }
+});
+
+router.get(
+  "/getRecentAdSubmission",
+  checkDomainAndReturnClientId,
+  auth,
+  async (request, response) => {
+    const query = `select title,description,status,created_at from ads where client_id='${request.client_id}' order by created_at limit 4`;
+    try {
+      const result = await client.query(query);
+      response.status(200).json(result.rows);
+    } catch (e) {
+      response.status(500).send("Something went wrong");
+    }
+  }
+);
+router.get(
+  "/getScreenStatus",
+  checkDomainAndReturnClientId,
+  auth,
+  async (request, response) => {
+    const query = `select device_id,location,status,registered_at from devices where client_id='${request.client_id}' order by registered_at limit 4`;
+    try {
+      const result = await client.query(query);
+      response.status(200).json(result.rows);
+    } catch (e) {
+      response.status(500).send("Something went wrong");
+    }
+  }
+);
 
 module.exports = router;
