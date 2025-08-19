@@ -18,6 +18,7 @@ const { admin, fcm } = require("./firebaseAdmin");
 const { secureHeapUsed } = require("crypto");
 const { log } = require("console");
 const e = require("cors");
+const { request } = require("http");
 
 const upload = multer({ storage: multer.memoryStorage() });
 const bucket = admin.storage().bucket();
@@ -30,7 +31,7 @@ router.get("/", (req, res) => {
   res.send("welcome");
 });
 
-router.post("/createUser", async function (req, res) {
+router.post("/createUser",checkDomainAndReturnClientId, async function (req, res) {
   const { email, password, name, mobile_number, isActive, role, client_id } =
     req.body;
   const hashedPassword = await bcrypt.hash(password, 8);
@@ -39,6 +40,27 @@ router.post("/createUser", async function (req, res) {
     await client.query(
       "INSERT INTO users(email,password_hash,name,mobile_number,isActive,role,client_id)VALUES($1,$2,$3,$4,$5,$6,$7)",
       [email, hashedPassword, name, mobile_number, isActive, role, client_id]
+    );
+    res.status(201).send({ message: "User Created Successfully" });
+  } catch (err) {
+    console.log(err["detail"]);
+    const value = err["detail"];
+    if (value.includes("already exists")) {
+      res.status(200).send({ message: "User already exists" });
+    } else {
+      res.status(500).send({ message: value });
+    }
+  }
+});
+router.post("/createRole",checkValidClient,auth, async function (req, res) {
+  const { email, password_hash, name, mobile_number, role } =
+    req.body;
+  const hashedPassword = await bcrypt.hash(password_hash, 8);
+  console.log(email, hashedPassword.length);
+  try {
+    await client.query(
+      "INSERT INTO users(email,password_hash,name,mobile_number,isActive,role,client_id)VALUES($1,$2,$3,$4,$5,$6,$7)",
+      [email, hashedPassword, name, mobile_number, true, role, req.client_id]
     );
     res.status(201).send({ message: "User Created Successfully" });
   } catch (err) {
@@ -258,7 +280,7 @@ router.get(
   async (req, res) => {
     const query = `select count(*) from devices where client_id = '${req.client_id}' and status='active'`;
     const pendingRewviewAdsCount = `select count(*) from ads where client_id = '${req.client_id}' and status='in_review'`;
-    const emergencyAdsCount = `select count(*) from emergency_ads where client_id ='${req.client_id}' and status='approved'`;
+    const emergencyAdsCount = `select count(*) from emergency_ads where client_id ='${req.client_id}' and status=true`;
     const teamMembersCount = `select count(*) from users where client_id ='${req.client_id}' and role!='advertiser'`;
     try {
       const deviceCount = await client.query(query);
@@ -442,8 +464,8 @@ router.post(
     const { email, password } = request.body;
     console.log(email, password);
     try {
-      var sql = "SELECT email,tokens,password_hash,client_id FROM users WHERE client_id=$1 and email=$2";
-      
+      var sql =
+        "SELECT email,tokens,password_hash,client_id FROM users WHERE client_id=$1 and email=$2";
 
       const rows = await client.query(sql, [request.client_id, email]);
       console.log(rows);
@@ -490,8 +512,8 @@ router.post(
             joined: result.rows[0].created_at,
             client_id: result.rows[0].client_id,
             role: result.rows[0].role,
-            companyName:companyRows.rows[0].name,
-            subscriptionStatus:companyRows.rows[0].subscription_status, 
+            companyName: companyRows.rows[0].name,
+            subscriptionStatus: companyRows.rows[0].subscription_status,
           });
         } else {
           response.status(200).send({
@@ -741,10 +763,10 @@ router.post("/add_client", async (request, response) => {
   }
 });
 router.post("/createAccount", checkValidClient, async (request, response) => {
-  const { name, email, password, role } = request.body;
-  const query = `INSERT INTO users(name, email,password_hash,role,client_id)VALUES ($1,$2,$3,$4,$5);`;
+  const { name, email, password, role,mobileNumber } = request.body;
+  const query = `INSERT INTO users(name, email,password_hash,role,client_id,mobile_number)VALUES ($1,$2,$3,$4,$5,$6);`;
   try {
-    await client.query(query, [name, email, password, role, request.client_id]);
+    await client.query(query, [name, email, password, role, request.client_id,mobileNumber]);
     response.status(200).send({ message: "account created successfully" });
   } catch (e) {
     console.log(e);
@@ -776,7 +798,7 @@ router.get(
   checkDomainAndReturnClientId,
   auth,
   async (request, response) => {
-    const query = `select device_id,location,status,registered_at from devices where client_id='${request.client_id}' order by registered_at limit 4`;
+    const query = `select device_name,location,status,registered_at from devices where client_id='${request.client_id}' order by registered_at limit 4`;
     try {
       const result = await client.query(query);
       response.status(200).json(result.rows);
@@ -785,5 +807,289 @@ router.get(
     }
   }
 );
+router.get(
+  "/getScreenManagementCounts",
+  checkValidClient,
+  auth,
+  async (req, res) => {
+    const query = `select count(*) from devices where client_id = '${req.client_id}'`;
+    const onlineDevices = `select count(*) from devices where client_id = '${req.client_id}' and status='active'`;
+    const offlineDevices = `select count(*) from devices where client_id ='${req.client_id}' and status='offline'`;
+    const playingAds = `select count(*) from ads where client_id ='${req.client_id}' and status='approved'`;
+    try {
+      const deviceCount = await client.query(query);
+      const onlineDevicesCount = await client.query(onlineDevices);
+      const offlineCount = await client.query(offlineDevices);
+      const playingAdsCount = await client.query(playingAds);
+      console.log(
+        deviceCount.rows[0]["count"],
+        onlineDevicesCount.rows[0]["count"],
+        offlineCount.rows[0]["count"],
+        playingAdsCount.rows[0]["count"]
+      );
+      res.status(200).send({
+        totalDevices: deviceCount.rows[0]["count"],
+        onlineDevices: onlineDevicesCount.rows[0]["count"],
+        offlineDevices: offlineCount.rows[0]["count"],
+        playingAds: playingAdsCount.rows[0]["count"],
+      });
+    } catch (excemption) {
+      console.log(excemption);
 
+      res.status(500).json({
+        message: "Oops! unable fetData",
+      });
+    }
+  }
+);
+
+router.get("/getAllScreensData", checkValidClient, auth, async (req, res) => {
+  // const query = `SELECT a.*, d.device_name,d.location,d.status AS device_status,d.registered_at FROM ads a  JOIN devices d ON a.device_id=d.id where a.client_id='${req.client_id}' and d.client_id = '${req.client_id}'`;
+  const query = `SELECT 
+    d.id AS device_id,
+    d.device_name,
+    d.location,
+    d.status AS device_status,
+    d.registered_at,
+    d.emergency_mode,
+    json_agg(
+        json_build_object(
+            'ad_id', a.id,
+            'title', a.title,
+            'description', a.description,
+            'created_at', a.created_at,
+            'started_at',a.start_time ,
+            'end_time',a.end_time,
+            'media_type',a.media_type,
+            'media_url',a.media_url,
+            'status',a.status
+        )
+    ) AS ads
+FROM devices d
+LEFT JOIN ads a ON a.device_id = d.id AND a.client_id = d.client_id
+WHERE d.client_id = '${req.client_id}'
+GROUP BY d.id, d.device_name, d.location, d.status, d.registered_at,d.emergency_mode;`;
+
+  try {
+    const adsAndDeviceData = await client.query(query);
+    res.status(200).json(adsAndDeviceData.rows);
+  } catch (excemption) {
+    console.log(excemption);
+
+    res.status(500).json({
+      message: "Oops! unable fetData",
+    });
+  }
+});
+router.get("/getAdReviewCounts", checkValidClient, auth, async (req, res) => {
+  const query = `select count(*) from ads where client_id = '${req.client_id}' and status='in_review'`;
+  const todayApproved = `SELECT status, COUNT(*) AS count FROM ads WHERE client_id = '${req.client_id}'and DATE(status_updated_at) = CURRENT_DATE GROUP BY status;`;
+  const rejected = `select count(*) from ads where client_id ='${req.client_id}' and status='rejected'`;
+  const totalReviewed = `select count(*) from ads where client_id ='${req.client_id}' and status!='in_review'`;
+  try {
+    const reviewPendingCount = await client.query(query);
+    const todayApprovedCount = await client.query(todayApproved);
+    const recjectedCount = await client.query(rejected);
+    const totalReviewedCount = await client.query(totalReviewed);
+    console.log(
+      reviewPendingCount.rows[0]["count"],
+      todayApprovedCount.rows,
+      recjectedCount.rows[0]["count"],
+      totalReviewedCount.rows[0]["count"]
+    );
+    res.status(200).send({
+      totalPending: reviewPendingCount.rows[0]["count"],
+      approvedToday: todayApprovedCount.rows,
+      rejected: recjectedCount.rows[0]["count"],
+      totalReviewed: totalReviewedCount.rows[0]["count"],
+    });
+  } catch (excemption) {
+    console.log(excemption);
+
+    res.status(500).json({
+      message: "Oops! unable fetData",
+    });
+  }
+});
+router.get("/getAdreviewData", checkValidClient, auth, async (req, res) => {
+  const query = `select * from ads where client_id = '${req.client_id}' and status='in_review'`;
+  const approved = `select * from ads where client_id = '${req.client_id}' and status='approved'`;
+  const rejected = `select * from ads where client_id = '${req.client_id}' and status='rejected'`;
+  try {
+    const reviewPendingCount = await client.query(query);
+    const todayApprovedCount = await client.query(approved);
+    const recjectedCount = await client.query(rejected);
+    console.log(
+      reviewPendingCount.rows,
+      todayApprovedCount.rows,
+      recjectedCount.rows
+    );
+    res.status(200).send({
+      pendingAds: reviewPendingCount.rows,
+      approvedAds: todayApprovedCount.rows,
+      rejected: recjectedCount.rows,
+    });
+  } catch (excemption) {
+    console.log(excemption);
+
+    res.status(500).json({
+      message: "Oops! unable fetData",
+    });
+  }
+});
+router.post(
+  "/deviceAction",
+  checkValidClient,
+  auth,
+  async (request, response) => {
+    const { device_id, status } = request.body;
+    const query = `update devices set status ='${status}' where client_id = '${request.client_id}' and id ='${device_id}' RETURNING *`;
+
+    try {
+      const result = await client.query(query);
+      response.status(200).json(result.rows[0]);
+    } catch (e) {
+      response.status(500).send({ message: "somthing went wrong" });
+    }
+  }
+);
+router.post(
+  "/enableEmergencyMode",
+  checkValidClient,
+  auth,
+  async (request, response) => {
+    const { device_id, status } = request.body;
+    const query = `update devices set emergency_mode ='${status}' where client_id = '${request.client_id}' and id ='${device_id}' RETURNING *`;
+
+    try {
+      const result = await client.query(query);
+      response.status(200).json(result.rows[0]);
+    } catch (e) {
+      response.status(500).send({ message: "somthing went wrong" });
+    }
+  }
+);  
+router.post(
+  "/approveRejectAd",
+  checkValidClient,
+  auth,
+  async (request, response) => {
+    const { ad_id, status } = request.body;
+    const query = `update ads set status ='${status}' where client_id = '${request.client_id}' and id ='${ad_id}'`;
+    try {
+      const result = await client.query(query);
+      response.status(200).json(result.rows[0]);
+    } catch (e) {
+      response.status(500).send({ message: "somthing went wrong" });
+    }
+  }
+);
+router.get(
+  "/checkDeviceStatus",
+  checkValidClient,
+  auth,
+  async (request, response) => {
+    const { device_id } = request.query;
+    const query = `
+SELECT 
+    d.id AS device_id,
+    d.device_name,
+    d.location,
+    d.status AS device_status,
+    d.registered_at,
+    d.emergency_mode,
+    json_agg(
+        json_build_object(
+            'ad_id', a.id,
+            'title', a.title,
+            'description', a.description,
+            'created_at', a.created_at,
+            'started_at',a.start_time ,
+            'end_time',a.end_time,
+            'media_type',a.media_type,
+            'media_url',a.media_url,
+            'status',a.status
+          
+        )
+    ) AS ads
+FROM devices d
+LEFT JOIN ads a 
+    ON a.device_id = d.id 
+    AND a.client_id = d.client_id
+WHERE d.client_id = '${request.client_id}'
+  AND d.id = '${device_id}'
+GROUP BY d.id, d.device_name, d.location, d.status, d.registered_at,d.emergency_mode;
+`;
+    try {
+      const result = await client.query(query);
+      response.status(200).json(result.rows[0]);
+    } catch (e) {
+      response.status(500).send({ message: "somthing went wrong" });
+    }
+  }
+);
+
+router.get("/getDevices",checkValidClient,auth,async(request,response)=>{
+  const query = `select * from devices where client_id = $1`
+
+  try{
+    const result = await client.query(query,[request.client_id])
+    response.status(200).json(result.rows)
+  }catch(e){
+    response.status(500).send({message:'error fetching devices'})
+  }
+
+})
+router.get("/getEmergencyAds",checkValidClient,auth,async(request,response)=>{
+  const {id}=request.query
+  const query = `select * from ads where client_id = $1 and device_id=$2`
+
+  try{
+    const result = await client.query(query,[request.client_id,id])
+    response.status(200).json(result.rows)
+  }catch(e){
+    response.status(500).send({message:'error fetching devices'})
+  }
+
+})
+router.get("/saveDevice",checkValidClient,auth,async(request,response)=>{
+  const {status,location}=request.query
+  const nameQuery = `select name from clients where id = '${request.client_id}'`
+  
+  try{
+  const nameResult = await client.query(nameQuery)
+  const name = nameResult.rows[0]['name']
+
+  const query = `insert into devices (client_id,device_name,location,status)VALUES('${request.client_id}','${generateDID(name)}','${location}','${status}')`
+  try{
+    const result = await client.query(query)
+    response.status(200).send({message:'Device added'})
+  }catch(e){
+    response.status(200).send({message:'error adding device'})
+  }
+  }catch(e){
+    response.status(200).send({message:'error finding client'})
+  }
+
+})
+function generateDID(str) {
+  // Take first 4 characters and make them uppercase
+  const prefix = str.substring(0, 4).toUpperCase();
+  
+  // Generate a random 4-digit number (1000–9999)
+  const randomNum = Math.floor(1000 + Math.random() * 9000);
+
+  return `${prefix}-${randomNum}`;
+}
+
+router.get("/deleteDevice",checkValidClient,auth,async(request,response)=>{
+  const {id}=request.query
+  const query = `delete from devices where id=$1 and client_id =$2`
+  try{
+    const result = await client.query(query,[id,request.client_id])
+    response.status(200).send({message:'Device deleted'})
+  }catch(e){
+    response.status(200).send({message:'Error deleting device'})
+  }
+})
 module.exports = router;

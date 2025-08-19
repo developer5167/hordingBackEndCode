@@ -654,3 +654,625 @@
 2025-07-23 19:40:10.318 IST [6218] LOG:  background worker "logical replication launcher" (PID 6225) exited with exit code 1
 2025-07-23 19:40:10.319 IST [6220] LOG:  shutting down
 2025-07-23 19:40:10.329 IST [6218] LOG:  database system is shut down
+2025-08-03 20:48:49.275 IST [86110] FATAL:  lock file "postmaster.pid" already exists
+2025-08-03 20:48:49.275 IST [86110] HINT:  Is another postmaster (PID 3606) running in data directory "/usr/local/var/postgres@14"?
+2025-08-03 20:48:58.869 IST [86349] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-08-03 20:48:58.872 IST [86349] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-08-03 20:48:58.873 IST [86349] LOG:  listening on IPv6 address "::1", port 5432
+2025-08-03 20:48:58.873 IST [86349] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-08-03 20:48:58.896 IST [86351] LOG:  database system was shut down at 2025-08-03 20:48:56 IST
+2025-08-03 20:48:58.908 IST [86349] LOG:  database system is ready to accept connections
+2025-08-03 21:44:35.090 IST [96710] ERROR:  column "status" does not exist at character 88
+2025-08-03 21:44:35.090 IST [96710] STATEMENT:  select count(*) from users where client_id ='7a8ebf2f-f5cc-46fd-aac4-2940ada82812' and status='approved'
+2025-08-04 12:45:40.430 IST [95554] ERROR:  operator does not exist: uuid = text at character 35
+2025-08-04 12:45:40.430 IST [95554] HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+2025-08-04 12:45:40.430 IST [95554] STATEMENT:  SELECT *
+	FROM ads
+	WHERE device_id IN (SELECT device_id FROM devices);
+2025-08-04 12:48:33.181 IST [95554] ERROR:  syntax error at or near "devices" at character 7
+2025-08-04 12:48:33.181 IST [95554] STATEMENT:  alter devices alter column device_id rename to device_name
+	
+2025-08-04 12:48:46.511 IST [95554] ERROR:  syntax error at or near "rename" at character 44
+2025-08-04 12:48:46.511 IST [95554] STATEMENT:  alter table devices alter column device_id rename to device_name
+	
+2025-08-04 12:49:46.230 IST [95554] ERROR:  syntax error at or near "column" at character 36
+2025-08-04 12:49:46.230 IST [95554] STATEMENT:  alter table devices alter   rename column device_id to device_name
+	
+2025-08-04 13:01:16.491 IST [95554] ERROR:  syntax error at or near "." at character 13
+2025-08-04 13:01:16.491 IST [95554] STATEMENT:  SELECT a.* d.device_name,d.location,d.status,d.registered_at FROM ads a JOIN devices d ON a.device_id=d.id
+2025-08-04 14:20:49.160 IST [95554] ERROR:  syntax error at or near "JOIN" at character 146
+2025-08-04 14:20:49.160 IST [95554] STATEMENT:  SELECT a.*, d.device_name,d.location,d.status AS device_status,d.registered_at FROM ads a where client_id='7a8ebf2f-f5cc-46fd-aac4-2940ada82812' JOIN devices d ON a.device_id=d.id
+2025-08-04 14:21:33.490 IST [95554] ERROR:  column reference "client_id" is ambiguous at character 133
+2025-08-04 14:21:33.490 IST [95554] STATEMENT:  SELECT a.*, d.device_name,d.location,d.status AS device_status,d.registered_at FROM ads a  JOIN devices d ON a.device_id=d.id where client_id='7a8ebf2f-f5cc-46fd-aac4-2940ada82812'
+2025-08-04 14:22:18.892 IST [95554] ERROR:  syntax error at or near "7" at character 220
+2025-08-04 14:22:18.892 IST [95554] STATEMENT:  SELECT a.*, d.device_name,d.location,d.status AS device_status,d.registered_at FROM ads a  JOIN devices d ON a.device_id=d.id where a.client_id='7a8ebf2f-f5cc-46fd-aac4-2940ada82812' and d.client_id = 'where client_id='7a8ebf2f-f5cc-46fd-aac4-2940ada82812'
+2025-08-04 14:28:52.254 IST [13815] ERROR:  invalid input syntax for type uuid: "$1" at character 145
+2025-08-04 14:28:52.254 IST [13815] STATEMENT:  SELECT a.*, d.device_name,d.location,d.status AS device_status,d.registered_at FROM ads a  JOIN devices d ON a.device_id=d.id where a.client_id='$1' and d.client_id = '$1'
+2025-08-04 14:29:44.695 IST [14006] ERROR:  invalid input syntax for type uuid: "$1" at character 145
+2025-08-04 14:29:44.695 IST [14006] STATEMENT:  SELECT a.*, d.device_name,d.location,d.status AS device_status,d.registered_at FROM ads a  JOIN devices d ON a.device_id=d.id where a.client_id='$1' and d.client_id = '$1'
+2025-08-04 14:30:21.607 IST [14145] ERROR:  invalid input syntax for type uuid: "$1" at character 145
+2025-08-04 14:30:21.607 IST [14145] STATEMENT:  SELECT a.*, d.device_name,d.location,d.status AS device_status,d.registered_at FROM ads a  JOIN devices d ON a.device_id=d.id where a.client_id='$1' and d.client_id = '$2'
+2025-08-04 14:31:33.287 IST [14291] ERROR:  bind message supplies 2 parameters, but prepared statement "" requires 0
+2025-08-04 14:31:33.287 IST [14291] STATEMENT:  SELECT a.*, d.device_name,d.location,d.status AS device_status,d.registered_at FROM ads a  JOIN devices d ON a.device_id=d.id where a.client_id='7a8ebf2f-f5cc-46fd-aac4-2940ada82812' and d.client_id = '7a8ebf2f-f5cc-46fd-aac4-2940ada82812'
+2025-08-04 14:36:39.326 IST [14402] ERROR:  column "device_id" does not exist at character 8
+2025-08-04 14:36:39.326 IST [14402] STATEMENT:  select device_id,location,status,registered_at from devices where client_id='7a8ebf2f-f5cc-46fd-aac4-2940ada82812' order by registered_at limit 4
+2025-08-04 14:37:20.907 IST [14402] ERROR:  column "device_id" does not exist at character 8
+2025-08-04 14:37:20.907 IST [14402] STATEMENT:  select device_id,location,status,registered_at from devices where client_id='7a8ebf2f-f5cc-46fd-aac4-2940ada82812' order by registered_at limit 4
+2025-08-04 14:37:48.781 IST [14708] ERROR:  column "device_id" does not exist at character 8
+2025-08-04 14:37:48.781 IST [14708] STATEMENT:  select device_id,location,status,registered_at from devices where client_id='7a8ebf2f-f5cc-46fd-aac4-2940ada82812' order by registered_at limit 4
+2025-08-04 14:38:55.407 IST [14796] ERROR:  column "device_id" does not exist at character 8
+2025-08-04 14:38:55.407 IST [14796] STATEMENT:  select device_id,location,status,registered_at from devices where client_id='7a8ebf2f-f5cc-46fd-aac4-2940ada82812' order by registered_at limit 4
+2025-08-04 14:39:07.648 IST [14796] ERROR:  column "device_id" does not exist at character 8
+2025-08-04 14:39:07.648 IST [14796] STATEMENT:  select device_id,location,status,registered_at from devices where client_id='7a8ebf2f-f5cc-46fd-aac4-2940ada82812' order by registered_at limit 4
+2025-08-04 14:40:06.588 IST [14796] ERROR:  column "device_id" does not exist at character 8
+2025-08-04 14:40:06.588 IST [14796] STATEMENT:  select device_id,location,status,registered_at from devices where client_id='7a8ebf2f-f5cc-46fd-aac4-2940ada82812' order by registered_at limit 4
+2025-08-04 14:40:23.313 IST [14796] ERROR:  column "device_id" does not exist at character 8
+2025-08-04 14:40:23.313 IST [14796] STATEMENT:  select device_id,location,status,registered_at from devices where client_id='7a8ebf2f-f5cc-46fd-aac4-2940ada82812' order by registered_at limit 4
+2025-08-04 19:12:15.646 IST [86349] LOG:  received smart shutdown request
+2025-08-04 19:12:15.649 IST [86349] LOG:  background worker "logical replication launcher" (PID 86358) exited with exit code 1
+2025-08-04 19:12:15.649 IST [86352] LOG:  shutting down
+2025-08-04 19:12:15.664 IST [86349] LOG:  database system is shut down
+2025-08-05 22:35:08.382 IST [59961] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-08-05 22:35:08.386 IST [59961] LOG:  listening on IPv6 address "::1", port 5432
+2025-08-05 22:35:08.386 IST [59961] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-08-05 22:35:08.387 IST [59961] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-08-05 22:35:08.413 IST [59962] LOG:  database system was shut down at 2025-08-04 19:12:15 IST
+2025-08-05 22:35:08.427 IST [59961] LOG:  database system is ready to accept connections
+2025-08-05 23:36:16.820 IST [60363] ERROR:  relation "your_table" does not exist at character 39
+2025-08-05 23:36:16.820 IST [60363] STATEMENT:  SELECT status, COUNT(*) AS count
+	FROM your_table
+	WHERE DATE(status_updated_at) = CURRENT_DATE
+	GROUP BY status;
+2025-08-06 01:19:33.591 IST [65508] ERROR:  syntax error at end of input at character 111
+2025-08-06 01:19:33.591 IST [65508] STATEMENT:  select count(*) from ads where client_id ='7a8ebf2f-f5cc-46fd-aac4-2940ada82812' and status!='advertiser' and 
+2025-08-08 13:04:44.399 IST [60363] ERROR:  syntax error at or near "where" at character 12
+2025-08-08 13:04:44.399 IST [60363] STATEMENT:  update ads where status ='in_review'
+	
+2025-08-08 13:04:53.944 IST [60363] ERROR:  syntax error at or near "where" at character 12
+2025-08-08 13:04:53.944 IST [60363] STATEMENT:  update ads where status ='in_review'
+	
+2025-08-09 00:13:31.876 IST [88234] ERROR:  invalid input syntax for type uuid: "undefined" at character 101
+2025-08-09 00:13:31.876 IST [88234] STATEMENT:  update ads set status ='undefined' where client_id = '7a8ebf2f-f5cc-46fd-aac4-2940ada82812' and id ='undefined'
+2025-08-09 00:13:49.653 IST [88344] ERROR:  invalid input syntax for type uuid: "undefined" at character 101
+2025-08-09 00:13:49.653 IST [88344] STATEMENT:  update ads set status ='undefined' where client_id = '7a8ebf2f-f5cc-46fd-aac4-2940ada82812' and id ='undefined'
+2025-08-12 23:15:11.842 IST [2262] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-08-12 23:15:11.845 IST [2262] LOG:  listening on IPv6 address "::1", port 5432
+2025-08-12 23:15:11.845 IST [2262] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-08-12 23:15:11.846 IST [2262] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-08-12 23:15:11.874 IST [2263] LOG:  database system was shut down at 2025-08-12 20:02:48 IST
+2025-08-12 23:15:11.882 IST [2262] LOG:  database system is ready to accept connections
+2025-08-12 23:18:17.254 IST [2306] ERROR:  invalid input syntax for type boolean: "approved" at character 103
+2025-08-12 23:18:17.254 IST [2306] STATEMENT:  select count(*) from emergency_ads where client_id ='7a8ebf2f-f5cc-46fd-aac4-2940ada82812' and status='approved'
+2025-08-13 12:32:42.400 IST [6457] ERROR:  invalid input syntax for type boolean: "approved" at character 103
+2025-08-13 12:32:42.400 IST [6457] STATEMENT:  select count(*) from emergency_ads where client_id ='7a8ebf2f-f5cc-46fd-aac4-2940ada82812' and status='approved'
+2025-08-13 12:33:46.625 IST [6457] ERROR:  invalid input syntax for type boolean: "approved" at character 103
+2025-08-13 12:33:46.625 IST [6457] STATEMENT:  select count(*) from emergency_ads where client_id ='7a8ebf2f-f5cc-46fd-aac4-2940ada82812' and status='approved'
+2025-08-13 12:33:48.065 IST [6457] ERROR:  invalid input syntax for type boolean: "approved" at character 103
+2025-08-13 12:33:48.065 IST [6457] STATEMENT:  select count(*) from emergency_ads where client_id ='7a8ebf2f-f5cc-46fd-aac4-2940ada82812' and status='approved'
+2025-08-13 22:50:09.426 IST [49148] ERROR:  invalid input syntax for type boolean: "approved" at character 103
+2025-08-13 22:50:09.426 IST [49148] STATEMENT:  select count(*) from emergency_ads where client_id ='7a8ebf2f-f5cc-46fd-aac4-2940ada82812' and status='approved'
+2025-08-13 23:28:35.748 IST [49148] ERROR:  invalid input syntax for type boolean: "approved" at character 103
+2025-08-13 23:28:35.748 IST [49148] STATEMENT:  select count(*) from emergency_ads where client_id ='7a8ebf2f-f5cc-46fd-aac4-2940ada82812' and status='approved'
+2025-08-13 23:28:41.704 IST [49148] ERROR:  invalid input syntax for type boolean: "approved" at character 103
+2025-08-13 23:28:41.704 IST [49148] STATEMENT:  select count(*) from emergency_ads where client_id ='7a8ebf2f-f5cc-46fd-aac4-2940ada82812' and status='approved'
+2025-08-13 23:28:46.504 IST [49148] ERROR:  invalid input syntax for type boolean: "approved" at character 103
+2025-08-13 23:28:46.504 IST [49148] STATEMENT:  select count(*) from emergency_ads where client_id ='7a8ebf2f-f5cc-46fd-aac4-2940ada82812' and status='approved'
+2025-08-13 23:34:32.614 IST [49148] ERROR:  invalid input syntax for type boolean: "approved" at character 103
+2025-08-13 23:34:32.614 IST [49148] STATEMENT:  select count(*) from emergency_ads where client_id ='7a8ebf2f-f5cc-46fd-aac4-2940ada82812' and status='approved'
+2025-08-14 11:19:05.703 IST [3915] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-08-14 11:19:05.709 IST [3915] LOG:  listening on IPv6 address "::1", port 5432
+2025-08-14 11:19:05.709 IST [3915] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-08-14 11:19:05.710 IST [3915] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-08-14 11:19:05.730 IST [3916] LOG:  database system was interrupted; last known up at 2025-08-13 23:48:53 IST
+2025-08-14 11:19:06.005 IST [3916] LOG:  database system was not properly shut down; automatic recovery in progress
+2025-08-14 11:19:06.012 IST [3916] LOG:  redo starts at 0/3A9CBF0
+2025-08-14 11:19:06.012 IST [3916] LOG:  invalid record length at 0/3A9CCD8: wanted 24, got 0
+2025-08-14 11:19:06.012 IST [3916] LOG:  redo done at 0/3A9CCA0 system usage: CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s
+2025-08-14 11:19:06.027 IST [3915] LOG:  database system is ready to accept connections
+2025-08-14 11:31:00.974 IST [4481] ERROR:  syntax error at or near "select" at character 510
+2025-08-14 11:31:00.974 IST [4481] STATEMENT:  
+	INSERT INTO ads (
+	    id, client_id, user_id, device_id, title, description, media_type, media_url, start_time, end_time
+	) VALUES (
+	    '00000000-0000-0000-0000-000000000020',
+	    '7a8ebf2f-f5cc-46fd-aac4-2940ada82812',
+	    '73e0680c-da2f-420d-9196-379f320b01fb',
+	    '29759595-e68c-463c-ac92-4d0adcf5d227',
+	    'Summer Sale',
+	    'Up to 50% off!',
+	    'video',
+	    'https://cdn.adserver.com/summer-sale.mp4',
+	    '2025-07-31 10:00',
+	    '2025-07-30 10:00'
+	);
+	select name,subscription_status,id from clients
+	select * from users
+	INSERT INTO devices (client_id, device_id, location)
+	VALUES (
+	    '7a8ebf2f-f5cc-46fd-aac4-2940ada82812',
+	    'DID-1234',
+	    'City Mall, Pune'
+	);
+	
+	select * from users
+	delete  from devices where status!='active'
+2025-08-14 23:05:45.805 IST [4016] ERROR:  invalid input syntax for type uuid: ""
+2025-08-14 23:05:45.805 IST [4016] CONTEXT:  unnamed portal parameter $1 = ''
+2025-08-14 23:05:45.805 IST [4016] STATEMENT:  delete from devices where id=$1 and client_id =$2
+2025-08-14 23:05:46.738 IST [4016] ERROR:  invalid input syntax for type uuid: ""
+2025-08-14 23:05:46.738 IST [4016] CONTEXT:  unnamed portal parameter $1 = ''
+2025-08-14 23:05:46.738 IST [4016] STATEMENT:  delete from devices where id=$1 and client_id =$2
+2025-08-14 23:05:52.478 IST [4016] ERROR:  invalid input syntax for type uuid: ""
+2025-08-14 23:05:52.478 IST [4016] CONTEXT:  unnamed portal parameter $1 = ''
+2025-08-14 23:05:52.478 IST [4016] STATEMENT:  delete from devices where id=$1 and client_id =$2
+2025-08-14 23:06:49.058 IST [4016] ERROR:  invalid input syntax for type uuid: ""
+2025-08-14 23:06:49.058 IST [4016] CONTEXT:  unnamed portal parameter $1 = ''
+2025-08-14 23:06:49.058 IST [4016] STATEMENT:  delete from devices where id=$1 and client_id =$2
+2025-08-14 23:06:49.711 IST [4016] ERROR:  invalid input syntax for type uuid: ""
+2025-08-14 23:06:49.711 IST [4016] CONTEXT:  unnamed portal parameter $1 = ''
+2025-08-14 23:06:49.711 IST [4016] STATEMENT:  delete from devices where id=$1 and client_id =$2
+2025-08-14 23:06:51.012 IST [4016] ERROR:  invalid input syntax for type uuid: ""
+2025-08-14 23:06:51.012 IST [4016] CONTEXT:  unnamed portal parameter $1 = ''
+2025-08-14 23:06:51.012 IST [4016] STATEMENT:  delete from devices where id=$1 and client_id =$2
+2025-08-14 23:06:58.456 IST [4016] ERROR:  invalid input syntax for type uuid: ""
+2025-08-14 23:06:58.456 IST [4016] CONTEXT:  unnamed portal parameter $1 = ''
+2025-08-14 23:06:58.456 IST [4016] STATEMENT:  delete from devices where id=$1 and client_id =$2
+2025-08-14 23:07:01.372 IST [4016] ERROR:  invalid input syntax for type uuid: ""
+2025-08-14 23:07:01.372 IST [4016] CONTEXT:  unnamed portal parameter $1 = ''
+2025-08-14 23:07:01.372 IST [4016] STATEMENT:  delete from devices where id=$1 and client_id =$2
+2025-08-14 23:07:56.782 IST [4016] ERROR:  invalid input syntax for type uuid: ""
+2025-08-14 23:07:56.782 IST [4016] CONTEXT:  unnamed portal parameter $1 = ''
+2025-08-14 23:07:56.782 IST [4016] STATEMENT:  delete from devices where id=$1 and client_id =$2
+2025-08-14 23:07:57.453 IST [4016] ERROR:  invalid input syntax for type uuid: ""
+2025-08-14 23:07:57.453 IST [4016] CONTEXT:  unnamed portal parameter $1 = ''
+2025-08-14 23:07:57.453 IST [4016] STATEMENT:  delete from devices where id=$1 and client_id =$2
+2025-08-14 23:07:57.614 IST [4016] ERROR:  invalid input syntax for type uuid: ""
+2025-08-14 23:07:57.614 IST [4016] CONTEXT:  unnamed portal parameter $1 = ''
+2025-08-14 23:07:57.614 IST [4016] STATEMENT:  delete from devices where id=$1 and client_id =$2
+2025-08-14 23:07:57.808 IST [4016] ERROR:  invalid input syntax for type uuid: ""
+2025-08-14 23:07:57.808 IST [4016] CONTEXT:  unnamed portal parameter $1 = ''
+2025-08-14 23:07:57.808 IST [4016] STATEMENT:  delete from devices where id=$1 and client_id =$2
+2025-08-14 23:07:57.956 IST [4016] ERROR:  invalid input syntax for type uuid: ""
+2025-08-14 23:07:57.956 IST [4016] CONTEXT:  unnamed portal parameter $1 = ''
+2025-08-14 23:07:57.956 IST [4016] STATEMENT:  delete from devices where id=$1 and client_id =$2
+2025-08-14 23:07:58.157 IST [4016] ERROR:  invalid input syntax for type uuid: ""
+2025-08-14 23:07:58.157 IST [4016] CONTEXT:  unnamed portal parameter $1 = ''
+2025-08-14 23:07:58.157 IST [4016] STATEMENT:  delete from devices where id=$1 and client_id =$2
+2025-08-14 23:09:05.199 IST [4016] ERROR:  invalid input syntax for type uuid: ""
+2025-08-14 23:09:05.199 IST [4016] CONTEXT:  unnamed portal parameter $1 = ''
+2025-08-14 23:09:05.199 IST [4016] STATEMENT:  delete from devices where id=$1 and client_id =$2
+2025-08-14 23:09:06.021 IST [4016] ERROR:  invalid input syntax for type uuid: ""
+2025-08-14 23:09:06.021 IST [4016] CONTEXT:  unnamed portal parameter $1 = ''
+2025-08-14 23:09:06.021 IST [4016] STATEMENT:  delete from devices where id=$1 and client_id =$2
+2025-08-14 23:09:06.194 IST [4016] ERROR:  invalid input syntax for type uuid: ""
+2025-08-14 23:09:06.194 IST [4016] CONTEXT:  unnamed portal parameter $1 = ''
+2025-08-14 23:09:06.194 IST [4016] STATEMENT:  delete from devices where id=$1 and client_id =$2
+2025-08-14 23:09:06.343 IST [4016] ERROR:  invalid input syntax for type uuid: ""
+2025-08-14 23:09:06.343 IST [4016] CONTEXT:  unnamed portal parameter $1 = ''
+2025-08-14 23:09:06.343 IST [4016] STATEMENT:  delete from devices where id=$1 and client_id =$2
+2025-08-14 23:30:05.945 IST [4481] ERROR:  operator does not exist: boolean == unknown at character 34
+2025-08-14 23:30:05.945 IST [4481] HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+2025-08-14 23:30:05.945 IST [4481] STATEMENT:  delete  from users where isactive==null
+2025-08-14 23:30:15.728 IST [4481] ERROR:  operator does not exist: boolean == unknown at character 34
+2025-08-14 23:30:15.728 IST [4481] HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+2025-08-14 23:30:15.728 IST [4481] STATEMENT:  delete  from users where isactive=='null'
+2025-08-14 23:30:41.086 IST [4481] ERROR:  syntax error at or near "[" at character 35
+2025-08-14 23:30:41.086 IST [4481] STATEMENT:  delete  from users where isactive=[null]
+2025-08-14 23:39:08.663 IST [54102] ERROR:  null value in column "role" of relation "users" violates not-null constraint
+2025-08-14 23:39:08.663 IST [54102] DETAIL:  Failing row contains (e1a53c8d-c87b-41fa-b5ba-997e300dee36, null, Samuel, samuel@gmail.com, $2b$08$xg6QyYY6RCPZIniQUT62wuBGhYEA8fPvneb.Oz1o3KbjbvYjDadBm, null, 2025-08-14 23:39:08.663327, 9705772178, null, null, null).
+2025-08-14 23:39:08.663 IST [54102] STATEMENT:  INSERT INTO users(email,password_hash,name,mobile_number,isActive,role,client_id)VALUES($1,$2,$3,$4,$5,$6,$7)
+2025-08-14 23:39:47.208 IST [54102] ERROR:  null value in column "role" of relation "users" violates not-null constraint
+2025-08-14 23:39:47.208 IST [54102] DETAIL:  Failing row contains (9db90f4b-3b61-4e07-8a35-e5027c76bd4c, null, Samuel, sam@gmail.com, $2b$08$Ej.DkTBxyxSMfjuDcrANg.149Vpa6y0WDVhnUgspmuaT3ftzLyN/2, null, 2025-08-14 23:39:47.207871, 9705772178, t, null, null).
+2025-08-14 23:39:47.208 IST [54102] STATEMENT:  INSERT INTO users(email,password_hash,name,mobile_number,isActive,role,client_id)VALUES($1,$2,$3,$4,$5,$6,$7)
+2025-08-14 23:42:51.366 IST [54734] ERROR:  null value in column "role" of relation "users" violates not-null constraint
+2025-08-14 23:42:51.366 IST [54734] DETAIL:  Failing row contains (bb3fa356-17ad-4420-9248-0b00c11d42d6, null, samuel, sam@gmail.com, $2b$08$YkG0ewj5OfcTBM04t9NYDOMsEnDqKHXD/RTv2nsRBOMHZ.svzfkBK, null, 2025-08-14 23:42:51.36582, 9705772178, t, null, null).
+2025-08-14 23:42:51.366 IST [54734] STATEMENT:  INSERT INTO users(email,password_hash,name,mobile_number,isActive,role,client_id)VALUES($1,$2,$3,$4,$5,$6,$7)
+2025-08-14 23:43:00.053 IST [54812] ERROR:  null value in column "role" of relation "users" violates not-null constraint
+2025-08-14 23:43:00.053 IST [54812] DETAIL:  Failing row contains (642b52ca-57b5-4a1d-902b-a62c5c96af2a, null, samuel, sam@gmail.com, $2b$08$Dib/8I8vF89JOe9jCbxZVe.X0veZj73rWle1k3j8kTqr3bv0Z3gUu, null, 2025-08-14 23:43:00.053331, 9705772178, t, null, null).
+2025-08-14 23:43:00.053 IST [54812] STATEMENT:  INSERT INTO users(email,password_hash,name,mobile_number,isActive,role,client_id)VALUES($1,$2,$3,$4,$5,$6,$7)
+2025-08-14 23:43:42.986 IST [54928] ERROR:  null value in column "role" of relation "users" violates not-null constraint
+2025-08-14 23:43:42.986 IST [54928] DETAIL:  Failing row contains (6d6138a5-dc95-4cd5-b963-1d371643e64a, 7a8ebf2f-f5cc-46fd-aac4-2940ada82812, samuel, sam@gmail.com, $2b$08$u1WpDo1KWtN1IKxGaV/u5.FyLhU2qNMeBVU97zJ3MFK/T9sQuPmqG, null, 2025-08-14 23:43:42.985964, 9705772178, t, null, null).
+2025-08-14 23:43:42.986 IST [54928] STATEMENT:  INSERT INTO users(email,password_hash,name,mobile_number,isActive,role,client_id)VALUES($1,$2,$3,$4,$5,$6,$7)
+2025-08-19 16:23:24.277 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:24.972 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:24.973 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:25.667 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:25.667 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:26.346 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:26.347 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:27.025 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:27.025 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:27.688 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:27.688 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:28.358 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:28.358 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:29.024 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:29.025 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:29.693 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:29.693 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:30.361 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:30.361 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:31.028 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:31.028 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:31.704 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:31.704 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:32.374 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:32.374 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:33.043 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:33.043 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:33.703 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:33.703 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:34.370 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:34.370 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:34.794 IST [3920] LOG:  using stale statistics instead of current ones because stats collector is not responding
+2025-08-19 16:23:34.800 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:34.800 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:34.802 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:34.802 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:35.482 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:35.483 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:36.191 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:36.191 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:36.877 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:36.877 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:37.553 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:37.553 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:38.225 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:38.225 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:38.893 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:38.893 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:53.769 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:54.440 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:54.440 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:55.123 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:55.123 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:55.803 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:55.803 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:56.483 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:56.483 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:57.163 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:57.163 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:57.852 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:57.852 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:58.522 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:58.522 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:59.198 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:59.198 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:59.865 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:23:59.865 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:00.547 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:00.547 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:01.221 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:01.221 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:01.917 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:01.917 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:02.604 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:02.604 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:03.287 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:03.287 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:03.972 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:03.972 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:04.387 IST [3920] LOG:  using stale statistics instead of current ones because stats collector is not responding
+2025-08-19 16:24:04.389 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:04.389 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:04.392 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:04.392 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:05.064 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:05.064 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:05.762 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:05.763 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:06.472 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:06.472 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:07.157 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:07.157 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:07.825 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:07.825 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:08.500 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:08.500 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:09.178 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:09.178 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:09.848 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:09.848 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:10.528 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:10.528 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:11.203 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:11.203 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:11.876 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:11.877 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:24.377 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:25.052 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:25.052 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:25.721 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:25.721 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:26.405 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:26.405 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:27.079 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:27.079 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:27.748 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:27.748 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:28.417 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:28.417 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:29.100 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:29.100 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:29.778 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:29.778 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:30.453 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:30.453 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:31.131 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:31.131 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:31.813 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:31.813 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:32.477 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:32.477 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:33.134 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:33.134 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:33.795 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:33.795 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:34.467 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:34.467 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:34.884 IST [3920] LOG:  using stale statistics instead of current ones because stats collector is not responding
+2025-08-19 16:24:34.886 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:34.886 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:34.887 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:34.887 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:35.563 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:35.564 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:36.261 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:36.261 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:36.946 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:36.946 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:37.629 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:37.629 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:38.308 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:38.308 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:38.980 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:38.980 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:39.649 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:39.649 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:40.317 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:40.317 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:40.985 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:40.985 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:41.656 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:41.656 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:42.324 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:42.324 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:42.988 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:42.988 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:43.664 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:43.664 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:44.337 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:44.337 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:53.770 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:54.440 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:54.440 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:55.109 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:55.110 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:55.793 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:55.793 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:56.463 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:56.464 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:24:57.197 IST [3921] LOG:  could not close temporary statistics file "pg_stat_tmp/db_0.tmp": No space left on device
+2025-08-19 16:24:57.197 IST [3921] LOG:  could not close temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:04.319 IST [3920] LOG:  using stale statistics instead of current ones because stats collector is not responding
+2025-08-19 16:25:04.322 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:04.993 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:04.993 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:05.680 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:05.680 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:06.387 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:06.387 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:07.071 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:07.071 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:07.752 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:07.752 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:08.439 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:08.439 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:09.114 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:09.115 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:09.793 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:09.793 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:10.474 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:10.474 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:11.141 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:11.141 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:11.812 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:11.812 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:12.491 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:12.491 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:13.169 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:13.169 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:13.840 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:13.840 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:14.512 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:14.512 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:14.932 IST [51097] LOG:  using stale statistics instead of current ones because stats collector is not responding
+2025-08-19 16:25:14.933 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:14.934 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:14.934 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:14.934 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:24.377 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:24.378 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:25.065 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:25.065 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:25.758 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:25.759 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:26.433 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:25:26.433 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:26:53.870 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:26:54.534 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:26:54.534 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:26:55.207 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:26:55.207 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:26:55.879 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/db_0.tmp": No space left on device
+2025-08-19 16:26:55.879 IST [3921] LOG:  could not close temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:04.347 IST [3920] LOG:  using stale statistics instead of current ones because stats collector is not responding
+2025-08-19 16:27:04.355 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:05.030 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:05.030 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:05.702 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:05.702 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:06.373 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:06.373 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:07.036 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:07.037 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:07.696 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:07.696 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:08.350 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:08.350 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:09.006 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:09.006 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:09.661 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:09.661 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:10.320 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:10.320 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:10.975 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:10.975 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:11.631 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:11.631 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:12.289 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:12.289 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:12.949 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:12.949 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:13.607 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:13.607 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:14.264 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:14.264 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:14.679 IST [51421] LOG:  using stale statistics instead of current ones because stats collector is not responding
+2025-08-19 16:27:14.681 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:14.681 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:14.681 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:14.682 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:24.577 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:24.577 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:25.252 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:25.252 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:25.917 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:25.917 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:26.574 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:26.575 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:27.233 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:27.233 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:27.891 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:27.891 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:28.549 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:28.549 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:29.209 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:29.210 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:29.872 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:29.872 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:30.530 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:30.530 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:31.189 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:31.189 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:31.844 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:31.844 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:32.505 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:32.505 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:33.160 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:33.160 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:33.817 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:33.817 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:34.482 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:34.482 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:34.898 IST [3920] LOG:  using stale statistics instead of current ones because stats collector is not responding
+2025-08-19 16:27:34.900 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:34.900 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:34.908 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:34.908 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:35.584 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:35.584 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:36.253 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:36.253 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:36.924 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:36.924 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:37.596 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:37.596 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:38.261 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:38.261 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:38.919 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:38.919 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:39.576 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:39.576 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:40.237 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:40.237 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:40.894 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:40.894 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:41.553 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:41.553 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:42.215 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:42.215 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:42.875 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:42.875 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:43.533 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:43.533 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:44.191 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:44.191 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:44.848 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:44.848 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:45.259 IST [51499] LOG:  using stale statistics instead of current ones because stats collector is not responding
+2025-08-19 16:27:45.261 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:45.261 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:45.261 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:45.261 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:53.970 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:53.970 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:54.624 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:54.624 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:55.283 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:55.283 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:55.945 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:55.945 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:56.611 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:56.611 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:57.307 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:57.307 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:57.993 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:57.993 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:58.680 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:58.680 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:59.387 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:27:59.387 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:00.088 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:00.088 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:00.788 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:00.788 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:01.491 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:01.491 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:02.189 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:02.189 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:02.887 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:02.888 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:03.590 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:03.590 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:04.293 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:04.293 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:04.732 IST [3920] LOG:  using stale statistics instead of current ones because stats collector is not responding
+2025-08-19 16:28:04.735 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:04.735 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:04.753 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:04.753 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:05.452 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:05.452 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:06.154 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:06.154 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:06.845 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:06.846 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:07.510 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:07.510 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:08.178 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:08.178 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:08.842 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:08.842 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:09.507 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:09.507 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:10.167 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:10.167 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:10.835 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:10.835 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:11.497 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:11.497 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:12.163 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:12.163 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:12.825 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 16:28:12.825 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
