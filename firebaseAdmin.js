@@ -1,4 +1,4 @@
-var serviceAccount = require("./serviceAccount/serviceAccoun.json");
+var serviceAccount = require("./serviceAccount/serviceAccount.json");
 const admin = require("firebase-admin");
 console.log("Initializing Firebase...");
 

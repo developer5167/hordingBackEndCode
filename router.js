@@ -31,15 +31,15 @@ router.get("/", (req, res) => {
   res.send("welcome");
 });
 
-router.post("/createUser",checkDomainAndReturnClientId, async function (req, res) {
-  const { email, password, name, mobile_number, isActive, role, client_id } =
+router.post("/createUser", checkDomainAndReturnClientId, async function (req, res) {
+  const { email, password, name, mobile_number, isActive, role } =
     req.body;
   const hashedPassword = await bcrypt.hash(password, 8);
   console.log(email, hashedPassword.length);
   try {
     await client.query(
       "INSERT INTO users(email,password_hash,name,mobile_number,isActive,role,client_id)VALUES($1,$2,$3,$4,$5,$6,$7)",
-      [email, hashedPassword, name, mobile_number, isActive, role, client_id]
+      [email, hashedPassword, name, mobile_number, isActive, role, req.client_id]
     );
     res.status(201).send({ message: "User Created Successfully" });
   } catch (err) {
@@ -52,7 +52,7 @@ router.post("/createUser",checkDomainAndReturnClientId, async function (req, res
     }
   }
 });
-router.post("/createRole",checkValidClient,auth, async function (req, res) {
+router.post("/createRole", checkValidClient, auth, async function (req, res) {
   const { email, password_hash, name, mobile_number, role } =
     req.body;
   const hashedPassword = await bcrypt.hash(password_hash, 8);
@@ -99,9 +99,8 @@ router.post("/upload", auth, upload.single("file"), async (req, res) => {
     });
 
     blobStream.on("finish", () => {
-      const url = `https://firebasestorage.googleapis.com/v0/b/${
-        bucket.name
-      }/o/${encodeURIComponent(fileUpload.name)}?alt=media&token=${uuid}`;
+      const url = `https://firebasestorage.googleapis.com/v0/b/${bucket.name
+        }/o/${encodeURIComponent(fileUpload.name)}?alt=media&token=${uuid}`;
       res.status(200).send({ url, filename });
     });
 
@@ -128,10 +127,10 @@ router.post("/sendOtp", async (req, res) => {
     validation
       ? (await sendEmail(email, client_id))
         ? res.status(200).json({
-            message: "OTP sent successfully",
-            status: 201,
-            email: email,
-          })
+          message: "OTP sent successfully",
+          status: 201,
+          email: email,
+        })
         : res.status(200).json({ message: "Failed to send OTP", status: 202 })
       : res.status(200).json({ message: "Email not Found", status: 203 });
     // console.log(validation)
@@ -300,7 +299,7 @@ router.get(
         teamMembers: teamCount.rows[0]["count"],
       });
     } catch (excemption) {
-      console.log(excemption);
+      // console.log(excemption);
 
       res.status(500).json({
         message: "Oops! unable fetData",
@@ -512,6 +511,7 @@ router.post(
             joined: result.rows[0].created_at,
             client_id: result.rows[0].client_id,
             role: result.rows[0].role,
+            mobileNumber: result.rows[0].mobile_number,
             companyName: companyRows.rows[0].name,
             subscriptionStatus: companyRows.rows[0].subscription_status,
           });
@@ -763,10 +763,10 @@ router.post("/add_client", async (request, response) => {
   }
 });
 router.post("/createAccount", checkValidClient, async (request, response) => {
-  const { name, email, password, role,mobileNumber } = request.body;
+  const { name, email, password, role, mobileNumber } = request.body;
   const query = `INSERT INTO users(name, email,password_hash,role,client_id,mobile_number)VALUES ($1,$2,$3,$4,$5,$6);`;
   try {
-    await client.query(query, [name, email, password, role, request.client_id,mobileNumber]);
+    await client.query(query, [name, email, password, role, request.client_id, mobileNumber]);
     response.status(200).send({ message: "account created successfully" });
   } catch (e) {
     console.log(e);
@@ -968,7 +968,7 @@ router.post(
       response.status(500).send({ message: "somthing went wrong" });
     }
   }
-);  
+);
 router.post(
   "/approveRejectAd",
   checkValidClient,
@@ -1029,67 +1029,116 @@ GROUP BY d.id, d.device_name, d.location, d.status, d.registered_at,d.emergency_
   }
 );
 
-router.get("/getDevices",checkValidClient,auth,async(request,response)=>{
+router.get("/getDevices", checkValidClient, auth, async (request, response) => {
   const query = `select * from devices where client_id = $1`
 
-  try{
-    const result = await client.query(query,[request.client_id])
+  try {
+    const result = await client.query(query, [request.client_id])
     response.status(200).json(result.rows)
-  }catch(e){
-    response.status(500).send({message:'error fetching devices'})
+  } catch (e) {
+    response.status(500).send({ message: 'error fetching devices' })
   }
 
 })
-router.get("/getEmergencyAds",checkValidClient,auth,async(request,response)=>{
-  const {id}=request.query
-  const query = `select * from ads where client_id = $1 and device_id=$2`
+router.get("/getEmergencyAds", checkValidClient, auth, async (request, response) => {
+  const { id } = request.query
+  const query = `select * from emergency_ads where client_id = $1 and device_id=$2`
 
-  try{
-    const result = await client.query(query,[request.client_id,id])
+  try {
+    const result = await client.query(query, [request.client_id, id])
     response.status(200).json(result.rows)
-  }catch(e){
-    response.status(500).send({message:'error fetching devices'})
+  } catch (e) {
+    response.status(500).send({ message: 'error fetching devices' })
   }
 
 })
-router.get("/saveDevice",checkValidClient,auth,async(request,response)=>{
-  const {status,location}=request.query
+router.get("/updateEmergencyAdStatus", checkValidClient, auth, async (request, response) => {
+  const { id, status } = request.query
+  const query = `update emergency_ads set status = $1 where id =$2 and client_id = $3 RETURNING *`
+
+  try {
+    const result = await client.query(query, [status, id, request.client_id])
+    response.status(200).json(result.rows[0])
+  } catch (e) {
+    response.status(500).send({ message: 'error fetching ads' })
+  }
+
+})
+router.get("/updateUserRole", checkValidClient, auth, async (request, response) => {
+  const { id, isactive } = request.query
+  const query = `update users set isactive = $1 where id =$2 and client_id = $3 RETURNING *`
+
+  try {
+    const result = await client.query(query, [isactive, id, request.client_id])
+    response.status(200).json(result.rows[0])
+  } catch (e) {
+    response.status(500).send({ message: 'error fetching users' })
+  }
+
+})
+router.get("/saveDevice", checkValidClient, auth, async (request, response) => {
+  const { status, location } = request.query
   const nameQuery = `select name from clients where id = '${request.client_id}'`
-  
-  try{
-  const nameResult = await client.query(nameQuery)
-  const name = nameResult.rows[0]['name']
 
-  const query = `insert into devices (client_id,device_name,location,status)VALUES('${request.client_id}','${generateDID(name)}','${location}','${status}')`
-  try{
-    const result = await client.query(query)
-    response.status(200).send({message:'Device added'})
-  }catch(e){
-    response.status(200).send({message:'error adding device'})
-  }
-  }catch(e){
-    response.status(200).send({message:'error finding client'})
+  try {
+    const nameResult = await client.query(nameQuery)
+    const name = nameResult.rows[0]['name']
+
+    const query = `insert into devices (client_id,device_name,location,status)VALUES('${request.client_id}','${generateDID(name)}','${location}','${status}')`
+    try {
+      const result = await client.query(query)
+      response.status(200).send({ message: 'Device added' })
+    } catch (e) {
+      response.status(200).send({ message: 'error adding device' })
+    }
+  } catch (e) {
+    response.status(200).send({ message: 'error finding client' })
   }
 
 })
 function generateDID(str) {
   // Take first 4 characters and make them uppercase
   const prefix = str.substring(0, 4).toUpperCase();
-  
+
   // Generate a random 4-digit number (1000–9999)
   const randomNum = Math.floor(1000 + Math.random() * 9000);
 
   return `${prefix}-${randomNum}`;
 }
 
-router.get("/deleteDevice",checkValidClient,auth,async(request,response)=>{
-  const {id}=request.query
+router.get("/deleteDevice", checkValidClient, auth, async (request, response) => {
+  const { id } = request.query
   const query = `delete from devices where id=$1 and client_id =$2`
-  try{
-    const result = await client.query(query,[id,request.client_id])
-    response.status(200).send({message:'Device deleted'})
-  }catch(e){
-    response.status(200).send({message:'Error deleting device'})
+  try {
+    const result = await client.query(query, [id, request.client_id])
+    response.status(200).send({ message: 'Device deleted' })
+  } catch (e) {
+    response.status(200).send({ message: 'Error deleting device' })
+  }
+})
+router.get("/getUsersBasedOnRoles", checkValidClient, auth, async (request, response) => {
+  const query = `select * from users where client_id=$1 and role = $2 or role =$3`
+  try {
+    const result = await client.query(query, [request.client_id, 'admin', 'reviewer'])
+    if (result.rowCount > 0) {
+      response.status(200).json(result.rows)
+    } else {
+      response.status(200).json([])
+    }
+
+  } catch (e) {
+    response.status(200).send({ message: 'Error fetching' })
+  }
+})
+
+router.get("/deleteUserRole", checkValidClient, auth, async (request, response) => {
+  const {id} = request.query
+  const query = `delete from users where client_id = $1 and id=$2`
+  try {
+     await client.query(query, [request.client_id, id])
+      response.status(200).send({ message: 'Deleted Successfully' })
+  } catch (e) {
+    response.status(200).send({ message: 'Error Deleting' })
   }
 })
 module.exports = router;

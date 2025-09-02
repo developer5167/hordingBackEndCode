@@ -12,7 +12,7 @@
                 "<node_internals>/**"
             ],
             "program": "${workspaceFolder}/app.js",
-            "runtimeExecutable": "/Users/kcs/.nvm/versions/node/v24.4.1/bin/node"
+            "runtimeExecutable": "C:/Program Files/nodejs/node.exe"
         }
     ]
 }
