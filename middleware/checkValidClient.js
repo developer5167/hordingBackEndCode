@@ -1,6 +1,6 @@
 const client = require("../db");
 const checkValidClient = async  (request,response,next)=> {
-    var auth = request.header("client_id");
+    var auth = request.header("clientAuthorisationKey");
     if (!auth) {
     return response.status(401).json({ error: 'invalid client id' });
   }

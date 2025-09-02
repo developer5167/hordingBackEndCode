@@ -1276,3 +1276,185 @@
 2025-08-19 16:28:12.163 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
 2025-08-19 16:28:12.825 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
 2025-08-19 16:28:12.825 IST [3921] LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No space left on device
+2025-08-19 22:09:13.771 IST [3915] LOG:  received fast shutdown request
+2025-08-19 22:09:13.774 IST [3915] LOG:  aborting any active transactions
+2025-08-19 22:09:13.778 IST [3915] LOG:  background worker "logical replication launcher" (PID 3922) exited with exit code 1
+2025-08-19 22:09:13.779 IST [3917] LOG:  shutting down
+2025-08-19 22:09:13.798 IST [3915] LOG:  database system is shut down
+2025-08-22 20:26:53.491 IST [4171] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-08-22 20:26:53.495 IST [4171] LOG:  listening on IPv6 address "::1", port 5432
+2025-08-22 20:26:53.495 IST [4171] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-08-22 20:26:53.496 IST [4171] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-08-22 20:26:53.527 IST [4174] LOG:  database system was shut down at 2025-08-20 18:24:49 IST
+2025-08-22 20:26:53.536 IST [4171] LOG:  database system is ready to accept connections
+2025-08-26 19:51:50.656 IST [4171] LOG:  received smart shutdown request
+2025-08-26 19:51:50.665 IST [4171] LOG:  background worker "logical replication launcher" (PID 4180) exited with exit code 1
+2025-08-26 19:51:50.665 IST [4175] LOG:  shutting down
+2025-08-26 19:51:50.699 IST [4171] LOG:  database system is shut down
+2025-08-29 21:26:27.700 IST [3563] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-08-29 21:26:27.705 IST [3563] LOG:  listening on IPv6 address "::1", port 5432
+2025-08-29 21:26:27.705 IST [3563] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-08-29 21:26:27.708 IST [3563] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-08-29 21:26:27.748 IST [3564] LOG:  database system was shut down at 2025-08-26 19:51:50 IST
+2025-08-29 21:26:27.761 IST [3563] LOG:  database system is ready to accept connections
+2025-08-30 11:26:20.254 IST [39465] ERROR:  null value in column "name" of relation "users" violates not-null constraint
+2025-08-30 11:26:20.254 IST [39465] DETAIL:  Failing row contains (3a86cc5a-0253-4f45-b9bd-965e5365e793, null, null, mobileapp@gmail.com, $2b$08$VRM76mVAxJO0A40Lm2di6.EmWOAurxfXRz0idNgnDy/2L1E5kky.., null, 2025-08-30 11:26:20.240265, null, t, null, null).
+2025-08-30 11:26:20.254 IST [39465] STATEMENT:  INSERT INTO users(email,password_hash,name,mobile_number,isActive,role,client_id)VALUES($1,$2,$3,$4,$5,$6,$7)
+2025-08-30 11:34:12.007 IST [40830] ERROR:  null value in column "name" of relation "users" violates not-null constraint
+2025-08-30 11:34:12.007 IST [40830] DETAIL:  Failing row contains (440c095e-1775-4120-928d-dd3e094bb3d7, 7a8ebf2f-f5cc-46fd-aac4-2940ada82812, null, mobileapp@gmail.com, $2b$08$xq2l/n5.0Iy8VFYp2olvIOVoCzECBmrrvlh9DDZjKA2QZsXC56obu, advertiser, 2025-08-30 11:34:12.00646, null, t, null, null).
+2025-08-30 11:34:12.007 IST [40830] STATEMENT:  INSERT INTO users(email,password_hash,isActive,role,client_id)VALUES($1,$2,$3,$4,$5)
+2025-08-30 11:36:19.342 IST [41137] ERROR:  null value in column "name" of relation "users" violates not-null constraint
+2025-08-30 11:36:19.342 IST [41137] DETAIL:  Failing row contains (036fb9a7-1987-4832-b26f-a8b10ffe4a01, 7a8ebf2f-f5cc-46fd-aac4-2940ada82812, null, mobileapp@gmail.com, $2b$08$BZyJ3N0Opic7F7QQ5QBhb.ZtK8GwknRRl2iD7BZemIeNZ6Z3eLmYG, advertiser, 2025-08-30 11:36:19.338574, null, t, null, null).
+2025-08-30 11:36:19.342 IST [41137] STATEMENT:  INSERT INTO users(email,password_hash,isActive,role,client_id)VALUES($1,$2,$3,$4,$5)
+2025-08-30 11:38:33.569 IST [33052] ERROR:  null value in column "name" of relation "users" violates not-null constraint
+2025-08-30 11:38:33.569 IST [33052] DETAIL:  Failing row contains (465a5956-2dc0-4a73-945b-4edad87a6c6c, 7a8ebf2f-f5cc-46fd-aac4-2940ada82812, null, mobileapp@gmail.com, $2b$08$BZyJ3N0Opic7F7QQ5QBhb.ZtK8GwknRRl2iD7BZemIeNZ6Z3eLmYG, advertiser, 2025-08-30 11:38:33.566786, null, t, null, null).
+2025-08-30 11:38:33.569 IST [33052] STATEMENT:  INSERT INTO users(email,password_hash,isActive,role,client_id)VALUES('mobileapp@gmail.com',
+	'$2b$08$BZyJ3N0Opic7F7QQ5QBhb.ZtK8GwknRRl2iD7BZemIeNZ6Z3eLmYG',true,'advertiser','7a8ebf2f-f5cc-46fd-aac4-2940ada82812')
+2025-08-30 11:57:36.765 IST [44328] ERROR:  inconsistent types deduced for parameter $5 at character 90
+2025-08-30 11:57:36.765 IST [44328] DETAIL:  text versus uuid
+2025-08-30 11:57:36.765 IST [44328] STATEMENT:  INSERT INTO users(email,password_hash,name,isActive,role,client_id)VALUES($1,$2,$3,$4,$5,$5)
+2025-08-30 11:58:58.829 IST [33052] ERROR:  duplicate key value violates unique constraint "users_email_key"
+2025-08-30 11:58:58.829 IST [33052] DETAIL:  Key (email)=(mobileapp@gmail.com) already exists.
+2025-08-30 11:58:58.829 IST [33052] STATEMENT:  INSERT INTO users(email,password_hash,name,isActive,role,client_id)VALUES('mobileapp@gmail.com',
+	'$2b$08$BZyJ3N0Opic7F7QQ5QBhb.ZtK8GwknRRl2iD7BZemIeNZ6Z3eLmYG','Mobile App',true,'advertiser','7a8ebf2f-f5cc-46fd-aac4-2940ada82812')
+2025-08-30 12:01:45.189 IST [44873] ERROR:  inconsistent types deduced for parameter $5 at character 90
+2025-08-30 12:01:45.189 IST [44873] DETAIL:  text versus uuid
+2025-08-30 12:01:45.189 IST [44873] STATEMENT:  INSERT INTO users(email,password_hash,name,isActive,role,client_id)VALUES($1,$2,$3,$4,$5,$5)
+2025-08-30 12:02:41.653 IST [45133] ERROR:  inconsistent types deduced for parameter $5 at character 90
+2025-08-30 12:02:41.653 IST [45133] DETAIL:  text versus uuid
+2025-08-30 12:02:41.653 IST [45133] STATEMENT:  INSERT INTO users(email,password_hash,name,isActive,role,client_id)VALUES($1,$2,$3,$4,$5,$5)
+2025-08-30 22:00:47.875 IST [66285] ERROR:  relation "hording_devices" does not exist at character 15
+2025-08-30 22:00:47.875 IST [66285] STATEMENT:  select * from hording_devices where client_id=$1
+2025-08-30 22:01:57.173 IST [66447] ERROR:  relation "hording_devices" does not exist at character 15
+2025-08-30 22:01:57.173 IST [66447] STATEMENT:  select * from hording_devices where client_id=$1
+2025-08-30 22:42:33.644 IST [73329] ERROR:  relation "company_ads" does not exist at character 13
+2025-08-30 22:42:33.644 IST [73329] STATEMENT:  insert into company_ads(ad_id, ad_data, meme_type, isactive, title, description, device_id,file_name)
+	  VALUES($1,$2,$3,$4,$5,$6,$7,$8)
+2025-08-30 23:23:13.546 IST [78108] ERROR:  syntax error at or near "$4" at character 165
+2025-08-30 23:23:13.546 IST [78108] STATEMENT:  INSERT INTO ads (
+	    client_id, user_id, device_id, title, description, media_type, media_url, start_time, end_time,filename
+	) VALUES (
+	    $1,
+	    $2,
+	    $3
+	    $4,
+	    $5,
+	    $6,
+	    $7,
+	    $8,
+	    $9,
+	    $10
+	);
+2025-08-30 23:23:22.637 IST [78108] ERROR:  syntax error at or near "$4" at character 165
+2025-08-30 23:23:22.637 IST [78108] STATEMENT:  INSERT INTO ads (
+	    client_id, user_id, device_id, title, description, media_type, media_url, start_time, end_time,filename
+	) VALUES (
+	    $1,
+	    $2,
+	    $3
+	    $4,
+	    $5,
+	    $6,
+	    $7,
+	    $8,
+	    $9,
+	    $10
+	);
+2025-08-30 23:24:54.202 IST [79895] ERROR:  syntax error at or near "$4" at character 165
+2025-08-30 23:24:54.202 IST [79895] STATEMENT:  INSERT INTO ads (
+	    client_id, user_id, device_id, title, description, media_type, media_url, start_time, end_time,filename
+	) VALUES (
+	    $1,
+	    $2,
+	    $3
+	    $4,
+	    $5,
+	    $6,
+	    $7,
+	    $8,
+	    $9,
+	    $10
+	);
+2025-08-30 23:25:19.587 IST [79895] ERROR:  syntax error at or near "$4" at character 165
+2025-08-30 23:25:19.587 IST [79895] STATEMENT:  INSERT INTO ads (
+	    client_id, user_id, device_id, title, description, media_type, media_url, start_time, end_time,filename
+	) VALUES (
+	    $1,
+	    $2,
+	    $3
+	    $4,
+	    $5,
+	    $6,
+	    $7,
+	    $8,
+	    $9,
+	    $10
+	);
+2025-08-30 23:26:37.079 IST [80257] ERROR:  new row for relation "ads" violates check constraint "ads_media_type_check"
+2025-08-30 23:26:37.079 IST [80257] DETAIL:  Failing row contains (ff9bde9b-6378-4e5a-a01f-334daa59d471, 7a8ebf2f-f5cc-46fd-aac4-2940ada82812, 77d094e4-68b3-4cfe-bdaa-74404ae5b571, 29759595-e68c-463c-ac92-4d0adcf5d227, test, test description, in_review, IMAGE, https://firebasestorage.googleapis.com/v0/b/swap-80375.appspot.c..., 2025-08-30 23:26:00, 2025-08-31 23:26:00, 2025-08-30 23:26:37.072512, 2025-08-30 23:26:37.072512, uploads/7a8ebf2f-f5cc-46fd-aac4-2940ada82812/77d094e4-68b3-4cfe-...).
+2025-08-30 23:26:37.079 IST [80257] STATEMENT:  INSERT INTO ads (
+	    client_id, user_id, device_id, title, description, media_type, media_url, start_time, end_time,filename
+	) VALUES (
+	    $1,
+	    $2,
+	    $3,
+	    $4,
+	    $5,
+	    $6,
+	    $7,
+	    $8,
+	    $9,
+	    $10
+	);
+2025-08-30 23:27:10.268 IST [80257] ERROR:  new row for relation "ads" violates check constraint "ads_media_type_check"
+2025-08-30 23:27:10.268 IST [80257] DETAIL:  Failing row contains (1b7d7dfd-389b-4ae3-9305-a00d7950d2ba, 7a8ebf2f-f5cc-46fd-aac4-2940ada82812, 77d094e4-68b3-4cfe-bdaa-74404ae5b571, a25219e5-8005-47c4-a0f2-f41658aa30c6, test, test description, in_review, IMAGE, https://firebasestorage.googleapis.com/v0/b/swap-80375.appspot.c..., 2025-08-30 23:26:00, 2025-08-31 23:26:00, 2025-08-30 23:27:10.268255, 2025-08-30 23:27:10.268255, uploads/7a8ebf2f-f5cc-46fd-aac4-2940ada82812/77d094e4-68b3-4cfe-...).
+2025-08-30 23:27:10.268 IST [80257] STATEMENT:  INSERT INTO ads (
+	    client_id, user_id, device_id, title, description, media_type, media_url, start_time, end_time,filename
+	) VALUES (
+	    $1,
+	    $2,
+	    $3,
+	    $4,
+	    $5,
+	    $6,
+	    $7,
+	    $8,
+	    $9,
+	    $10
+	);
+2025-08-30 23:31:14.807 IST [80257] ERROR:  new row for relation "ads" violates check constraint "ads_media_type_check"
+2025-08-30 23:31:14.807 IST [80257] DETAIL:  Failing row contains (9748fdaf-9c7d-4301-bf06-0a4992be5503, 7a8ebf2f-f5cc-46fd-aac4-2940ada82812, 77d094e4-68b3-4cfe-bdaa-74404ae5b571, 29759595-e68c-463c-ac92-4d0adcf5d227, fgcv, ghvv, in_review, IMAGE, https://firebasestorage.googleapis.com/v0/b/swap-80375.appspot.c..., 2025-08-30 23:30:00, 2025-08-31 23:30:00, 2025-08-30 23:31:14.805544, 2025-08-30 23:31:14.805544, uploads/7a8ebf2f-f5cc-46fd-aac4-2940ada82812/77d094e4-68b3-4cfe-...).
+2025-08-30 23:31:14.807 IST [80257] STATEMENT:  INSERT INTO ads (
+	    client_id, user_id, device_id, title, description, media_type, media_url, start_time, end_time,filename
+	) VALUES (
+	    $1,
+	    $2,
+	    $3,
+	    $4,
+	    $5,
+	    $6,
+	    $7,
+	    $8,
+	    $9,
+	    $10
+	);
+2025-08-30 23:31:16.035 IST [80257] ERROR:  new row for relation "ads" violates check constraint "ads_media_type_check"
+2025-08-30 23:31:16.035 IST [80257] DETAIL:  Failing row contains (339486ef-7002-4588-b862-ec449b0c2056, 7a8ebf2f-f5cc-46fd-aac4-2940ada82812, 77d094e4-68b3-4cfe-bdaa-74404ae5b571, a25219e5-8005-47c4-a0f2-f41658aa30c6, fgcv, ghvv, in_review, IMAGE, https://firebasestorage.googleapis.com/v0/b/swap-80375.appspot.c..., 2025-08-30 23:30:00, 2025-08-31 23:30:00, 2025-08-30 23:31:16.034599, 2025-08-30 23:31:16.034599, uploads/7a8ebf2f-f5cc-46fd-aac4-2940ada82812/77d094e4-68b3-4cfe-...).
+2025-08-30 23:31:16.035 IST [80257] STATEMENT:  INSERT INTO ads (
+	    client_id, user_id, device_id, title, description, media_type, media_url, start_time, end_time,filename
+	) VALUES (
+	    $1,
+	    $2,
+	    $3,
+	    $4,
+	    $5,
+	    $6,
+	    $7,
+	    $8,
+	    $9,
+	    $10
+	);
+2025-09-01 18:57:49.842 IST [3563] LOG:  received smart shutdown request
+2025-09-01 18:57:49.846 IST [3563] LOG:  background worker "logical replication launcher" (PID 3570) exited with exit code 1
+2025-09-01 18:57:49.847 IST [3565] LOG:  shutting down
+2025-09-01 18:57:49.862 IST [3563] LOG:  database system is shut down
