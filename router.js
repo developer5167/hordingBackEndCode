@@ -31,19 +31,18 @@ router.get("/", (req, res) => {
   res.send("welcome");
 });
 
-router.post("/createUser",checkDomainAndReturnClientId, async function (req, res) {
-  const { email, password, name, mobile_number, isActive, role, client_id } =
-    req.body;
+router.post("/createUser", checkValidClient, async function (req, res) {
+  const { email, name, password, isActive, role } = req.body;
   const hashedPassword = await bcrypt.hash(password, 8);
   console.log(email, hashedPassword.length);
   try {
     await client.query(
-      "INSERT INTO users(email,password_hash,name,mobile_number,isActive,role,client_id)VALUES($1,$2,$3,$4,$5,$6,$7)",
-      [email, hashedPassword, name, mobile_number, isActive, role, client_id]
+      "INSERT INTO users(email,password_hash,name,isActive,role,client_id)VALUES($1,$2,$3,$4,$5,$6)",
+      [email, hashedPassword, name, isActive, role, req.client_id]
     );
     res.status(201).send({ message: "User Created Successfully" });
   } catch (err) {
-    console.log(err["detail"]);
+    console.log(err);
     const value = err["detail"];
     if (value.includes("already exists")) {
       res.status(200).send({ message: "User already exists" });
@@ -52,9 +51,8 @@ router.post("/createUser",checkDomainAndReturnClientId, async function (req, res
     }
   }
 });
-router.post("/createRole",checkValidClient,auth, async function (req, res) {
-  const { email, password_hash, name, mobile_number, role } =
-    req.body;
+router.post("/createRole", checkValidClient, auth, async function (req, res) {
+  const { email, password_hash, name, mobile_number, role } = req.body;
   const hashedPassword = await bcrypt.hash(password_hash, 8);
   console.log(email, hashedPassword.length);
   try {
@@ -74,14 +72,14 @@ router.post("/createRole",checkValidClient,auth, async function (req, res) {
   }
 });
 
-router.post("/upload", auth, upload.single("file"), async (req, res) => {
+router.post("/upload", checkValidClient,auth, upload.single("file"), async (req, res) => {
   const file = req.file;
   const userId = req.body.user_id;
   if (!file || !userId) {
     return res.status(400).json({ error: "File and user_id are required" });
   }
   try {
-    const filename = `uploads/${userId}/${Date.now()}_${file.originalname}`;
+    const filename = `uploads/${req.client_id}/${userId}/${Date.now()}_${file.originalname}`;
     const fileUpload = bucket.file(filename);
     const uuid = uuidv4();
     const blobStream = fileUpload.createWriteStream({
@@ -308,7 +306,7 @@ router.get(
     }
   }
 );
-router.post("/saveAdData", async (req, res) => {
+router.post("/saveAdData",checkValidClient, async (req, res) => {
   const {
     user_id,
     fileName,
@@ -318,37 +316,36 @@ router.post("/saveAdData", async (req, res) => {
     title,
     ad_data,
     selected_devices,
-    isactive,
-    isapproved,
     meme_type,
   } = req.body;
-
-  const query = `
-    INSERT INTO ads (
-      ad_id, ad_data, user_id, isapproved, meme_type,
-      isactive, start_date, end_date, title, description,
-      device_id, file_name
-    )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-  `;
-
+const queryMain = `INSERT INTO ads (
+    client_id, user_id, device_id, title, description, media_type, media_url, start_time, end_time,filename
+) VALUES (
+    $1,
+    $2,
+    $3,
+    $4,
+    $5,
+    $6,
+    $7,
+    $8,
+    $9,
+    $10
+);`
   const failedDevices = [];
-
   try {
     for (const device_id of selected_devices || []) {
       try {
-        await client.query(query, [
-          generateAdId(),
-          ad_data,
+        await client.query(queryMain, [
+          req.client_id,
           user_id,
-          isapproved,
-          meme_type,
-          isactive,
-          start_date,
-          end_date,
+          device_id,
           title,
           description,
-          device_id,
+          meme_type,
+          ad_data,
+          start_date,
+          end_date,
           fileName,
         ]);
       } catch (e) {
@@ -457,79 +454,69 @@ function generateAdId() {
   const randomNumber = Math.floor(10000000 + Math.random() * 90000000);
   return `AD-${randomNumber}`;
 }
-router.post(
-  "/login",
-  checkDomainAndReturnClientId,
-  async (request, response) => {
-    const { email, password } = request.body;
-    console.log(email, password);
-    try {
-      var sql =
-        "SELECT email,tokens,password_hash,client_id FROM users WHERE client_id=$1 and email=$2";
+router.post("/login", checkValidClient, async (req, res) => {
+  const { email, password } = req.body;
 
-      const rows = await client.query(sql, [request.client_id, email]);
-      console.log(rows);
-      const newTokenList = [];
-      if (rows.rowCount == 0) {
-        response.status(200).send({ message: "Invalid credentials" });
-        return;
-      }
-      // const existingToken = rows.rows[0].tokens;
+  try {
+    // 1. Check if user exists
+    const sql =
+      "SELECT id, name, email, tokens, password_hash, client_id, role, created_at, isactive FROM users WHERE client_id=$1 AND email=$2";
+    const userResult = await client.query(sql, [req.client_id, email]);
 
-      // if (existingToken != null) {
-      // for (let i = 0; i < existingToken.length; i++) {
-      // newTokenList.push(existingToken[i]);
-      // }
-      const DbPassword = rows.rows[0].password_hash;
-      const client_id = rows.rows[0].client_id;
-      const isMatched = await bcrypt.compare(password, DbPassword);
-      console.log(isMatched);
-      if (isMatched) {
-        const newToken = jwtToken.sign({ email }, "THISISTESTAPPFORHORDING");
-        newTokenList.push(newToken);
-        const queryText =
-          "UPDATE users SET tokens =$1 WHERE email = $2  and client_id = $3 RETURNING *";
-        const result = await client.query(queryText, [
-          newTokenList,
-          email,
-          client_id,
-        ]);
-        if (result.rowCount > 0) {
-          var token = "";
-          if (result.rows[0].tokens.length > 0) {
-            token = result.rows[0].tokens[result.rows[0].tokens.length - 1];
-            console.log(token);
-          } else {
-            token = newToken;
-          }
-          var companyDetails = `select name,subscription_status from clients where id ='${client_id}'`;
-          const companyRows = await client.query(companyDetails);
-          response.status(200).send({
-            email: result.rows[0].email,
-            token: token,
-            user_id: result.rows[0].id,
-            name: result.rows[0].name,
-            joined: result.rows[0].created_at,
-            client_id: result.rows[0].client_id,
-            role: result.rows[0].role,
-            companyName: companyRows.rows[0].name,
-            subscriptionStatus: companyRows.rows[0].subscription_status,
-          });
-        } else {
-          response.status(200).send({
-            message: err["details"],
-          });
-        }
-      } else {
-        response.status(200).send({ message: "Invalid credentials" });
-      }
-    } catch (e) {
-      response.status(500).send({ message: "Something went wrong" });
-
-      console.log(e);
+    if (userResult.rowCount === 0) {
+      return res.status(401).json({ message: "Invalid credentials" }); // 401 Unauthorized
     }
+
+    const user = userResult.rows[0];
+
+    // 2. Compare password
+    const isMatched = await bcrypt.compare(password, user.password_hash);
+    if (!isMatched) {
+      return res.status(401).json({ message: "Invalid credentials" }); // 401 Unauthorized
+    }
+
+    // 3. Generate new JWT
+    const newToken = jwtToken.sign({ email }, "THISISTESTAPPFORHORDING");
+    const updatedTokens = [...(user.tokens || []), newToken];
+
+    // 4. Update tokens in DB
+    const updateQuery =
+      "UPDATE users SET tokens=$1 WHERE email=$2 AND client_id=$3 RETURNING *";
+    const updatedUserResult = await client.query(updateQuery, [
+      updatedTokens,
+      email,
+      user.client_id,
+    ]);
+    const updatedUser = updatedUserResult.rows[0];
+
+    // 5. Get client details
+    const companyQuery =
+      "SELECT name, subscription_status FROM clients WHERE id=$1";
+    const companyResult = await client.query(companyQuery, [user.client_id]);
+    const clientDetails = companyResult.rows[0];
+
+    // 6. Prepare clean response (avoid sending password hash)
+    const responseUser = {
+      id: updatedUser.id,
+      client_id: updatedUser.client_id,
+      name: updatedUser.name,
+      email: updatedUser.email,
+      role: updatedUser.role,
+      created_at: updatedUser.created_at,
+      isactive: updatedUser.isactive,
+      token: updatedUser.tokens[updatedUser.tokens.length - 1], // send only latest token
+    };
+
+    return res.status(200).json({
+      clientDetails,
+      userDetails: responseUser,
+    });
+  } catch (error) {
+    console.error("Login error:", error);
+    return res.status(500).json({ message: "Internal server error" }); // 500 Internal Error
   }
-);
+});
+
 
 router.get("/fetchAds", async (req, response) => {
   const { device_id } = req.query;
@@ -620,7 +607,7 @@ router.get("/fetchUserExpiredAds", auth, async (req, response) => {
     response.status(200).json([]);
   }
 });
-router.get("/p", auth, async (req, response) => {
+router.get("/getRejectedAds", auth, async (req, response) => {
   const { user_id } = req.query;
   const query = `SELECT * FROM ads WHERE isRejected=true and user_id=${user_id}`;
   const result2 = await client.query(query);
@@ -631,16 +618,18 @@ router.get("/p", auth, async (req, response) => {
   }
 });
 
-router.get("/getDeviceIds", auth, async (request, response) => {
-  const query = `select * from hording_devices`;
+router.get("/getDeviceIds",checkValidClient, auth, async (request, response) => {
+  const query = `select * from devices where client_id=$1`;
   try {
-    const result = await client.query(query);
+    const result = await client.query(query,[request.client_id]);
     if (result.rowCount > 0) {
+      console.log(result.rows)
       response.status(200).json(result.rows);
     } else {
       response.status(200).json([]);
     }
   } catch (e) {
+    console.log(e)
     response.status(500);
   }
 });
@@ -762,22 +751,33 @@ router.post("/add_client", async (request, response) => {
     }
   }
 });
-router.post("/createAccount", checkValidClient, async (request, response) => {
-  const { name, email, password, role,mobileNumber } = request.body;
-  const query = `INSERT INTO users(name, email,password_hash,role,client_id,mobile_number)VALUES ($1,$2,$3,$4,$5,$6);`;
-  try {
-    await client.query(query, [name, email, password, role, request.client_id,mobileNumber]);
-    response.status(200).send({ message: "account created successfully" });
-  } catch (e) {
-    console.log(e);
-    if (
-      e.toString().includes("duplicate key value violates unique constraint")
-    ) {
+router.post(
+  "/createAccount",
+  checkDomainAndReturnClientId,
+  async (request, response) => {
+    const { name, email, password, role, mobileNumber } = request.body;
+    const query = `INSERT INTO users(name, email,password_hash,role,client_id,mobile_number)VALUES ($1,$2,$3,$4,$5,$6);`;
+    try {
+      await client.query(query, [
+        name,
+        email,
+        password,
+        role,
+        request.client_id,
+        mobileNumber,
+      ]);
+      response.status(200).send({ message: "account created successfully" });
+    } catch (e) {
       console.log(e);
-      response.status(200).send({ message: "email already exists" });
+      if (
+        e.toString().includes("duplicate key value violates unique constraint")
+      ) {
+        console.log(e);
+        response.status(200).send({ message: "email already exists" });
+      }
     }
   }
-});
+);
 
 router.get(
   "/getRecentAdSubmission",
@@ -953,11 +953,7 @@ router.post(
     }
   }
 );
-router.post(
-  "/enableEmergencyMode",
-  checkValidClient,
-  auth,
-  async (request, response) => {
+router.post( "/enableEmergencyMode",checkValidClient,auth,  async (request, response) => {
     const { device_id, status } = request.body;
     const query = `update devices set emergency_mode ='${status}' where client_id = '${request.client_id}' and id ='${device_id}' RETURNING *`;
 
@@ -968,12 +964,8 @@ router.post(
       response.status(500).send({ message: "somthing went wrong" });
     }
   }
-);  
-router.post(
-  "/approveRejectAd",
-  checkValidClient,
-  auth,
-  async (request, response) => {
+);
+router.post( "/approveRejectAd",  checkValidClient,  auth, async (request, response) => {
     const { ad_id, status } = request.body;
     const query = `update ads set status ='${status}' where client_id = '${request.client_id}' and id ='${ad_id}'`;
     try {
@@ -1029,67 +1021,76 @@ GROUP BY d.id, d.device_name, d.location, d.status, d.registered_at,d.emergency_
   }
 );
 
-router.get("/getDevices",checkValidClient,auth,async(request,response)=>{
-  const query = `select * from devices where client_id = $1`
+router.get("/getDevices", checkValidClient, auth, async (request, response) => {
+  const query = `select * from devices where client_id = $1`;
 
-  try{
-    const result = await client.query(query,[request.client_id])
-    response.status(200).json(result.rows)
-  }catch(e){
-    response.status(500).send({message:'error fetching devices'})
+  try {
+    const result = await client.query(query, [request.client_id]);
+    response.status(200).json(result.rows);
+  } catch (e) {
+    response.status(500).send({ message: "error fetching devices" });
   }
+});
+router.get(
+  "/getEmergencyAds",
+  checkValidClient,
+  auth,
+  async (request, response) => {
+    const { id } = request.query;
+    const query = `select * from ads where client_id = $1 and device_id=$2`;
 
-})
-router.get("/getEmergencyAds",checkValidClient,auth,async(request,response)=>{
-  const {id}=request.query
-  const query = `select * from ads where client_id = $1 and device_id=$2`
-
-  try{
-    const result = await client.query(query,[request.client_id,id])
-    response.status(200).json(result.rows)
-  }catch(e){
-    response.status(500).send({message:'error fetching devices'})
+    try {
+      const result = await client.query(query, [request.client_id, id]);
+      response.status(200).json(result.rows);
+    } catch (e) {
+      response.status(500).send({ message: "error fetching devices" });
+    }
   }
+);
+router.get("/saveDevice", checkValidClient, auth, async (request, response) => {
+  const { status, location } = request.query;
+  const nameQuery = `select name from clients where id = '${request.client_id}'`;
 
-})
-router.get("/saveDevice",checkValidClient,auth,async(request,response)=>{
-  const {status,location}=request.query
-  const nameQuery = `select name from clients where id = '${request.client_id}'`
-  
-  try{
-  const nameResult = await client.query(nameQuery)
-  const name = nameResult.rows[0]['name']
+  try {
+    const nameResult = await client.query(nameQuery);
+    const name = nameResult.rows[0]["name"];
 
-  const query = `insert into devices (client_id,device_name,location,status)VALUES('${request.client_id}','${generateDID(name)}','${location}','${status}')`
-  try{
-    const result = await client.query(query)
-    response.status(200).send({message:'Device added'})
-  }catch(e){
-    response.status(200).send({message:'error adding device'})
+    const query = `insert into devices (client_id,device_name,location,status)VALUES('${
+      request.client_id
+    }','${generateDID(name)}','${location}','${status}')`;
+    try {
+      const result = await client.query(query);
+      response.status(200).send({ message: "Device added" });
+    } catch (e) {
+      response.status(200).send({ message: "error adding device" });
+    }
+  } catch (e) {
+    response.status(200).send({ message: "error finding client" });
   }
-  }catch(e){
-    response.status(200).send({message:'error finding client'})
-  }
-
-})
+});
 function generateDID(str) {
   // Take first 4 characters and make them uppercase
   const prefix = str.substring(0, 4).toUpperCase();
-  
+
   // Generate a random 4-digit number (1000–9999)
   const randomNum = Math.floor(1000 + Math.random() * 9000);
 
   return `${prefix}-${randomNum}`;
 }
 
-router.get("/deleteDevice",checkValidClient,auth,async(request,response)=>{
-  const {id}=request.query
-  const query = `delete from devices where id=$1 and client_id =$2`
-  try{
-    const result = await client.query(query,[id,request.client_id])
-    response.status(200).send({message:'Device deleted'})
-  }catch(e){
-    response.status(200).send({message:'Error deleting device'})
+router.get(
+  "/deleteDevice",
+  checkValidClient,
+  auth,
+  async (request, response) => {
+    const { id } = request.query;
+    const query = `delete from devices where id=$1 and client_id =$2`;
+    try {
+      const result = await client.query(query, [id, request.client_id]);
+      response.status(200).send({ message: "Device deleted" });
+    } catch (e) {
+      response.status(200).send({ message: "Error deleting device" });
+    }
   }
-})
+);
 module.exports = router;
