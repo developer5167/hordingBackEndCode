@@ -13,10 +13,11 @@ const auth = async (req, res, next) => {
   }
   try {
     const decode = jwtToken.verify(auth, "THISISTESTAPPFORHORDING");
-    var sql = "SELECT tokens FROM users WHERE email=$1 and client_id = $2";
+    var sql = "SELECT tokens,id FROM users WHERE email=$1 and client_id = $2";
     const { rows } = await client.query(sql, [decode["email"],req.client_id]);
     if (rows.length != 0) {
       if (rows[0].tokens.includes(auth)) {
+        req.user.id = rows[0].id
         next();
       } else {
         res.status(200).json({ message: "Invalid credentials","status":false });

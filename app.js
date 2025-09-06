@@ -13,10 +13,14 @@ app.use(express.json()); // Parse JSON body
 
 // Routers
 const rootRouter = require("./router");
+const rootRouterAdvertiser = require("./advertiserApis");
+const adminApis = require("./adminApis");
 const apiRoutes = require("./routes/index");
 const { json } = require("stream/consumers");
 
 app.use("/", rootRouter); // e.g. GET /
+app.use("/", rootRouterAdvertiser); // e.g. GET /
+app.use("/", adminApis); // e.g. GET /
 app.use("/api", apiRoutes); // e.g. GET /api/users
 const server = http.createServer(app);
 const io = new Server(server, {
