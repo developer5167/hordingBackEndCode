@@ -1,7 +1,18 @@
-const client = require("../db");
-const jwtToken = require("jsonwebtoken");
-const { route } = require("../router");
-const router = require("../router");
+const {
+  express,
+  upload,       // multer memory-storage ready
+  uuidv4,
+  jwt,
+  bcrypt,
+  nodemailer,
+  path,
+  crypto,
+  consoleLog,
+  http,
+  cors,
+  db,
+  admin,
+} = require("../deps");
 const auth = async (req, res, next) => {
   const {client_id} = req.body
   var auth = req.header("Authorization");
@@ -12,12 +23,12 @@ const auth = async (req, res, next) => {
     auth = auth.replace("Bearer ", "");
   }
   try {
-    const decode = jwtToken.verify(auth, "THISISTESTAPPFORHORDING");
+    const decode = jwt.verify(auth, "THISISTESTAPPFORHORDING");
     var sql = "SELECT tokens,id FROM users WHERE email=$1 and client_id = $2";
-    const { rows } = await client.query(sql, [decode["email"],req.client_id]);
+    const { rows } = await db.query(sql, [decode["email"],req.client_id]);
     if (rows.length != 0) {
       if (rows[0].tokens.includes(auth)) {
-        req.user.id = rows[0].id
+        req.user_id = rows[0].id
         next();
       } else {
         res.status(200).json({ message: "Invalid credentials","status":false });

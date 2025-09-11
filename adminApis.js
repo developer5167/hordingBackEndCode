@@ -1,31 +1,24 @@
-const express = require("./express_file");
-const path = require("path");
-const bcrypt = require("bcrypt");
-const nodemailer = require("nodemailer");
-const multer = require("multer");
-const jwtToken = require("jsonwebtoken");
-const { v4: uuidv4 } = require("uuid");
-const auth = require("./middleware/auth");
-const checkValidClient = require("./middleware/checkValidClient");
-const checkDomainAndReturnClientId = require("./middleware/checkDomainAndReturnClientId");
-
-const timers = {};
-const { admin, fcm } = require("./firebaseAdmin");
-const { secureHeapUsed } = require("crypto");
-const { log } = require("console");
-const e = require("cors");
-const { request } = require("http");
-
-const upload = multer({ storage: multer.memoryStorage() });
-const bucket = admin.storage().bucket();
+const {
+  express,
+  upload,       // multer memory-storage ready
+  uuidv4,
+  jwt,
+  bcrypt,
+  nodemailer,
+  path,
+  crypto,
+  consoleLog,
+  http,
+  cors,
+  db,
+  admin,
+  auth
+} = require("./deps");
 // router.js (or a separate advertiser.routes.js if you want to keep clean)
-const express = require("express");
 const router = express.Router();
-const db = require("./db");
-const auth = require("./auth"); // your JWT + token check
-const checkValidClient = require("./checkValidClient");
 
 
+const checkValidClient = require("./middleware/checkValidClient");
 
 
 // Admin Login
@@ -103,7 +96,7 @@ router.post("/admin/login", checkValidClient, async (req, res) => {
 // router.js
 router.get("/admin/profile", checkValidClient, auth, async (req, res) => {
   try {
-    const adminId = req.user.id;      
+    const adminId = req.user_id;      
     const clientId = req.client_id;  
 
     const query = `
@@ -138,7 +131,7 @@ router.get("/admin/profile", checkValidClient, auth, async (req, res) => {
 // router.js
 router.put("/admin/profile", checkValidClient, auth, async (req, res) => {
   try {
-    const adminId = req.user.id;      
+    const adminId = req.user_id;      
     const clientId = req.client_id;  
     const { name, email } = req.body;
 
@@ -185,7 +178,7 @@ router.put("/admin/profile", checkValidClient, auth, async (req, res) => {
 // router.js
 router.patch("/admin/change-password", checkValidClient, auth, async (req, res) => {
   try {
-    const adminId = req.user.id;      
+    const adminId = req.user_id;      
     const clientId = req.client_id;  
     const { old_password, new_password } = req.body;
 
@@ -253,7 +246,7 @@ router.patch("/admin/change-password", checkValidClient, auth, async (req, res) 
 // router.js
 router.post("/admin/logout", checkValidClient, auth, async (req, res) => {
   try {
-    const adminId = req.user.id;      
+    const adminId = req.user_id;      
     const clientId = req.client_id;  
     const token = req.token;          // from auth middleware
 
@@ -637,7 +630,6 @@ router.patch("/admin/ads/:id/resume", checkValidClient, auth, async (req, res) =
 
 // API: Delete Ad
 
-import { deleteFileFromFirebase } from "./firebaseHelper.js"; 
 // make sure you have a helper function to delete files from Firebase
 router.delete("/admin/ads/:id", checkValidClient, auth, async (req, res) => {
   try {

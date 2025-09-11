@@ -12,16 +12,17 @@ app.use(cors());
 app.use(express.json()); // Parse JSON body
 
 // Routers
-const rootRouter = require("./router");
+// const rootRouter = require("./router");
 const rootRouterAdvertiser = require("./advertiserApis");
 const adminApis = require("./adminApis");
 const apiRoutes = require("./routes/index");
-const { json } = require("stream/consumers");
-
-app.use("/", rootRouter); // e.g. GET /
-app.use("/", rootRouterAdvertiser); // e.g. GET /
-app.use("/", adminApis); // e.g. GET /
+const superAdminApis = require("./superadminApis");
+const apisForTv = require("./apisForTvApp");
+app.use("/superadmin", superAdminApis);
+app.use("/advertiser", rootRouterAdvertiser); // e.g. GET /
+app.use("/admin", adminApis); // e.g. GET /
 app.use("/api", apiRoutes); // e.g. GET /api/users
+app.use("/tvApp", apisForTv); // e.g. GET /api/users
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
