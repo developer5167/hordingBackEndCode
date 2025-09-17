@@ -12,7 +12,7 @@
                 "<node_internals>/**"
             ],
             "program": "${workspaceFolder}/app.js",
-            "runtimeExecutable": "C:/Program Files/nodejs/node.exe"
+            "runtimeExecutable": "node"
         }
     ]
 }

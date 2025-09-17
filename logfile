@@ -1458,3 +1458,204 @@
 2025-09-01 18:57:49.846 IST [3563] LOG:  background worker "logical replication launcher" (PID 3570) exited with exit code 1
 2025-09-01 18:57:49.847 IST [3565] LOG:  shutting down
 2025-09-01 18:57:49.862 IST [3563] LOG:  database system is shut down
+2025-09-15 15:31:29.067 IST [10105] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-09-15 15:31:29.071 IST [10105] LOG:  listening on IPv6 address "::1", port 5432
+2025-09-15 15:31:29.072 IST [10105] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-09-15 15:31:29.072 IST [10105] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-09-15 15:31:29.104 IST [10106] LOG:  database system was shut down at 2025-09-10 19:29:35 IST
+2025-09-15 15:31:29.113 IST [10105] LOG:  database system is ready to accept connections
+2025-09-15 15:37:14.319 IST [11390] FATAL:  role "postgres" does not exist
+2025-09-15 15:37:23.532 IST [11442] FATAL:  role "postgres" does not exist
+2025-09-15 15:37:44.060 IST [11511] FATAL:  role "postgres" does not exist
+2025-09-15 16:40:45.976 IST [21747] ERROR:  null value in column "id" of relation "users" violates not-null constraint
+2025-09-15 16:40:45.976 IST [21747] DETAIL:  Failing row contains (null, 7a8ebf2f-f5cc-46fd-aac4-2940ada82812, nihar, nihar@gmail.com, null, $2b$08$h/sz7zejFwH5oBCDeBp9d.1qAtgcxGav64XPuEDihvlR/d/pOCo.q, advertiser, {"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI5OWY2NmY4N..., null, t, 2025-09-15 16:40:45.96817+05:30).
+2025-09-15 16:40:45.976 IST [21747] STATEMENT:  
+	      INSERT INTO users ( client_id, name, email, password_hash, role, tokens)
+	      VALUES ($1, $2, $3, $4, $5, $6)
+	      RETURNING id, name, email, role, client_id
+	    
+2025-09-15 16:44:36.597 IST [21747] ERROR:  null value in column "id" of relation "users" violates not-null constraint
+2025-09-15 16:44:36.597 IST [21747] DETAIL:  Failing row contains (null, 7a8ebf2f-f5cc-46fd-aac4-2940ada82812, nihar, nihar@gmail.com, null, $2b$08$t8zK/tIQAelhfnwAzpuq3.aGiemO7ogQ9IbEI7QpISXP4TtO5fpu6, advertiser, {"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2NDkxNjdjY..., null, t, 2025-09-15 16:44:36.597406+05:30).
+2025-09-15 16:44:36.597 IST [21747] STATEMENT:  
+	      INSERT INTO users ( client_id, name, email, password_hash, role, tokens)
+	      VALUES ($1, $2, $3, $4, $5, $6)
+	      RETURNING id, name, email, role, client_id
+	    
+2025-09-15 16:48:29.170 IST [21747] LOG:  could not receive data from client: Connection reset by peer
+2025-09-15 16:51:37.173 IST [25116] ERROR:  null value in column "id" of relation "users" violates not-null constraint
+2025-09-15 16:51:37.173 IST [25116] DETAIL:  Failing row contains (null, 7a8ebf2f-f5cc-46fd-aac4-2940ada82812, nihar, nihar@gmail.com, 8008112984, $2b$08$xusWyMOe7rbKj9GjNHF2pOaIlNSGUFipjbsCp0WrnpC0f8Uo4DPqW, advertiser, {"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJmMTQwNTZmM..., null, t, 2025-09-15 16:51:37.172+05:30).
+2025-09-15 16:51:37.173 IST [25116] STATEMENT:  
+	      INSERT INTO users ( client_id, name, email, password_hash, role, tokens,mobile_number)
+	      VALUES ($1, $2, $3, $4, $5, $6,$7)
+	      RETURNING id, name, email, role, client_id
+	    
+2025-09-15 16:57:31.450 IST [10186] ERROR:  syntax error at or near "PRIMARY" at character 54
+2025-09-15 16:57:31.450 IST [10186] STATEMENT:  ALTER TABLE users
+	  ALTER COLUMN id SET DEFAULT UUID PRIMARY KEY DEFAULT gen_random_uuid();
+2025-09-15 16:57:41.497 IST [10186] ERROR:  syntax error at or near "DEFAULT" at character 54
+2025-09-15 16:57:41.497 IST [10186] STATEMENT:  ALTER TABLE users
+	  ALTER COLUMN id SET DEFAULT UUID DEFAULT gen_random_uuid();
+2025-09-15 16:57:49.568 IST [10186] ERROR:  syntax error at or near "gen_random_uuid" at character 54
+2025-09-15 16:57:49.568 IST [10186] STATEMENT:  ALTER TABLE users
+	  ALTER COLUMN id SET DEFAULT UUID gen_random_uuid();
+2025-09-15 16:58:07.399 IST [10186] ERROR:  function uuid_generate_v4() does not exist
+2025-09-15 16:58:07.399 IST [10186] HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+2025-09-15 16:58:07.399 IST [10186] STATEMENT:  ALTER TABLE users
+	  ALTER COLUMN id SET DEFAULT uuid_generate_v4();
+2025-09-15 17:04:19.595 IST [26059] ERROR:  relation "pricing" does not exist at character 65
+2025-09-15 17:04:19.595 IST [26059] STATEMENT:  SELECT id, media_type, duration_seconds, base_price
+	       FROM pricing
+	       WHERE client_id = $1 AND device_id = $2
+	       ORDER BY media_type, duration_seconds NULLS FIRST
+2025-09-15 17:08:17.352 IST [26768] ERROR:  invalid input syntax for type uuid: "dashboard"
+2025-09-15 17:08:17.352 IST [26768] CONTEXT:  unnamed portal parameter $2 = '...'
+2025-09-15 17:08:17.352 IST [26768] STATEMENT:  SELECT id, media_type, duration_seconds, base_price
+	       FROM pricing
+	       WHERE client_id = $1 AND device_id = $2
+	       ORDER BY media_type, duration_seconds NULLS FIRST
+2025-09-15 17:09:12.646 IST [26768] ERROR:  invalid input syntax for type uuid: "dashboard"
+2025-09-15 17:09:12.646 IST [26768] CONTEXT:  unnamed portal parameter $2 = '...'
+2025-09-15 17:09:12.646 IST [26768] STATEMENT:  SELECT id, media_type, duration_seconds, base_price
+	       FROM pricing
+	       WHERE client_id = $1 AND device_id = $2
+	       ORDER BY media_type, duration_seconds NULLS FIRST
+2025-09-15 17:09:38.807 IST [26768] ERROR:  invalid input syntax for type uuid: "dashboard"
+2025-09-15 17:09:38.807 IST [26768] CONTEXT:  unnamed portal parameter $2 = '...'
+2025-09-15 17:09:38.807 IST [26768] STATEMENT:  SELECT id, media_type, duration_seconds, base_price
+	       FROM pricing
+	       WHERE client_id = $1 AND device_id = $2
+	       ORDER BY media_type, duration_seconds NULLS FIRST
+2025-09-15 19:34:36.428 IST [10105] LOG:  received smart shutdown request
+2025-09-15 19:34:36.430 IST [10105] LOG:  background worker "logical replication launcher" (PID 10112) exited with exit code 1
+2025-09-15 19:34:36.430 IST [10107] LOG:  shutting down
+2025-09-15 19:34:36.444 IST [10105] LOG:  database system is shut down
+2025-09-16 15:18:15.115 IST [10606] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-09-16 15:18:15.122 IST [10606] LOG:  listening on IPv6 address "::1", port 5432
+2025-09-16 15:18:15.122 IST [10606] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-09-16 15:18:15.124 IST [10606] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-09-16 15:18:15.167 IST [10607] LOG:  database system was shut down at 2025-09-15 19:34:36 IST
+2025-09-16 15:18:15.200 IST [10606] LOG:  database system is ready to accept connections
+2025-09-16 15:33:10.874 IST [10648] ERROR:  invalid input syntax for type uuid: "dashboard"
+2025-09-16 15:33:10.874 IST [10648] CONTEXT:  unnamed portal parameter $2 = '...'
+2025-09-16 15:33:10.874 IST [10648] STATEMENT:  SELECT id, media_type, duration_seconds, base_price
+	       FROM pricing
+	       WHERE client_id = $1 AND device_id = $2
+	       ORDER BY media_type, duration_seconds NULLS FIRST
+2025-09-16 15:35:37.314 IST [13132] ERROR:  invalid input syntax for type uuid: "dashboard"
+2025-09-16 15:35:37.314 IST [13132] CONTEXT:  unnamed portal parameter $2 = '...'
+2025-09-16 15:35:37.314 IST [13132] STATEMENT:  SELECT id, media_type, duration_seconds, base_price
+	       FROM pricing
+	       WHERE client_id = $1 AND device_id = $2
+	       ORDER BY media_type, duration_seconds NULLS FIRST
+2025-09-16 15:36:36.148 IST [13174] ERROR:  invalid input syntax for type uuid: "dashboard"
+2025-09-16 15:36:36.148 IST [13174] CONTEXT:  unnamed portal parameter $2 = '...'
+2025-09-16 15:36:36.148 IST [13174] STATEMENT:  SELECT id, media_type, duration_seconds, base_price
+	       FROM pricing
+	       WHERE client_id = $1 AND device_id = $2
+	       ORDER BY media_type, duration_seconds NULLS FIRST
+2025-09-16 17:40:32.093 IST [25586] ERROR:  column "start_time" does not exist at character 84
+2025-09-16 17:40:32.093 IST [25586] HINT:  Perhaps you meant to reference the column "ads.start_date".
+2025-09-16 17:40:32.093 IST [25586] STATEMENT:  
+	      SELECT id, title, description, status, media_type, media_url, 
+	             start_time, end_time, created_at
+	      FROM ads
+	      WHERE id = $1 AND user_id = $2 AND client_id = $3
+	      LIMIT 1
+	    
+2025-09-16 17:41:55.665 IST [25782] ERROR:  invalid input syntax for type uuid: "recent"
+2025-09-16 17:41:55.665 IST [25782] CONTEXT:  unnamed portal parameter $1 = '...'
+2025-09-16 17:41:55.665 IST [25782] STATEMENT:  
+	      SELECT id, title, description, status, media_type, media_url, 
+	             start_date, end_date, created_at
+	      FROM ads
+	      WHERE id = $1 AND user_id = $2 AND client_id = $3
+	      LIMIT 1
+	    
+2025-09-16 18:52:11.395 IST [32927] ERROR:  column "device_name" does not exist at character 19
+2025-09-16 18:52:11.395 IST [32927] STATEMENT:  
+	      SELECT id, device_name, location, width, height, status, created_at
+	      FROM devices
+	      WHERE client_id = $1
+	      ORDER BY created_at DESC
+	    
+2025-09-16 18:53:07.950 IST [32998] ERROR:  column "device_name" does not exist at character 19
+2025-09-16 18:53:07.950 IST [32998] STATEMENT:  
+	      SELECT id, device_name, location, width, height, status, created_at
+	      FROM devices
+	      WHERE client_id = $1
+	      ORDER BY created_at DESC
+	    
+2025-09-16 18:56:41.950 IST [32998] ERROR:  column "device_name" does not exist at character 19
+2025-09-16 18:56:41.950 IST [32998] STATEMENT:  
+	      SELECT id, device_name, location, width, height, status, created_at
+	      FROM devices
+	      WHERE client_id = $1
+	      ORDER BY created_at DESC
+	    
+2025-09-16 21:24:53.508 IST [13959] ERROR:  syntax error at end of input at character 141
+2025-09-16 21:24:53.508 IST [13959] STATEMENT:  INSERT INTO devices (client_id, name, location,width,height)
+	VALUES (
+	'7a8ebf2f-f5cc-46fd-aac4-2940ada82812',
+	'PRAK-12345',
+	'Ameerpet',
+	1080
+2025-09-16 21:25:16.015 IST [13959] ERROR:  null value in column "id" of relation "devices" violates not-null constraint
+2025-09-16 21:25:16.015 IST [13959] DETAIL:  Failing row contains (null, 7a8ebf2f-f5cc-46fd-aac4-2940ada82812, PRAK-12345, Ameerpet, 1080, 1920, active, 2025-09-16 21:25:16.012916+05:30).
+2025-09-16 21:25:16.015 IST [13959] STATEMENT:  INSERT INTO devices (client_id, name, location,width,height)
+	VALUES (
+	'7a8ebf2f-f5cc-46fd-aac4-2940ada82812',
+	'PRAK-12345',
+	'Ameerpet',
+	1080,
+	1920
+	);
+2025-09-16 21:25:26.259 IST [13959] ERROR:  null value in column "id" of relation "devices" violates not-null constraint
+2025-09-16 21:25:26.259 IST [13959] DETAIL:  Failing row contains (null, 7a8ebf2f-f5cc-46fd-aac4-2940ada82812, PRAK-12345, Ameerpet, 1080, 1920, active, 2025-09-16 21:25:26.258474+05:30).
+2025-09-16 21:25:26.259 IST [13959] STATEMENT:  INSERT INTO devices (client_id, name, location,width,height)
+	VALUES (
+	'7a8ebf2f-f5cc-46fd-aac4-2940ada82812',
+	'PRAK-12345',
+	'Ameerpet',
+	1080,
+	1920
+	);
+2025-09-17 13:36:29.041 IST [61054] ERROR:  column "password" does not exist at character 19
+2025-09-17 13:36:29.041 IST [61054] STATEMENT:  
+	      SELECT id, password 
+	      FROM users
+	      WHERE id = $1 AND client_id = $2
+	      LIMIT 1
+	    
+2025-09-17 13:44:18.841 IST [64621] ERROR:  function array_remove(text, unknown) does not exist at character 40
+2025-09-17 13:44:18.841 IST [64621] HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+2025-09-17 13:44:18.841 IST [64621] STATEMENT:  
+	      UPDATE users
+	      SET tokens = array_remove(tokens, $1)
+	      WHERE id = $2 AND client_id = $3
+	      RETURNING id, email
+	    
+2025-09-17 23:59:32.897 IST [87865] ERROR:  invalid input syntax for type uuid: "recent"
+2025-09-17 23:59:32.897 IST [87865] CONTEXT:  unnamed portal parameter $1 = '...'
+2025-09-17 23:59:32.897 IST [87865] STATEMENT:  
+	      SELECT id, title, description, status, media_type, media_url, 
+	             start_date, end_date, created_at,device_id,user_id,filename,status_updated_at
+	      FROM ads
+	      WHERE id = $1 AND user_id = $2 AND client_id = $3
+	      LIMIT 1
+	    
+2025-09-18 00:43:50.033 IST [91698] ERROR:  invalid input syntax for type uuid: "null"
+2025-09-18 00:43:50.033 IST [91698] CONTEXT:  unnamed portal parameter $1 = '...'
+2025-09-18 00:43:50.033 IST [91698] STATEMENT:  
+	      SELECT id, status 
+	      FROM ads
+	      WHERE id = $1 AND user_id = $2 AND client_id = $3
+	      LIMIT 1
+	    
+2025-09-18 00:46:14.599 IST [91698] ERROR:  invalid input syntax for type uuid: "null"
+2025-09-18 00:46:14.599 IST [91698] CONTEXT:  unnamed portal parameter $1 = '...'
+2025-09-18 00:46:14.599 IST [91698] STATEMENT:  
+	      SELECT id, status 
+	      FROM ads
+	      WHERE id = $1 AND user_id = $2 AND client_id = $3
+	      LIMIT 1
+	    

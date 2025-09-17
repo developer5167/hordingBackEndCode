@@ -2,24 +2,22 @@ const {
   express,
   upload,       // multer memory-storage ready
   uuidv4,
-  jwt,
+  jsonwebtoken,
   bcrypt,
-  nodemailer,
-  path,
-  crypto,
-  consoleLog,
-  http,
-  cors,
   db,
-  admin,
   auth
 } = require("./deps");
+ const { admin, fcm } = require("./firebaseAdmin")
+  const bucket = admin.storage().bucket();
 const router = express.Router()
 
 const checkValidClient = require("./middleware/checkValidClient");
 // ----------------------
 // GET /ads/my
 // ----------------------
+router.get("/",async (req,res)=>{
+  res.send("Welcome")
+})
 router.get("/ads/my", checkValidClient, auth, async (req, res) => {
   try {
     const userId =  req.user_id; // set in auth middleware
@@ -28,7 +26,7 @@ router.get("/ads/my", checkValidClient, auth, async (req, res) => {
 
     // Base query
     let query = `
-      SELECT id, title, description, status, media_type, media_url, start_time, end_time, created_at
+      SELECT id, title, description, status, media_type, media_url, start_date, end_date, created_at
       FROM ads
       WHERE user_id = $1 AND client_id = $2
     `;
@@ -71,15 +69,15 @@ router.get("/ads/my", checkValidClient, auth, async (req, res) => {
 });
 
 // router.js
-router.get("/ads/:id", checkValidClient, auth, async (req, res) => {
+router.get("/ads/details", checkValidClient, auth, async (req, res) => {
   try {
     const userId = req.user_id;      // from auth middleware
     const clientId = req.client_id;  // from checkValidClient middleware
-    const { id } = req.params;
+    const { id } = req.query;
 
     const query = `
       SELECT id, title, description, status, media_type, media_url, 
-             start_time, end_time, created_at
+             start_date, end_date, created_at,device_id,user_id,filename,status_updated_at
       FROM ads
       WHERE id = $1 AND user_id = $2 AND client_id = $3
       LIMIT 1
@@ -110,11 +108,11 @@ router.get("/ads/:id", checkValidClient, auth, async (req, res) => {
   }
 });
 // router.js
-router.delete("/ads/:id", checkValidClient, auth, async (req, res) => {
+router.delete("/ads/delete", checkValidClient, auth, async (req, res) => {
   try {
     const userId = req.user_id;      // from auth middleware
     const clientId = req.client_id;  // from checkValidClient middleware
-    const { id } = req.params;
+    const { id } = req.query;
 
     // Step 1: Check if ad exists and belongs to this user & client
     const checkQuery = `
@@ -160,11 +158,11 @@ router.delete("/ads/:id", checkValidClient, auth, async (req, res) => {
   }
 });
 // router.js
-router.put("/ads/:id", checkValidClient, auth, async (req, res) => {
+router.put("/ads/update", checkValidClient, auth, async (req, res) => {
   try {
     const userId = req.user_id;      // from auth middleware
     const clientId = req.client_id;  // from checkValidClient middleware
-    const { id } = req.params;
+    const { id } = req.query;
     const { title, description, start_time, end_time, media_url, media_type } = req.body;
 
     // Step 1: Check if ad exists & belongs to this user & client
@@ -198,8 +196,8 @@ router.put("/ads/:id", checkValidClient, auth, async (req, res) => {
       UPDATE ads
       SET title = COALESCE($1, title),
           description = COALESCE($2, description),
-          start_time = COALESCE($3, start_time),
-          end_time = COALESCE($4, end_time),
+          start_date = COALESCE($3, start_date),
+          end_date = COALESCE($4, end_date),
           media_url = COALESCE($5, media_url),
           media_type = COALESCE($6, media_type),
           status_updated_at = NOW()
@@ -226,11 +224,11 @@ router.put("/ads/:id", checkValidClient, auth, async (req, res) => {
   }
 });
 // router.js
-router.patch("/ads/:id/pause", checkValidClient, auth, async (req, res) => {
+router.patch("/ads/pause", checkValidClient, auth, async (req, res) => {
   try {
     const userId = req.user_id;      // from auth middleware
     const clientId = req.client_id;  // from checkValidClient middleware
-    const { id } = req.params;
+    const { id } = req.query;
 
     // Step 1: Check ad ownership
     const checkQuery = `
@@ -252,7 +250,7 @@ router.patch("/ads/:id/pause", checkValidClient, auth, async (req, res) => {
 
     // Step 2: Only allow pause if status = approved or active
     if (ad.status !== "approved" && ad.status !== "active") {
-      return res.status(400).json({
+      return res.status(200).json({
         success: false,
         message: `Ad cannot be paused because it is currently '${ad.status}'. Only 'approved' or 'active' ads can be paused.`,
       });
@@ -283,11 +281,11 @@ router.patch("/ads/:id/pause", checkValidClient, auth, async (req, res) => {
   }
 });
 // router.js
-router.patch("/ads/:id/resume", checkValidClient, auth, async (req, res) => {
+router.patch("/ads/resume", checkValidClient, auth, async (req, res) => {
   try {
     const userId = req.user_id;      // from auth middleware
     const clientId = req.client_id;  // from checkValidClient middleware
-    const { id } = req.params;
+    const { id } = req.query;
 
     // Step 1: Check ad ownership
     const checkQuery = `
@@ -441,7 +439,7 @@ router.patch("/profile/change-password", checkValidClient, auth, async (req, res
 
     // Step 1: Get user
     const userQuery = `
-      SELECT id, password 
+      SELECT id, password_hash 
       FROM users
       WHERE id = $1 AND client_id = $2
       LIMIT 1
@@ -458,7 +456,7 @@ router.patch("/profile/change-password", checkValidClient, auth, async (req, res
     const user = rows[0];
 
     // Step 2: Check old password
-    const validPassword = await bcrypt.compare(old_password, user.password);
+    const validPassword = await bcrypt.compare(old_password, user.password_hash);
     if (!validPassword) {
       return res.status(401).json({
         success: false,
@@ -467,12 +465,12 @@ router.patch("/profile/change-password", checkValidClient, auth, async (req, res
     }
 
     // Step 3: Hash new password
-    const hashedPassword = await bcrypt.hash(new_password, 10);
+    const hashedPassword = await bcrypt.hash(new_password, 8);
 
     // Step 4: Update password
     const updateQuery = `
       UPDATE users
-      SET password = $1
+      SET password_hash = $1
       WHERE id = $2
       RETURNING id, name, email, role, client_id
     `;
@@ -504,11 +502,11 @@ router.post("/logout", checkValidClient, auth, async (req, res) => {
     // Remove this token from user's tokens
     const query = `
       UPDATE users
-      SET tokens = array_remove(tokens, $1)
+      SET tokens = $1
       WHERE id = $2 AND client_id = $3
       RETURNING id, email
     `;
-    const { rows } = await db.query(query, [token, userId, clientId]);
+    const { rows } = await db.query(query, [null, userId, clientId]);
 
     if (rows.length === 0) {
       return res.status(404).json({
@@ -534,7 +532,7 @@ router.post("/logout", checkValidClient, auth, async (req, res) => {
 
 
 // API 1: Get Pricing Rules for Device
-router.get("/:deviceId", checkValidClient, async (req, res) => {
+router.get("/deviceId", checkValidClient, async (req, res) => {
   try {
     const { deviceId } = req.params;
     const clientId = req.client_id; // comes from middleware
@@ -797,10 +795,10 @@ router.get("/my", checkValidClient, async (req, res) => {
  * GET /advertiser/dashboard
  * Returns dashboard summary for the logged-in advertiser.
  */
-router.get("/dashboard", auth, async (req, res) => {
+router.get("/dashboard", checkValidClient,auth, async (req, res) => {
   try {
     // assume auth middleware sets req.user_id (advertiser user id)
-    const userId = req.user && (req.user_id || req.user.user_id || req.user.userId);
+    const userId = req.user_id;
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
     // 1) Counts for ads
@@ -882,9 +880,9 @@ router.get("/dashboard", auth, async (req, res) => {
  *   { "id": "2", "title": "Ad 2", "status": "expired", "start_date": "...", "end_date": "..." }
  * ]
  */
-router.get("/ads/recent", auth, async (req, res) => {
+router.get("/ads/recent", checkValidClient,auth, async (req, res) => {
   try {
-    const userId = req.user && (req.user_id || req.user.user_id || req.user.userId);
+    const userId = req.user_id;
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
     const result = await db.query(
@@ -934,11 +932,12 @@ router.post('/ads/create', checkValidClient, auth, upload.single('file'), async 
   const file = req.file;
   try {
     // Basic req fields
-    const clientId = req.client_id || req.clientId || req.clientIdFromMiddleware || req.headers['x-client-id']; // adapt if different
+    const clientId = req.client_id; // adapt if different
+    const user_id = req.user_id;
     if (!clientId) return res.status(400).json({ error: 'client_id_missing' });
 
     const {
-      user_id, title, description = '', meme_type, start_date, end_date,
+       title, description = '', meme_type, start_date, end_date,
     } = req.body || {};
 
     // selected_devices might come as JSON string or as repeated fields (array)
@@ -973,10 +972,10 @@ router.post('/ads/create', checkValidClient, auth, upload.single('file'), async 
     if (isNaN(start.getTime()) || isNaN(end.getTime())) return res.status(400).json({ error: 'invalid_date_format' });
 
     // start must be at least 24 hours from now
-    const minStart = new Date(Date.now() + 24 * 60 * 60 * 1000);
-    if (start < minStart) return res.status(400).json({ error: 'start_must_be_at_least_24_hours_from_now' });
+    // const minStart = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    // if (start < minStart) return res.status(400).json({ error: 'start_must_be_at_least_24_hours_from_now' });
 
-    if (end <= start) return res.status(400).json({ error: 'end_must_be_after_start' });
+    // if (end <= start) return res.status(400).json({ error: 'end_must_be_after_start' });
 
     // Prepare firebase filename
     const timestamp = Date.now();
@@ -1024,7 +1023,7 @@ router.post('/ads/create', checkValidClient, auth, upload.single('file'), async 
     const insertQuery = `
       INSERT INTO ads (
         id, client_id, user_id, device_id, title, description,
-        media_type, media_url, start_time, end_time, filename, status, status_updated_at
+        media_type, media_url, start_date, end_date, filename, status, status_updated_at
       ) VALUES (
         $1, $2, $3, $4, $5, $6,
         $7, $8, $9, $10, $11, $12, now()
@@ -1035,7 +1034,7 @@ router.post('/ads/create', checkValidClient, auth, upload.single('file'), async 
     const failedDevices = [];
 
     try {
-      await client.query('BEGIN');
+      await db.query('BEGIN');
 
       for (const deviceId of selected_devices) {
         const adId = uuidv4();
@@ -1054,7 +1053,7 @@ router.post('/ads/create', checkValidClient, auth, upload.single('file'), async 
             uploaded.filename,
             'in_review', // default initial status
           ];
-          const result = await client.query(insertQuery, values);
+          const result = await db.query(insertQuery, values);
           insertedAdIds.push(result.rows[0].id);
         } catch (insertErr) {
           console.error(`Error inserting ad for device ${deviceId}:`, insertErr);
@@ -1065,7 +1064,7 @@ router.post('/ads/create', checkValidClient, auth, upload.single('file'), async 
 
       if (failedDevices.length > 0) {
         // Something failed - rollback and delete uploaded file
-        await client.query('ROLLBACK');
+        await db.query('ROLLBACK');
         await deleteFileFromStorage(uploaded.filename);
         return res.status(500).json({
           error: 'ad_insert_failed_for_some_devices',
@@ -1073,7 +1072,7 @@ router.post('/ads/create', checkValidClient, auth, upload.single('file'), async 
         });
       } else {
         // All good
-        await client.query('COMMIT');
+        await db.query('COMMIT');
         return res.status(201).json({
           success: true,
           message: 'Ads created for devices',
@@ -1087,7 +1086,7 @@ router.post('/ads/create', checkValidClient, auth, upload.single('file'), async 
       }
     } catch (txErr) {
       console.error('Transaction error:', txErr);
-      try { await client.query('ROLLBACK'); } catch (_) {}
+      try { await db.query('ROLLBACK'); } catch (_) {}
       // clean up uploaded file
       await deleteFileFromStorage(uploaded.filename);
       return res.status(500).json({ error: 'database_error', detail: txErr.message });
@@ -1138,8 +1137,8 @@ router.post('/login', checkValidClient, async (req, res) => {
     }
 
     // generate token (payload with userId and clientId)
-    const tokenPayload = { userId: user.id, clientId: user.client_id, role: user.role };
-    const token = jwt.sign(tokenPayload, "THISISTESTAPPFORHORDING");
+    const tokenPayload = { userId: user.id, clientId: user.client_id,role:user.role };
+    const token = jsonwebtoken.sign(tokenPayload, "THISISTESTAPPFORHORDING");
 
     // update user's tokens column and optionally fcmtoken
     // Here we store the latest token string in tokens column. If you use multiple sessions, change strategy.
@@ -1148,7 +1147,7 @@ router.post('/login', checkValidClient, async (req, res) => {
       SET tokens = $1, fcmtoken = COALESCE($2, fcmtoken)
       WHERE id = $3
     `;
-    await db.query(updateQ, [[token], fcmtoken || null, user.id]);
+    await db.query(updateQ, [token, fcmtoken || null, user.id]);
 
     // Return safe user details + token
     const responseUser = {
@@ -1166,13 +1165,30 @@ router.post('/login', checkValidClient, async (req, res) => {
     return res.status(500).json({ error: 'internal_server_error' });
   }
 });
+router.get("/ads/:id/statistics", auth, async (req, res) => {
+  const { id } = req.params;
 
+  try {
+    const result = await db.query(
+      `SELECT device_id, location, play_time, duration_played
+       FROM ad_statistics
+       WHERE ad_id = $1
+       ORDER BY play_time DESC`,
+      [id]
+    );
+
+    return res.json({ stats: result.rows });
+  } catch (err) {
+    console.error("Error fetching ad statistics:", err);
+    return res.status(500).json({ error: "Failed to fetch ad statistics" });
+  }
+});
 router.post('/signup', checkValidClient, async (req, res) => {
   try {
     const clientId = req.clientId || req.client_id || req.headers['x-client-id'];
     if (!clientId) return res.status(400).json({ error: 'Client not identified' });
 
-    const { name, email, password, role } = req.body ?? {};
+    const { name, email, password, role,mobile } = req.body ?? {};
 
     // Basic validation
     if (!name || !email || !password) {
@@ -1201,15 +1217,15 @@ router.post('/signup', checkValidClient, async (req, res) => {
     const userId = uuidv4();
 
     // Generate JWT token
-    const token = jwt.sign({ userId, clientId }, "THISISTESTAPPFORHORDING");
+    // const token = jwt.sign({ userId, clientId }, "THISISTESTAPPFORHORDING");
 
     // Insert user. tokens column stores current token (string). Adjust if you prefer an array or sessions table.
     const insertQuery = `
-      INSERT INTO users ( client_id, name, email, password_hash, role, tokens)
+      INSERT INTO users ( client_id, name, email, password_hash, role,mobile_number)
       VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING id, name, email, role, client_id
     `;
-    const values = [ clientId, name.trim(), email.toLowerCase().trim(), passwordHash, role ?? 'advertiser', [token]];
+    const values = [ clientId, name.trim(), email.toLowerCase().trim(), passwordHash, role ?? 'advertiser',mobile];
 
     const { rows } = await db.query(insertQuery, values);
     const created = rows[0];
@@ -1224,11 +1240,37 @@ router.post('/signup', checkValidClient, async (req, res) => {
         role: created.role,
         client_id: created.client_id,
       },
-      token,
+      token:"",
     });
   } catch (err) {
     console.error('Signup error:', err);
     return res.status(500).json({ error: 'internal_server_error' });
+  }
+});
+router.get("/devices", checkValidClient, auth, async (req, res) => {
+  try {
+    const clientId = req.client_id;  
+
+    const query = `
+      SELECT id, name, location, width, height, status, created_at
+      FROM devices
+      WHERE client_id = $1
+      ORDER BY created_at DESC
+    `;
+    const { rows } = await db.query(query, [clientId]);
+
+    return res.status(200).json({
+      success: true,
+      message: "Devices fetched successfully",
+      data: rows
+    });
+  } catch (error) {
+    console.error("Error fetching devices:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong while fetching devices",
+      error: error.message
+    });
   }
 });
 module.exports=router

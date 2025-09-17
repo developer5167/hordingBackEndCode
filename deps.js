@@ -2,7 +2,7 @@
 const express = require("express");
 const multer = require("multer");
 const { v4: uuidv4 } = require("uuid");
-const jwt = require("jsonwebtoken");
+const jsonwebtoken = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const nodemailer = require("nodemailer");
 const path = require("path");
@@ -15,7 +15,7 @@ const auth = require("./middleware/auth");
 // app-specific modules that already export objects
 const db = require("./db");                 // Postgres client instance
 const { admin, fcm } = require("./firebaseAdmin"); // firebase admin, fcm
-
+const bucket = admin.storage().bucket();
 // prepare commonly used instances
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 200 * 1024 * 1024 } });
 
@@ -28,7 +28,7 @@ module.exports = {
   multer,
   upload,
   uuidv4,
-  jwt,
+  jsonwebtoken,
   bcrypt,
   nodemailer,
   path,
@@ -40,6 +40,7 @@ module.exports = {
   client: db,        // many files reference `client`
   admin,
   fcm,
+  bucket,
   auth,
   createRequire
 };
