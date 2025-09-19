@@ -14,6 +14,7 @@ app.use(express.json()); // Parse JSON body
 // Routers
 // const rootRouter = require("./router");
 const rootRouterAdvertiser = require("./advertiserApis");
+const order = require("./order");
 const adminApis = require("./adminApis");
 const apiRoutes = require("./routes/index");
 const superAdminApis = require("./superadminApis");
@@ -23,6 +24,7 @@ app.use("/advertiser", rootRouterAdvertiser); // e.g. GET /
 app.use("/admin", adminApis); // e.g. GET /
 app.use("/api", apiRoutes); // e.g. GET /api/users
 app.use("/tvApp", apisForTv); // e.g. GET /api/users
+app.use("/advertiser/payments",order)
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {

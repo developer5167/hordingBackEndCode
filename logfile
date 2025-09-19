@@ -1659,3 +1659,421 @@
 	      WHERE id = $1 AND user_id = $2 AND client_id = $3
 	      LIMIT 1
 	    
+2025-09-18 16:21:03.261 IST [13959] ERROR:  syntax error at or near "timestamptz" at character 41
+2025-09-18 16:21:03.261 IST [13959] STATEMENT:  alter table ads alter column start_date timestamptz
+	
+2025-09-18 16:21:22.446 IST [13959] ERROR:  syntax error at or near "timestamptz" at character 41
+2025-09-18 16:21:22.446 IST [13959] STATEMENT:  alter table ads alter column start_date timestamptz NOT NULL
+	
+2025-09-18 16:21:38.206 IST [13959] ERROR:  syntax error at or near "timestamptz" at character 41
+2025-09-18 16:21:38.206 IST [13959] STATEMENT:  alter table ads alter column start_date timestamptz DEFAULT NOT NULL
+	
+2025-09-18 16:22:30.834 IST [13959] ERROR:  column "column_name" does not exist at character 62
+2025-09-18 16:22:30.834 IST [13959] STATEMENT:  ALTER TABLE ads
+	ALTER COLUMN start_date
+	TYPE TIMESTAMP
+	USING column_name::TIMESTAMP;
+2025-09-18 19:09:52.061 IST [43281] ERROR:  could not determine data type of parameter $2 at character 214
+2025-09-18 19:09:52.061 IST [43281] STATEMENT:  SELECT d.id as device_id, d.location, d.name,
+	          p.price_per_day, p.location_factor
+	   FROM devices d
+	   JOIN pricing_rules p
+	     ON p.client_id = d.client_id
+	    AND p.media_type = $1
+	    AND (
+	         ($2 IS NULL AND p.duration_seconds IS NULL) -- image case
+	         OR
+	         ($2 IS NOT NULL AND p.duration_seconds = $2) -- video case
+	    )
+	   WHERE d.id = ANY($3) AND d.client_id = $4
+2025-09-18 19:10:43.681 IST [43281] LOG:  could not receive data from client: Connection reset by peer
+2025-09-18 19:10:59.367 IST [43403] ERROR:  could not determine data type of parameter $2 at character 214
+2025-09-18 19:10:59.367 IST [43403] STATEMENT:  SELECT d.id as device_id, d.location, d.name,
+	          p.price_per_day, p.location_factor
+	   FROM devices d
+	   JOIN pricing_rules p
+	     ON p.client_id = d.client_id
+	    AND p.media_type = $1
+	    AND (
+	         ($2 IS NULL AND p.duration_seconds IS NULL) -- image case
+	         OR
+	         ($2 IS NOT NULL AND p.duration_seconds = $2) -- video case
+	    )
+	   WHERE d.id = ANY($3) AND d.client_id = $4
+2025-09-18 19:18:47.542 IST [38680] ERROR:  syntax error at or near "pricing_rules" at character 6
+2025-09-18 19:18:47.542 IST [38680] STATEMENT:  drop pricing_rules
+	
+2025-09-18 19:18:56.342 IST [38680] ERROR:  relation "pricing_rules" already exists
+2025-09-18 19:18:56.342 IST [38680] STATEMENT:  CREATE TABLE pricing_rules (
+	    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+	
+	    device_id UUID NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
+	
+	    media_type VARCHAR(50) NOT NULL,            -- e.g. image, video
+	    duration_seconds INT,                       -- null = applies to all durations
+	    price_per_day NUMERIC(10,2) NOT NULL,       -- daily base price
+	    location_factor NUMERIC(5,2) DEFAULT 1.0,   -- multiplier for premium locations
+	
+	    created_at TIMESTAMP DEFAULT now(),
+	    updated_at TIMESTAMP DEFAULT now()
+	);
+2025-09-18 19:19:04.229 IST [38680] ERROR:  syntax error at or near "pricing_rules" at character 6
+2025-09-18 19:19:04.229 IST [38680] STATEMENT:  drop pricing_rules
+	
+2025-09-18 19:40:16.191 IST [43403] ERROR:  column p.client_id does not exist at character 142
+2025-09-18 19:40:16.191 IST [43403] HINT:  Perhaps you meant to reference the column "d.client_id".
+2025-09-18 19:40:16.191 IST [43403] STATEMENT:  SELECT d.id as device_id, d.location, d.name,
+	          p.price_per_day, p.location_factor
+	   FROM devices d
+	   JOIN pricing_rules p
+	     ON p.client_id = d.client_id
+	    AND p.media_type = $1
+	    AND (
+	         ($2 IS NULL AND p.duration_seconds IS NULL) -- image case
+	         OR
+	         ($2 IS NOT NULL AND p.duration_seconds = $2) -- video case
+	    )
+	   WHERE d.id = ANY($3) AND d.client_id = $4
+2025-09-18 19:44:24.092 IST [10606] LOG:  received smart shutdown request
+2025-09-18 19:44:24.094 IST [10606] LOG:  background worker "logical replication launcher" (PID 10613) exited with exit code 1
+2025-09-18 19:44:24.094 IST [10608] LOG:  shutting down
+2025-09-18 19:44:24.106 IST [10606] LOG:  database system is shut down
+2025-09-18 21:31:34.827 IST [3040] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-09-18 21:31:34.830 IST [3040] LOG:  listening on IPv6 address "::1", port 5432
+2025-09-18 21:31:34.830 IST [3040] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-09-18 21:31:34.831 IST [3040] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-09-18 21:31:34.852 IST [3041] LOG:  database system was shut down at 2025-09-18 19:44:24 IST
+2025-09-18 21:31:34.863 IST [3040] LOG:  database system is ready to accept connections
+2025-09-18 22:11:12.699 IST [8351] ERROR:  could not determine data type of parameter $2 at character 206
+2025-09-18 22:11:12.699 IST [8351] STATEMENT:  SELECT d.id as device_id, d.name, d.location,
+	          p.price_per_day, p.location_factor
+	   FROM devices d
+	   JOIN pricing_rules p
+	     ON p.device_id = d.id
+	    AND p.media_type = $1
+	    AND (
+	        ($2 IS NULL AND p.duration_seconds IS NULL)
+	        OR
+	        ($2 IS NOT NULL AND p.duration_seconds = $2::INT)
+	    )
+	   WHERE d.id = ANY($3) AND d.client_id = $4
+2025-09-18 22:11:59.054 IST [8351] LOG:  could not receive data from client: Connection reset by peer
+2025-09-18 22:12:09.066 IST [8463] ERROR:  could not determine data type of parameter $2 at character 206
+2025-09-18 22:12:09.066 IST [8463] STATEMENT:  SELECT d.id as device_id, d.name, d.location,
+	          p.price_per_day, p.location_factor
+	   FROM devices d
+	   JOIN pricing_rules p
+	     ON p.device_id = d.id
+	    AND p.media_type = $1
+	    AND (
+	        ($2 IS NULL AND p.duration_seconds IS NULL)
+	        OR
+	        ($2 IS NOT NULL AND p.duration_seconds = $2::INT)
+	    )
+	   WHERE d.id = ANY($3) AND d.client_id = $4
+2025-09-18 22:13:27.453 IST [8463] LOG:  could not receive data from client: Connection reset by peer
+2025-09-18 22:13:38.295 IST [8617] ERROR:  could not determine data type of parameter $2 at character 206
+2025-09-18 22:13:38.295 IST [8617] STATEMENT:  SELECT d.id as device_id, d.name, d.location,
+	          p.price_per_day, p.location_factor
+	   FROM devices d
+	   JOIN pricing_rules p
+	     ON p.device_id = d.id
+	    AND p.media_type = $1
+	    AND (
+	        ($2 IS NULL AND p.duration_seconds IS NULL)
+	        OR
+	        ($2 IS NOT NULL AND p.duration_seconds = $2::INT)
+	    )
+	   WHERE d.id = ANY($3) AND d.client_id = $4
+2025-09-18 22:14:50.500 IST [8617] LOG:  could not receive data from client: Connection reset by peer
+2025-09-18 22:30:35.294 IST [9019] ERROR:  column p.duration_seconds does not exist at character 254
+2025-09-18 22:30:35.294 IST [9019] STATEMENT:  SELECT d.id as device_id, d.name, d.location,
+	              p.price_per_day, p.location_factor
+	       FROM devices d
+	       JOIN pricing_rules p
+	         ON p.device_id = d.id
+	        AND p.media_type = $1
+	        AND (
+	            ($2::INT IS NULL AND p.duration_seconds IS NULL)
+	            OR
+	            ($2::INT IS NOT NULL AND p.duration_seconds = $2::INT)
+	        )
+	       WHERE d.id = ANY($3) AND d.client_id = $4
+2025-09-19 00:30:41.465 IST [21173] ERROR:  invalid input syntax for type uuid: "7a8ebf2f-f5cc-46fd-aac4-2940ada82812ac725636-12e6-48d2-a0a0-45dc87d6be55"
+2025-09-19 00:30:41.465 IST [21173] CONTEXT:  unnamed portal parameter $1 = '...'
+2025-09-19 00:30:41.465 IST [21173] STATEMENT:  INSERT INTO payments 
+	       (ad_id, advertiser_id, client_id, amount, total_amount, status, transaction_id)
+	       VALUES ($1, $2, $3, $4, $5, 'pending', $6)
+	       RETURNING id, status, transaction_id
+2025-09-19 00:32:50.744 IST [21173] ERROR:  invalid input syntax for type uuid: "7a8ebf2f-f5cc-46fd-aac4-2940ada82812ac725636-12e6-48d2-a0a0-45dc87d6be55"
+2025-09-19 00:32:50.744 IST [21173] CONTEXT:  unnamed portal parameter $1 = '...'
+2025-09-19 00:32:50.744 IST [21173] STATEMENT:  INSERT INTO payments 
+	       (ad_id, advertiser_id, client_id, amount, total_amount, status, transaction_id)
+	       VALUES ($1, $2, $3, $4, $5, 'pending', $6)
+	       RETURNING id, status, transaction_id
+2025-09-19 00:35:41.306 IST [21654] ERROR:  insert or update on table "payments" violates foreign key constraint "payments_ad_id_fkey"
+2025-09-19 00:35:41.306 IST [21654] DETAIL:  Key (ad_id)=(ac725636-12e6-48d2-a0a0-45dc87d6be55) is not present in table "ads".
+2025-09-19 00:35:41.306 IST [21654] STATEMENT:  INSERT INTO payments 
+	       (ad_id, advertiser_id, client_id, amount, total_amount, status, transaction_id)
+	       VALUES ($1, $2, $3, $4, $5, 'pending', $6)
+	       RETURNING id, status, transaction_id
+2025-09-19 16:20:42.075 IST [50876] ERROR:  invalid input syntax for type uuid: "$1" at character 106
+2025-09-19 16:20:42.075 IST [50876] STATEMENT:  insert into payments(ad_id,advertiser_id,client_id,amount,total_amount,status,transaction_id)
+	    VALUES('$1','$2','$3','$4','$5','$6','$7')
+2025-09-19 16:25:40.037 IST [50876] ERROR:  invalid input syntax for type uuid: "$1" at character 106
+2025-09-19 16:25:40.037 IST [50876] STATEMENT:  insert into payments(ad_id,advertiser_id,client_id,amount,total_amount,status,transaction_id)
+	    VALUES('$1','$2','$3','$4','$5','$6','$7')
+2025-09-19 16:27:24.667 IST [3143] ERROR:  syntax error at or near "gen_random_uuid" at character 57
+2025-09-19 16:27:24.667 IST [3143] STATEMENT:  ALTER TABLE payments
+	  ALTER COLUMN id SET DEFAULT UUID gen_random_uuid();
+2025-09-19 16:27:51.170 IST [3143] ERROR:  syntax error at or near "gen_random_uuid" at character 57
+2025-09-19 16:27:51.170 IST [3143] STATEMENT:  ALTER TABLE payments
+	  ALTER COLUMN id SET DEFAULT UUID gen_random_uuid()
+2025-09-19 16:28:36.019 IST [52677] ERROR:  invalid input syntax for type uuid: "$1" at character 106
+2025-09-19 16:28:36.019 IST [52677] STATEMENT:  insert into payments(ad_id,advertiser_id,client_id,amount,total_amount,status,transaction_id)
+	    VALUES('$1','$2','$3','$4','$5','$6','$7')
+2025-09-19 16:31:07.875 IST [52677] ERROR:  invalid input syntax for type uuid: "$1" at character 106
+2025-09-19 16:31:07.875 IST [52677] STATEMENT:  insert into payments(ad_id,advertiser_id,client_id,amount,total_amount,status,transaction_id)
+	    VALUES('$1','$2','$3','$4','$5','$6','$7')
+2025-09-19 16:32:49.111 IST [53057] ERROR:  bind message supplies 6 parameters, but prepared statement "" requires 7
+2025-09-19 16:32:49.111 IST [53057] STATEMENT:  insert into payments(ad_id,advertiser_id,client_id,amount,total_amount,status,transaction_id)VALUES($1,$2,$3,$4,$5,$6,$7)
+2025-09-19 16:39:25.292 IST [53567] ERROR:  column "user_id" does not exist at character 39
+2025-09-19 16:39:25.292 IST [53567] STATEMENT:  update payments set status=PAID where user_id=$1 AND client_id = $2 AND ad_id=$3
+2025-09-19 16:43:30.042 IST [54015] ERROR:  column "paid" does not exist at character 28
+2025-09-19 16:43:30.042 IST [54015] HINT:  Perhaps you meant to reference the column "payments.id".
+2025-09-19 16:43:30.042 IST [54015] STATEMENT:  update payments set status=PAID where advertiser_id=$1 AND client_id = $2 AND ad_id=$3
+2025-09-19 17:10:42.807 IST [54245] ERROR:  duplicate key value violates unique constraint "ads_pkey"
+2025-09-19 17:10:42.807 IST [54245] DETAIL:  Key (id)=(cd29905c-23ea-44a8-b38d-ca6d7687041e) already exists.
+2025-09-19 17:10:42.807 IST [54245] STATEMENT:  
+	      INSERT INTO ads (
+	        id, client_id, user_id, device_id, title, description,
+	        media_type, media_url, start_date, end_date, filename, status, status_updated_at
+	      ) VALUES (
+	        $1, $2, $3, $4, $5, $6,
+	        $7, $8, $9, $10, $11, $12, now()
+	      ) RETURNING id
+	    
+2025-09-19 17:22:40.578 IST [3143] ERROR:  column "ad_id" referenced in foreign key constraint does not exist
+2025-09-19 17:22:40.578 IST [3143] STATEMENT:  CREATE TABLE ad_devices (
+	    ad_id UUID REFERENCES ads(ad_id) ON DELETE CASCADE,
+	    device_id UUID REFERENCES devices(id),
+	    PRIMARY KEY (ad_id, device_id)
+	);
+2025-09-19 17:43:22.369 IST [59119] ERROR:  bind message supplies 11 parameters, but prepared statement "" requires 10
+2025-09-19 17:43:22.369 IST [59119] STATEMENT:  
+	        INSERT INTO ads (
+	          id, client_id, user_id, title, description,
+	          media_type, media_url, start_date, end_date, filename, status, status_updated_at
+	        ) VALUES (
+	          $1, $2, $3, $4, $5,
+	          $6, $7, $8, $9, $10, 'in_review', now()
+	        )
+	        RETURNING id
+	      
+2025-09-19 17:45:43.435 IST [59383] ERROR:  null value in column "device_id" of relation "ads" violates not-null constraint
+2025-09-19 17:45:43.435 IST [59383] DETAIL:  Failing row contains (f443a206-96fa-4149-863e-91a0a3ecb2f7, 7a8ebf2f-f5cc-46fd-aac4-2940ada82812, ac725636-12e6-48d2-a0a0-45dc87d6be55, null, yshhs, gahsh, image, uploads/7a8ebf2f-f5cc-46fd-aac4-2940ada82812/ac725636-12e6-48d2-..., 2025-09-19 17:50:00, 2025-09-23 17:50:00, in_review, 2025-09-19 17:45:40.779282+05:30, https://firebasestorage.googleapis.com/v0/b/swap-80375.appspot.c..., 2025-09-19 17:45:40.779282+05:30).
+2025-09-19 17:45:43.435 IST [59383] STATEMENT:  
+	        INSERT INTO ads (
+	          id, client_id, user_id, title, description,
+	          media_type, media_url, start_date, end_date, filename, status, status_updated_at
+	        ) VALUES (
+	          $1, $2, $3, $4, $5,
+	          $6, $7, $8, $9, $10, 'in_review', now()
+	        )
+	        RETURNING id
+	      
+2025-09-19 17:51:05.436 IST [3143] ERROR:  syntax error at or near "ad_devices" at character 10
+2025-09-19 17:51:05.436 IST [3143] STATEMENT:  select * ad_devices
+	
+2025-09-19 17:51:32.016 IST [59383] ERROR:  column "device_id" does not exist at character 117
+2025-09-19 17:51:32.016 IST [59383] STATEMENT:  
+	      SELECT id, title, description, status, media_type, media_url, 
+	             start_date, end_date, created_at,device_id,user_id,filename,status_updated_at
+	      FROM ads
+	      WHERE id = $1 AND user_id = $2 AND client_id = $3
+	      LIMIT 1
+	    
+2025-09-19 17:51:39.592 IST [59383] ERROR:  column "device_id" does not exist at character 117
+2025-09-19 17:51:39.592 IST [59383] STATEMENT:  
+	      SELECT id, title, description, status, media_type, media_url, 
+	             start_date, end_date, created_at,device_id,user_id,filename,status_updated_at
+	      FROM ads
+	      WHERE id = $1 AND user_id = $2 AND client_id = $3
+	      LIMIT 1
+	    
+2025-09-19 18:20:08.412 IST [62271] ERROR:  null value in column "start_date" of relation "ads" violates not-null constraint
+2025-09-19 18:20:08.412 IST [62271] DETAIL:  Failing row contains (e4a2d209-19cc-425e-ac58-ebfdfc73febc, 7a8ebf2f-f5cc-46fd-aac4-2940ada82812, ac725636-12e6-48d2-a0a0-45dc87d6be55, ggg, fhh, image, uploads/7a8ebf2f-f5cc-46fd-aac4-2940ada82812/ac725636-12e6-48d2-..., null, null, null, 2025-09-19 18:19:55.298274+05:30, https://firebasestorage.googleapis.com/v0/b/swap-80375.appspot.c..., 2025-09-19 18:19:55.298274+05:30).
+2025-09-19 18:20:08.412 IST [62271] STATEMENT:  
+	        INSERT INTO ads (
+	          id, client_id, user_id, title, description,
+	          media_type, media_url, filename
+	        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+	        ON CONFLICT (id) DO NOTHING
+	        RETURNING id
+	      
+2025-09-19 18:23:51.962 IST [62520] ERROR:  null value in column "status" of relation "ads" violates not-null constraint
+2025-09-19 18:23:51.962 IST [62520] DETAIL:  Failing row contains (c5ff843f-d567-438d-aa11-01f38901af72, 7a8ebf2f-f5cc-46fd-aac4-2940ada82812, ac725636-12e6-48d2-a0a0-45dc87d6be55, ggg, fhh, image, uploads/7a8ebf2f-f5cc-46fd-aac4-2940ada82812/ac725636-12e6-48d2-..., null, 2025-09-19 18:23:50.462947+05:30, https://firebasestorage.googleapis.com/v0/b/swap-80375.appspot.c..., 2025-09-19 18:23:50.462947+05:30).
+2025-09-19 18:23:51.962 IST [62520] STATEMENT:  
+	        INSERT INTO ads (
+	          id, client_id, user_id, title, description,
+	          media_type, media_url, filename
+	        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+	        ON CONFLICT (id) DO NOTHING
+	        RETURNING id
+	      
+2025-09-19 18:29:32.525 IST [63136] WARNING:  there is no transaction in progress
+2025-09-19 18:34:30.429 IST [63678] ERROR:  column "status" does not exist at character 39
+2025-09-19 18:34:30.429 IST [63678] STATEMENT:  
+	      SELECT id, title, description, status, media_type, media_url, start_date, end_date, created_at
+	      FROM ads
+	      WHERE user_id = $1 AND client_id = $2
+	     ORDER BY created_at DESC
+2025-09-19 18:34:47.666 IST [63678] ERROR:  column "status" does not exist at character 125
+2025-09-19 18:34:47.666 IST [63678] STATEMENT:  
+	      SELECT
+	        COUNT(*) FILTER (WHERE true)                             AS total_ads,
+	        COUNT(*) FILTER (WHERE status = 'active')                AS active_ads,
+	        COUNT(*) FILTER (WHERE status = 'in_review')             AS in_review,
+	        COUNT(*) FILTER (WHERE status = 'expired' OR end_date < NOW()) AS expired
+	      FROM ads
+	      WHERE user_id = $1
+	    
+2025-09-19 18:37:48.390 IST [64025] ERROR:  column "status" does not exist at character 125
+2025-09-19 18:37:48.390 IST [64025] STATEMENT:  
+	      SELECT
+	        COUNT(*) FILTER (WHERE true)                             AS total_ads,
+	        COUNT(*) FILTER (WHERE status = 'active')                AS active_ads,
+	        COUNT(*) FILTER (WHERE status = 'in_review')             AS in_review,
+	        COUNT(*) FILTER (WHERE status = 'expired' OR end_date < NOW()) AS expired
+	      FROM ads
+	      WHERE user_id = $1
+	    
+2025-09-19 18:37:48.993 IST [64025] ERROR:  column "status" does not exist at character 125
+2025-09-19 18:37:48.993 IST [64025] STATEMENT:  
+	      SELECT
+	        COUNT(*) FILTER (WHERE true)                             AS total_ads,
+	        COUNT(*) FILTER (WHERE status = 'active')                AS active_ads,
+	        COUNT(*) FILTER (WHERE status = 'in_review')             AS in_review,
+	        COUNT(*) FILTER (WHERE status = 'expired' OR end_date < NOW()) AS expired
+	      FROM ads
+	      WHERE user_id = $1
+	    
+2025-09-19 18:37:49.589 IST [64025] ERROR:  column "status" does not exist at character 125
+2025-09-19 18:37:49.589 IST [64025] STATEMENT:  
+	      SELECT
+	        COUNT(*) FILTER (WHERE true)                             AS total_ads,
+	        COUNT(*) FILTER (WHERE status = 'active')                AS active_ads,
+	        COUNT(*) FILTER (WHERE status = 'in_review')             AS in_review,
+	        COUNT(*) FILTER (WHERE status = 'expired' OR end_date < NOW()) AS expired
+	      FROM ads
+	      WHERE user_id = $1
+	    
+2025-09-19 18:37:49.990 IST [64025] ERROR:  column "status" does not exist at character 125
+2025-09-19 18:37:49.990 IST [64025] STATEMENT:  
+	      SELECT
+	        COUNT(*) FILTER (WHERE true)                             AS total_ads,
+	        COUNT(*) FILTER (WHERE status = 'active')                AS active_ads,
+	        COUNT(*) FILTER (WHERE status = 'in_review')             AS in_review,
+	        COUNT(*) FILTER (WHERE status = 'expired' OR end_date < NOW()) AS expired
+	      FROM ads
+	      WHERE user_id = $1
+	    
+2025-09-19 18:37:50.404 IST [64025] ERROR:  column "status" does not exist at character 125
+2025-09-19 18:37:50.404 IST [64025] STATEMENT:  
+	      SELECT
+	        COUNT(*) FILTER (WHERE true)                             AS total_ads,
+	        COUNT(*) FILTER (WHERE status = 'active')                AS active_ads,
+	        COUNT(*) FILTER (WHERE status = 'in_review')             AS in_review,
+	        COUNT(*) FILTER (WHERE status = 'expired' OR end_date < NOW()) AS expired
+	      FROM ads
+	      WHERE user_id = $1
+	    
+2025-09-19 18:38:48.156 IST [64229] ERROR:  column "status" does not exist at character 125
+2025-09-19 18:38:48.156 IST [64229] STATEMENT:  
+	      SELECT
+	        COUNT(*) FILTER (WHERE true)                             AS total_ads,
+	        COUNT(*) FILTER (WHERE status = 'active')                AS active_ads,
+	        COUNT(*) FILTER (WHERE status = 'in_review')             AS in_review,
+	        COUNT(*) FILTER (WHERE status = 'expired' OR end_date < NOW()) AS expired
+	      FROM ads
+	      WHERE user_id = $1
+	    
+2025-09-19 18:38:49.095 IST [64229] ERROR:  column "status" does not exist at character 125
+2025-09-19 18:38:49.095 IST [64229] STATEMENT:  
+	      SELECT
+	        COUNT(*) FILTER (WHERE true)                             AS total_ads,
+	        COUNT(*) FILTER (WHERE status = 'active')                AS active_ads,
+	        COUNT(*) FILTER (WHERE status = 'in_review')             AS in_review,
+	        COUNT(*) FILTER (WHERE status = 'expired' OR end_date < NOW()) AS expired
+	      FROM ads
+	      WHERE user_id = $1
+	    
+2025-09-19 18:38:49.594 IST [64229] ERROR:  column "status" does not exist at character 125
+2025-09-19 18:38:49.594 IST [64229] STATEMENT:  
+	      SELECT
+	        COUNT(*) FILTER (WHERE true)                             AS total_ads,
+	        COUNT(*) FILTER (WHERE status = 'active')                AS active_ads,
+	        COUNT(*) FILTER (WHERE status = 'in_review')             AS in_review,
+	        COUNT(*) FILTER (WHERE status = 'expired' OR end_date < NOW()) AS expired
+	      FROM ads
+	      WHERE user_id = $1
+	    
+2025-09-19 18:38:57.959 IST [64229] ERROR:  column "status" does not exist at character 125
+2025-09-19 18:38:57.959 IST [64229] STATEMENT:  
+	      SELECT
+	        COUNT(*) FILTER (WHERE true)                             AS total_ads,
+	        COUNT(*) FILTER (WHERE status = 'active')                AS active_ads,
+	        COUNT(*) FILTER (WHERE status = 'in_review')             AS in_review,
+	        COUNT(*) FILTER (WHERE status = 'expired' OR end_date < NOW()) AS expired
+	      FROM ads
+	      WHERE user_id = $1
+	    
+2025-09-19 18:39:01.830 IST [64229] ERROR:  column "status" does not exist at character 125
+2025-09-19 18:39:01.830 IST [64229] STATEMENT:  
+	      SELECT
+	        COUNT(*) FILTER (WHERE true)                             AS total_ads,
+	        COUNT(*) FILTER (WHERE status = 'active')                AS active_ads,
+	        COUNT(*) FILTER (WHERE status = 'in_review')             AS in_review,
+	        COUNT(*) FILTER (WHERE status = 'expired' OR end_date < NOW()) AS expired
+	      FROM ads
+	      WHERE user_id = $1
+	    
+2025-09-19 18:39:18.378 IST [64229] ERROR:  column "status" does not exist at character 125
+2025-09-19 18:39:18.378 IST [64229] STATEMENT:  
+	      SELECT
+	        COUNT(*) FILTER (WHERE true)                             AS total_ads,
+	        COUNT(*) FILTER (WHERE status = 'active')                AS active_ads,
+	        COUNT(*) FILTER (WHERE status = 'in_review')             AS in_review,
+	        COUNT(*) FILTER (WHERE status = 'expired' OR end_date < NOW()) AS expired
+	      FROM ads
+	      WHERE user_id = $1
+	    
+2025-09-19 19:42:23.273 IST [69847] ERROR:  column "status" does not exist at character 19
+2025-09-19 19:42:23.273 IST [69847] STATEMENT:  
+	      SELECT id, status 
+	      FROM ads
+	      WHERE id = $1 AND user_id = $2 AND client_id = $3
+	      LIMIT 1
+	    
+2025-09-19 19:45:37.833 IST [69847] ERROR:  column "status" does not exist at character 19
+2025-09-19 19:45:37.833 IST [69847] STATEMENT:  
+	      SELECT id, status 
+	      FROM ads
+	      WHERE id = $1 AND user_id = $2 AND client_id = $3
+	      LIMIT 1
+	    
+2025-09-19 19:45:48.211 IST [69847] ERROR:  column "status" does not exist at character 19
+2025-09-19 19:45:48.211 IST [69847] STATEMENT:  
+	      SELECT id, status 
+	      FROM ads
+	      WHERE id = $1 AND user_id = $2 AND client_id = $3
+	      LIMIT 1
+	    
+2025-09-19 19:46:27.621 IST [69847] ERROR:  column "status" does not exist at character 19
+2025-09-19 19:46:27.621 IST [69847] STATEMENT:  
+	      SELECT id, status 
+	      FROM ads
+	      WHERE id = $1 AND user_id = $2 AND client_id = $3
+	      LIMIT 1
+	    
+2025-09-19 22:52:30.447 IST [84234] LOG:  unexpected EOF on client connection with an open transaction

@@ -1,40 +1,181 @@
 const {
   express,
-  upload,       // multer memory-storage ready
+  upload, // multer memory-storage ready
   uuidv4,
   jsonwebtoken,
   bcrypt,
   db,
-  auth
+  auth,
 } = require("./deps");
- const { admin, fcm } = require("./firebaseAdmin")
-  const bucket = admin.storage().bucket();
-const router = express.Router()
+const { admin, fcm } = require("./firebaseAdmin");
+const bucket = admin.storage().bucket();
+const router = express.Router();
 
 const checkValidClient = require("./middleware/checkValidClient");
 // ----------------------
 // GET /ads/my
 // ----------------------
-router.get("/",async (req,res)=>{
-  res.send("Welcome")
-})
+router.get("/", async (req, res) => {
+  res.send("Welcome");
+});
+// router.get("/ads/my", checkValidClient, auth, async (req, res) => {
+//   try {
+//     const userId = req.user_id; // set in auth middleware
+//     const clientId = req.client_id; // set in checkValidClient middleware
+//     const { status } = req.query;
+
+//     // Base query
+//     let query = `
+//       SELECT id, title, description, status, media_type, media_url, start_date, end_date, created_at
+//       FROM ads
+//       WHERE user_id = $1 AND client_id = $2
+//     `;
+//     const params = [userId, clientId];
+
+//     // Optional filter by status
+//     if (status) {
+//       query += ` AND status = $3`;
+//       params.push(status);
+//     }
+
+//     query += ` ORDER BY created_at DESC`;
+
+//     const { rows } = await db.query(query, params);
+
+//     if (rows.length === 0) {
+//       return res.status(200).json({
+//         success: true,
+//         message: status
+//           ? `No ads found with status '${status}'.`
+//           : "No ads found.",
+//         data: [],
+//       });
+//     }
+//     console.log(rows);
+//     return res.status(200).json({
+//       success: true,
+//       message: "Ads fetched successfully",
+//       data: rows,
+//     });
+//   } catch (error) {
+//     console.error("Error fetching ads:", error);
+
+//     return res.status(500).json({
+//       success: false,
+//       message: "Something went wrong while fetching ads.",
+//       error: error.message, // advertiser can see actual error
+//     });
+//   }
+// });
+// router.get("/ads/my", checkValidClient, auth, async (req, res) => {
+//   try {
+//     const userId = req.user_id; // from auth middleware
+//     const clientId = req.client_id; // from checkValidClient middleware
+//     const { status } = req.query;
+
+//     // Base query: join ads + ad_devices + devices
+//     let query = `
+//       SELECT 
+//         a.id AS ad_id,
+//         a.title,
+//         a.description,
+//         a.media_type,
+//         a.media_url,
+//         a.created_at,
+//         ad.device_id,
+//         ad.start_date,
+//         ad.end_date,
+//         ad.status,
+//         ad.status_updated_at,
+//         d.name AS device_name,
+//         d.location AS device_location
+//       FROM ads a
+//       JOIN ad_devices ad ON ad.ad_id = a.id
+//       JOIN devices d ON d.id = ad.device_id
+//       WHERE a.user_id = $1 AND a.client_id = $2
+//     `;
+//     const params = [userId, clientId];
+
+//     // Optional filter by status (device-level status)
+//     if (status) {
+//       query += ` AND ad.status = $3`;
+//       params.push(status);
+//     }
+
+//     query += ` ORDER BY a.created_at DESC, ad.start_date ASC`;
+
+//     const { rows } = await db.query(query, params);
+
+//     if (rows.length === 0) {
+//       return res.status(200).json({
+//         success: true,
+//         message: status
+//           ? `No ads found with status '${status}'.`
+//           : "No ads found.",
+//         data: [],
+//       });
+//     }
+
+//     // Group ads with their devices
+//     const grouped = {};
+//     for (const row of rows) {
+//       if (!grouped[row.ad_id]) {
+//         grouped[row.ad_id] = {
+//           ad_id: row.ad_id,
+//           title: row.title,
+//           description: row.description,
+//           media_type: row.media_type,
+//           media_url: row.media_url,
+//           created_at: row.created_at,
+//           devices: []
+//         };
+//       }
+//       grouped[row.ad_id].devices.push({
+//         device_id: row.device_id,
+//         device_name: row.device_name,
+//         device_location: row.device_location,
+//         start_date: row.start_date,
+//         end_date: row.end_date,
+//         status: row.status,
+//         status_updated_at: row.status_updated_at
+//       });
+//     }
+
+//     return res.status(200).json({
+//       success: true,
+//       message: "Ads fetched successfully",
+//       data: Object.values(grouped),
+//     });
+//   } catch (error) {
+//     console.error("Error fetching ads:", error);
+
+//     return res.status(500).json({
+//       success: false,
+//       message: "Something went wrong while fetching ads.",
+//       error: error.message,
+//     });
+//   }
+// });
 router.get("/ads/my", checkValidClient, auth, async (req, res) => {
   try {
-    const userId =  req.user_id; // set in auth middleware
-    const clientId = req.client_id; // set in checkValidClient middleware
+    const userId = req.user_id;
+    const clientId = req.client_id;
     const { status } = req.query;
 
-    // Base query
+    // Query only ads table
     let query = `
-      SELECT id, title, description, status, media_type, media_url, start_date, end_date, created_at
+      SELECT id AS ad_id, title, description, media_type, media_url, created_at
       FROM ads
       WHERE user_id = $1 AND client_id = $2
     `;
     const params = [userId, clientId];
 
-    // Optional filter by status
+    // Optional filter: ads that have at least one device with this status
     if (status) {
-      query += ` AND status = $3`;
+      query += ` AND EXISTS (
+        SELECT 1 FROM ad_devices ad
+        WHERE ad.ad_id = ads.id AND ad.status = $3
+      )`;
       params.push(status);
     }
 
@@ -42,45 +183,52 @@ router.get("/ads/my", checkValidClient, auth, async (req, res) => {
 
     const { rows } = await db.query(query, params);
 
-    if (rows.length === 0) {
-      return res.status(200).json({
-        success: true,
-        message: status
-          ? `No ads found with status '${status}'.`
-          : "No ads found.",
-        data: [],
-      });
-    }
-
     return res.status(200).json({
       success: true,
       message: "Ads fetched successfully",
-      data: rows,
+      data: rows
     });
   } catch (error) {
     console.error("Error fetching ads:", error);
-
     return res.status(500).json({
       success: false,
       message: "Something went wrong while fetching ads.",
-      error: error.message, // advertiser can see actual error
+      error: error.message,
     });
   }
 });
-
-// router.js
 router.get("/ads/details", checkValidClient, auth, async (req, res) => {
   try {
-    const userId = req.user_id;      // from auth middleware
-    const clientId = req.client_id;  // from checkValidClient middleware
-    const { id } = req.query;
+    const userId = req.user_id;
+    const clientId = req.client_id;
+    const { id } = req.query; // ad_id
+
+    if (!id) {
+      return res.status(400).json({ success: false, message: "ad_id is required" });
+    }
 
     const query = `
-      SELECT id, title, description, status, media_type, media_url, 
-             start_date, end_date, created_at,device_id,user_id,filename,status_updated_at
-      FROM ads
-      WHERE id = $1 AND user_id = $2 AND client_id = $3
-      LIMIT 1
+      SELECT 
+        a.id AS ad_id,
+        a.title,
+        a.description,
+        a.media_type,
+        a.media_url,
+        a.filename,
+        a.created_at,
+        a.user_id,
+        ad.device_id,
+        ad.start_date,
+        ad.end_date,
+        ad.status,
+        ad.status_updated_at,
+        d.name AS device_name,
+        d.location AS device_location
+      FROM ads a
+      JOIN ad_devices ad ON ad.ad_id = a.id
+      JOIN devices d ON d.id = ad.device_id
+      WHERE a.id = $1 AND a.user_id = $2 AND a.client_id = $3
+      ORDER BY ad.start_date ASC
     `;
     const params = [id, userId, clientId];
     const { rows } = await db.query(query, params);
@@ -92,14 +240,34 @@ router.get("/ads/details", checkValidClient, auth, async (req, res) => {
       });
     }
 
+    // Group ad + devices
+    const ad = {
+      ad_id: rows[0].ad_id,
+      title: rows[0].title,
+      description: rows[0].description,
+      media_type: rows[0].media_type,
+      media_url: rows[0].media_url,
+      filename: rows[0].filename,
+      created_at: rows[0].created_at,
+      user_id: rows[0].user_id,
+      devices: rows.map((row) => ({
+        device_id: row.device_id,
+        device_name: row.device_name,
+        device_location: row.device_location,
+        start_date: row.start_date,
+        end_date: row.end_date,
+        status: row.status,
+        status_updated_at: row.status_updated_at
+      })),
+    };
+
     return res.status(200).json({
       success: true,
       message: "Ad details fetched successfully",
-      data: rows[0],
+      data: ad,
     });
   } catch (error) {
     console.error("Error fetching ad details:", error);
-
     return res.status(500).json({
       success: false,
       message: "Something went wrong while fetching ad details.",
@@ -107,16 +275,60 @@ router.get("/ads/details", checkValidClient, auth, async (req, res) => {
     });
   }
 });
+
+
+// router.js
+// router.get("/ads/details", checkValidClient, auth, async (req, res) => {
+//   try {
+//     const userId = req.user_id; // from auth middleware
+//     const clientId = req.client_id; // from checkValidClient middleware
+//     const { id } = req.query;
+
+//     const query = `
+//       SELECT id, title, description, status, media_type, media_url, 
+//              start_date, end_date, created_at,user_id,filename,status_updated_at
+//       FROM ads
+//       WHERE id = $1 AND user_id = $2 AND client_id = $3
+//       LIMIT 1
+//     `;
+//     const params = [id, userId, clientId];
+//     const { rows } = await db.query(query, params);
+
+//     if (rows.length === 0) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Ad not found or you don't have access to it",
+//       });
+//     }
+
+//     return res.status(200).json({
+//       success: true,
+//       message: "Ad details fetched successfully",
+//       data: rows[0],
+//     });
+//   } catch (error) {
+//     console.error("Error fetching ad details:", error);
+
+//     return res.status(500).json({
+//       success: false,
+//       message: "Something went wrong while fetching ad details.",
+//       error: error.message,
+//     });
+//   }
+// });
+
+
+
 // router.js
 router.delete("/ads/delete", checkValidClient, auth, async (req, res) => {
   try {
-    const userId = req.user_id;      // from auth middleware
-    const clientId = req.client_id;  // from checkValidClient middleware
+    const userId = req.user_id; // from auth middleware
+    const clientId = req.client_id; // from checkValidClient middleware
     const { id } = req.query;
 
     // Step 1: Check if ad exists and belongs to this user & client
     const checkQuery = `
-      SELECT id, status 
+      SELECT id, status,filename
       FROM ads
       WHERE id = $1 AND user_id = $2 AND client_id = $3
       LIMIT 1
@@ -142,6 +354,7 @@ router.delete("/ads/delete", checkValidClient, auth, async (req, res) => {
 
     // Step 3: Delete the ad
     await db.query("DELETE FROM ads WHERE id = $1", [id]);
+    deleteAdFileIfUnused(ad.filename, id);
 
     return res.status(200).json({
       success: true,
@@ -157,13 +370,99 @@ router.delete("/ads/delete", checkValidClient, auth, async (req, res) => {
     });
   }
 });
+router.post("/ads/extend", checkValidClient, auth, async (req, res) => {
+  const { id } = req.query;
+  const { end_date } = req.body;
+
+  if (!end_date) {
+    return res.status(400).json({ error: "end_date is required" });
+  }
+
+  try {
+    // 1. Fetch current ad
+    const adRes = await db.query(
+      `SELECT end_date, status FROM ads WHERE id = $1`,
+      [id]
+    );
+    if (adRes.rows.length === 0) {
+      return res.status(404).json({ error: "Ad not found" });
+    }
+
+    const current = new Date(adRes.rows[0].end_date);
+    const requested = new Date(end_date);
+
+    // 2. Validate
+    if (isNaN(requested.getTime())) {
+      return res.status(400).json({ error: "Invalid date format" });
+    }
+    if (requested <= current) {
+      return res
+        .status(400)
+        .json({ error: "New end_date must be after current end_date" });
+    }
+
+    // 3. Update
+    const updateRes = await db.query(
+      `UPDATE ads
+       SET end_date = $1, status_updated_at = NOW()
+       WHERE id = $2
+       RETURNING id, title, end_date, status`,
+      [end_date, id]
+    );
+
+    return res.json({
+      success: true,
+      message: "Ad end date extended",
+      ad: updateRes.rows[0],
+    });
+  } catch (err) {
+    console.error("Error extending ad:", err);
+    return res.status(500).json({ error: "Failed to extend ad" });
+  }
+});
+/**
+ * Delete ad file if no other ads are using it
+ * @param {string} adId - The ID of the ad being deleted
+ */
+async function deleteAdFileIfUnused(filename, adId) {
+  try {
+    // 1. Check if other ads still use this file
+    const checkRes = await db.query(
+      `SELECT COUNT(*) FROM ads WHERE filename = $1 AND id <> $2`,
+      [filename, adId]
+    );
+
+    const count = parseInt(checkRes.rows[0].count, 10);
+
+    if (count === 0) {
+      // 2. Safe to delete file
+      const file = bucket.file(filename);
+      await file.delete().catch((err) => {
+        if (err.code === 404) {
+          console.warn(`File not found in storage: ${filename}`);
+        } else {
+          throw err;
+        }
+      });
+      console.log(`Deleted file from storage: ${filename}`);
+    } else {
+      console.log(
+        `File ${filename} is still used by ${count} other ad(s), skipping delete`
+      );
+    }
+  } catch (err) {
+    console.error("Error deleting ad file:", err);
+  }
+}
+
 // router.js
 router.put("/ads/update", checkValidClient, auth, async (req, res) => {
   try {
-    const userId = req.user_id;      // from auth middleware
-    const clientId = req.client_id;  // from checkValidClient middleware
+    const userId = req.user_id; // from auth middleware
+    const clientId = req.client_id; // from checkValidClient middleware
     const { id } = req.query;
-    const { title, description, start_time, end_time, media_url, media_type } = req.body;
+    const { title, description, start_time, end_time, media_url, media_type } =
+      req.body;
 
     // Step 1: Check if ad exists & belongs to this user & client
     const checkQuery = `
@@ -204,7 +503,15 @@ router.put("/ads/update", checkValidClient, auth, async (req, res) => {
       WHERE id = $7
       RETURNING *
     `;
-    const updateParams = [title, description, start_time, end_time, media_url, media_type, id];
+    const updateParams = [
+      title,
+      description,
+      start_time,
+      end_time,
+      media_url,
+      media_type,
+      id,
+    ];
 
     const updatedAd = await db.query(updateQuery, updateParams);
 
@@ -224,125 +531,373 @@ router.put("/ads/update", checkValidClient, auth, async (req, res) => {
   }
 });
 // router.js
-router.patch("/ads/pause", checkValidClient, auth, async (req, res) => {
+// router.patch("/ads/pause", checkValidClient, auth, async (req, res) => {
+//   try {
+//     const userId = req.user_id; // from auth middleware
+//     const clientId = req.client_id; // from checkValidClient middleware
+//     const { id } = req.query;
+
+//     // Step 1: Check ad ownership
+//     const checkQuery = `
+//       SELECT id, status 
+//       FROM ads
+//       WHERE id = $1 AND user_id = $2 AND client_id = $3
+//       LIMIT 1
+//     `;
+//     const { rows } = await db.query(checkQuery, [id, userId, clientId]);
+
+//     if (rows.length === 0) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Ad not found or you don't have access to it",
+//       });
+//     }
+
+//     const ad = rows[0];
+
+//     // Step 2: Only allow pause if status = approved or active
+//     if (ad.status !== "approved" && ad.status !== "active") {
+//       return res.status(200).json({
+//         success: false,
+//         message: `Ad cannot be paused because it is currently '${ad.status}'. Only 'approved' or 'active' ads can be paused.`,
+//       });
+//     }
+
+//     // Step 3: Update status to paused
+//     const updateQuery = `
+//       UPDATE ads
+//       SET status = 'paused', status_updated_at = NOW()
+//       WHERE id = $1
+//       RETURNING *
+//     `;
+//     const updatedAd = await db.query(updateQuery, [id]);
+
+//     return res.status(200).json({
+//       success: true,
+//       message: "Ad paused successfully",
+//       data: updatedAd.rows[0],
+//     });
+//   } catch (error) {
+//     console.error("Error pausing ad:", error);
+
+//     return res.status(500).json({
+//       success: false,
+//       message: "Something went wrong while pausing ad.",
+//       error: error.message,
+//     });
+//   }
+// });
+router.post('/ads/:adId/devices/:deviceId/pause', checkValidClient, auth, async (req, res) => {
+  const { adId, deviceId } = req.params;
+  const userId = req.user_id;
   try {
-    const userId = req.user_id;      // from auth middleware
-    const clientId = req.client_id;  // from checkValidClient middleware
-    const { id } = req.query;
+    await db.query('BEGIN');
 
-    // Step 1: Check ad ownership
-    const checkQuery = `
-      SELECT id, status 
-      FROM ads
-      WHERE id = $1 AND user_id = $2 AND client_id = $3
-      LIMIT 1
+    // lock the row (and join ad to check owner)
+    const sel = `
+      SELECT ad.*, a.user_id AS owner_id
+      FROM ad_devices ad
+      JOIN ads a ON a.id = ad.ad_id
+      WHERE ad.ad_id = $1 AND ad.device_id = $2
+      FOR UPDATE
     `;
-    const { rows } = await db.query(checkQuery, [id, userId, clientId]);
-
-    if (rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "Ad not found or you don't have access to it",
-      });
+    const r = await db.query(sel, [adId, deviceId]);
+    if (r.rows.length === 0) {
+      await db.query('ROLLBACK');
+      return res.status(404).json({ error: 'mapping_not_found' });
     }
 
-    const ad = rows[0];
-
-    // Step 2: Only allow pause if status = approved or active
-    if (ad.status !== "approved" && ad.status !== "active") {
-      return res.status(200).json({
-        success: false,
-        message: `Ad cannot be paused because it is currently '${ad.status}'. Only 'approved' or 'active' ads can be paused.`,
-      });
+    const row = r.rows[0];
+    if (String(row.owner_id) !== String(userId)) {
+      await db.query('ROLLBACK');
+      return res.status(403).json({ error: 'forbidden' });
     }
 
-    // Step 3: Update status to paused
-    const updateQuery = `
-      UPDATE ads
-      SET status = 'paused', status_updated_at = NOW()
-      WHERE id = $1
+    if (row.status === 'paused') {
+      // idempotent
+      await db.query('COMMIT');
+      return res.json({ success: true, message: 'already_paused', device: row });
+    }
+
+    if (row.status === 'expired') {
+      await db.query('ROLLBACK');
+      return res.status(400).json({ error: 'cannot_pause_expired' });
+    }
+    if (row.status === 'in_review') {
+      await db.query('ROLLBACK');
+      return res.status(400).json({ error: 'Ads In Review cant pause' });
+    }
+
+    const upd = `
+      UPDATE ad_devices
+      SET status = 'paused', status_updated_at = now()
+      WHERE ad_id = $1 AND device_id = $2
       RETURNING *
     `;
-    const updatedAd = await db.query(updateQuery, [id]);
+    const updRes = await db.query(upd, [adId, deviceId]);
 
-    return res.status(200).json({
-      success: true,
-      message: "Ad paused successfully",
-      data: updatedAd.rows[0],
-    });
-  } catch (error) {
-    console.error("Error pausing ad:", error);
+    // audit log
+    // await db.query(
+    //   `INSERT INTO ad_device_history (ad_id, device_id, action, actor_user_id, details)
+    //    VALUES ($1,$2,'paused',$3,$4)`,
+    //   [adId, deviceId, userId, JSON.stringify({ reason: req.body.reason || null })]
+    // );
 
-    return res.status(500).json({
-      success: false,
-      message: "Something went wrong while pausing ad.",
-      error: error.message,
-    });
+    await db.query('COMMIT');
+
+    // notify device (pseudo)
+    // notifyDevice(deviceId, { action: 'pause', ad_id: adId });
+
+    return res.json({ success: true, message: 'paused', device: updRes.rows[0] });
+  } catch (err) {
+    try { await db.query('ROLLBACK'); } catch(_) {}
+    console.error('Pause error', err);
+    return res.status(500).json({ error: 'pause_failed', detail: err.message });
   }
 });
+router.post('/ads/:adId/devices/:deviceId/resume', checkValidClient, auth, async (req, res) => {
+  const { adId, deviceId } = req.params;
+  const userId = req.user_id;
+  try {
+    await db.query('BEGIN');
+
+    const sel = `
+      SELECT ad.*, a.user_id AS owner_id
+      FROM ad_devices ad
+      JOIN ads a ON a.id = ad.ad_id
+      WHERE ad.ad_id = $1 AND ad.device_id = $2
+      FOR UPDATE
+    `;
+    const r = await db.query(sel, [adId, deviceId]);
+    if (r.rows.length === 0) { await db.query('ROLLBACK'); return res.status(404).json({ error: 'mapping_not_found' }); }
+    const row = r.rows[0];
+    if (String(row.owner_id) !== String(userId)) { await db.query('ROLLBACK'); return res.status(403).json({ error: 'forbidden' }); }
+
+    if (row.status !== 'paused') {
+      await db.query('ROLLBACK');
+      return res.status(400).json({ error: 'cannot_resume_not_paused' });
+    }
+
+    const now = new Date();
+    if (new Date(row.end_date) <= now) {
+      await db.query('ROLLBACK');
+      return res.status(400).json({ error: 'end_date_expired', message: 'extend_before_resuming' });
+    }
+
+    const upd = `
+      UPDATE ad_devices
+      SET status = 'active', status_updated_at = now()
+      WHERE ad_id = $1 AND device_id = $2
+      RETURNING *
+    `;
+    const updRes = await db.query(upd, [adId, deviceId]);
+
+    // await db.query(
+    //   `INSERT INTO ad_device_history (ad_id, device_id, action, actor_user_id, details)
+    //    VALUES ($1,$2,'resumed',$3,$4)`,
+    //   [adId, deviceId, userId, JSON.stringify({ reason: req.body.reason || null })]
+    // );
+
+    await db.query('COMMIT');
+
+    // notify device: notifyDevice(deviceId,{action:'resume', ad_id:adId});
+
+    return res.json({ success: true, message: 'resumed', device: updRes.rows[0] });
+  } catch (err) {
+    try { await db.query('ROLLBACK'); } catch(_) {}
+    console.error('Resume error', err);
+    return res.status(500).json({ error: 'resume_failed', detail: err.message });
+  }
+});
+router.post('/ads/:adId/devices/:deviceId/extend', checkValidClient, auth, async (req, res) => {
+  const { adId, deviceId } = req.params;
+  const { end_date } = req.body;
+  if (!end_date) return res.status(400).json({ error: 'end_date_required' });
+  try {
+    const upd = `UPDATE ad_devices SET end_date = $1, status_updated_at = now() WHERE ad_id = $2 AND device_id = $3 RETURNING *`;
+    const updRes = await db.query(upd, [end_date, adId, deviceId]);
+    
+    return res.json({ success: true, message: 'extended', device: updRes.rows[0] });
+  } catch (err) {
+    console.error('Extend error', err);
+    return res.status(500).json({ error: 'extend_failed', detail: err.message });
+  }
+});
+router.delete('/ads/:adId/devices/:deviceId', checkValidClient, auth, async (req, res) => {
+  const { adId, deviceId } = req.params;
+  const userId = req.user_id;
+
+  try {
+    await db.query('BEGIN');
+
+    // verify ownership
+    const verify = `SELECT a.user_id FROM ads a WHERE a.id = $1`;
+    const vr = await db.query(verify, [adId]);
+    if (vr.rows.length === 0) { await db.query('ROLLBACK'); return res.status(404).json({ error: 'ad_not_found' }); }
+    if (String(vr.rows[0].user_id) !== String(userId)) { await db.query('ROLLBACK'); return res.status(403).json({ error: 'forbidden' }); }
+
+    const del = `DELETE FROM ad_devices WHERE ad_id = $1 AND device_id = $2 RETURNING *`;
+    const delRes = await db.query(del, [adId, deviceId]);
+    if (delRes.rows.length === 0) { await db.query('ROLLBACK'); return res.status(404).json({ error: 'mapping_not_found' }); }
+
+    // await db.query(
+    //   `INSERT INTO ad_device_history (ad_id, device_id, action, actor_user_id, details)
+    //    VALUES ($1,$2,'deleted',$3,$4)`,
+    //   [adId, deviceId, userId, JSON.stringify({ reason: req.body?.reason || null })]
+    // );
+
+    // If no devices left -> optional cleanup
+    const count = await db.query(`SELECT COUNT(*) as c FROM ad_devices WHERE ad_id = $1`, [adId]);
+    if (Number(count.rows[0].c) === 0) {
+      // Option A (recommended): keep ad but mark status/published=false
+      // Option B: delete ad row and remove file
+      // Example: delete ad completely:
+      const adRow = await db.query(`SELECT filename FROM ads WHERE id = $1`, [adId]);
+      await db.query(`DELETE FROM ads WHERE id = $1`, [adId]);
+
+      // remove file from storage if you want:
+      if (adRow.rows[0] && adRow.rows[0].filename) {
+        try { await deleteFileFromStorage(adRow.rows[0].filename); } catch(e) { /* log but don't fail */ }
+      }
+    }
+
+    await db.query('COMMIT');
+
+    // notify device & other systems
+    // notifyDevice(deviceId, {action:'delete', ad_id:adId})
+
+    return res.json({ success: true, message: 'mapping_deleted', deleted: delRes.rows[0] });
+  } catch (err) {
+    try { await db.query('ROLLBACK'); } catch(_) {}
+    console.error('Delete mapping error', err);
+    return res.status(500).json({ error: 'delete_mapping_failed', detail: err.message });
+  }
+});
+router.put('/ads/:adId', checkValidClient, auth, upload.single('file'), async (req, res) => {
+  const { adId } = req.params;
+  const userId = req.user_id;
+  const { title, description } = req.body;
+  const file = req.file;
+
+  try {
+    // verify ownership
+    const adRes = await db.query('SELECT * FROM ads WHERE id = $1', [adId]);
+    if (adRes.rows.length === 0) return res.status(404).json({ error: 'ad_not_found' });
+    const ad = adRes.rows[0];
+    if (String(ad.user_id) !== String(userId)) return res.status(403).json({ error: 'forbidden' });
+
+    // if file provided -> upload first
+    let uploaded = null;
+    if (file) {
+      const timestamp = Date.now();
+      const safeOriginal = file.originalname.replace(/\s+/g, '_');
+      const filename = `uploads/${req.client_id}/${userId}/${timestamp}_${safeOriginal}`;
+      // upload logic (same as earlier)
+      // ... upload to firebase ...
+      // uploaded = { url, filename }
+      // for brevity assume uploadPromise uploaded variable is set
+    }
+
+    await db.query('BEGIN');
+
+    const updates = [];
+    const params = [];
+    let idx = 1;
+    if (title !== undefined) { updates.push(`title = $${idx++}`); params.push(title); }
+    if (description !== undefined) { updates.push(`description = $${idx++}`); params.push(description); }
+    if (uploaded) { updates.push(`media_url = $${idx++}`); params.push(uploaded.url); updates.push(`filename = $${idx++}`); params.push(uploaded.filename); }
+
+    if (updates.length > 0) {
+      const q = `UPDATE ads SET ${updates.join(', ')}, created_at = created_at WHERE id = $${idx} RETURNING *`;
+      params.push(adId);
+      const upd = await db.query(q, params);
+      // audit
+      await db.query(`INSERT INTO ad_device_history (ad_id, device_id, action, actor_user_id, details)
+                      VALUES ($1,NULL,'ad_updated',$2,$3)`, [adId, userId, JSON.stringify({ updated: Object.keys(req.body) })]);
+      await db.query('COMMIT');
+
+      // delete old file after commit (non-blocking) to be safe
+      if (uploaded && ad.filename) {
+        try { await deleteFileFromStorage(ad.filename); } catch(e) { console.warn('failed deleting old file', e); }
+      }
+
+      return res.json({ success: true, message: 'updated', ad: upd.rows[0] });
+    } else {
+      await db.query('ROLLBACK');
+      return res.status(400).json({ error: 'nothing_to_update' });
+    }
+  } catch (err) {
+    try { await db.query('ROLLBACK'); } catch(_) {}
+    console.error('Update ad error', err);
+    // if we uploaded but failed: delete newly uploaded file to avoid orphans
+    if (uploaded) { try { await deleteFileFromStorage(uploaded.filename); } catch(_){} }
+    return res.status(500).json({ error: 'update_failed', detail: err.message });
+  }
+});
+
 // router.js
-router.patch("/ads/resume", checkValidClient, auth, async (req, res) => {
-  try {
-    const userId = req.user_id;      // from auth middleware
-    const clientId = req.client_id;  // from checkValidClient middleware
-    const { id } = req.query;
+// router.patch("/ads/resume", checkValidClient, auth, async (req, res) => {
+//   try {
+//     const userId = req.user_id; // from auth middleware
+//     const clientId = req.client_id; // from checkValidClient middleware
+//     const { id } = req.query;
 
-    // Step 1: Check ad ownership
-    const checkQuery = `
-      SELECT id, status 
-      FROM ads
-      WHERE id = $1 AND user_id = $2 AND client_id = $3
-      LIMIT 1
-    `;
-    const { rows } = await db.query(checkQuery, [id, userId, clientId]);
+//     // Step 1: Check ad ownership
+//     const checkQuery = `
+//       SELECT id, status 
+//       FROM ads
+//       WHERE id = $1 AND user_id = $2 AND client_id = $3
+//       LIMIT 1
+//     `;
+//     const { rows } = await db.query(checkQuery, [id, userId, clientId]);
 
-    if (rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "Ad not found or you don't have access to it",
-      });
-    }
+//     if (rows.length === 0) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Ad not found or you don't have access to it",
+//       });
+//     }
 
-    const ad = rows[0];
+//     const ad = rows[0];
 
-    // Step 2: Validate status
-    if (ad.status !== "paused") {
-      return res.status(400).json({
-        success: false,
-        message: `Ad cannot be resumed because it is currently '${ad.status}'. Only 'paused' ads can be resumed.`,
-      });
-    }
+//     // Step 2: Validate status
+//     if (ad.status !== "paused") {
+//       return res.status(400).json({
+//         success: false,
+//         message: `Ad cannot be resumed because it is currently '${ad.status}'. Only 'paused' ads can be resumed.`,
+//       });
+//     }
 
-    // Step 3: Update status to active
-    const updateQuery = `
-      UPDATE ads
-      SET status = 'active', updated_at = NOW()
-      WHERE id = $1
-      RETURNING *
-    `;
-    const updatedAd = await db.query(updateQuery, [id]);
+//     // Step 3: Update status to active
+//     const updateQuery = `
+//       UPDATE ads
+//       SET status = 'active', updated_at = NOW()
+//       WHERE id = $1
+//       RETURNING *
+//     `;
+//     const updatedAd = await db.query(updateQuery, [id]);
 
-    return res.status(200).json({
-      success: true,
-      message: "Ad resumed successfully",
-      data: updatedAd.rows[0],
-    });
-  } catch (error) {
-    console.error("Error resuming ad:", error);
+//     return res.status(200).json({
+//       success: true,
+//       message: "Ad resumed successfully",
+//       data: updatedAd.rows[0],
+//     });
+//   } catch (error) {
+//     console.error("Error resuming ad:", error);
 
-    return res.status(500).json({
-      success: false,
-      message: "Something went wrong while resuming ad.",
-      error: error.message,
-    });
-  }
-});
+//     return res.status(500).json({
+//       success: false,
+//       message: "Something went wrong while resuming ad.",
+//       error: error.message,
+//     });
+//   }
+// });
 
 // router.js
 router.get("/profile", checkValidClient, auth, async (req, res) => {
   try {
-    const userId = req.user_id;      // from auth middleware
-    const clientId = req.client_id;  // from checkValidClient middleware
+    const userId = req.user_id; // from auth middleware
+    const clientId = req.client_id; // from checkValidClient middleware
 
     const query = `
       SELECT id, name, email, role, client_id, created_at
@@ -378,14 +933,15 @@ router.get("/profile", checkValidClient, auth, async (req, res) => {
 // router.js
 router.put("/profile", checkValidClient, auth, async (req, res) => {
   try {
-    const userId = req.user_id;      // from auth middleware
-    const clientId = req.client_id;  // from checkValidClient middleware
+    const userId = req.user_id; // from auth middleware
+    const clientId = req.client_id; // from checkValidClient middleware
     const { name, email } = req.body;
 
     if (!name && !email) {
       return res.status(400).json({
         success: false,
-        message: "At least one field (name or email) must be provided for update",
+        message:
+          "At least one field (name or email) must be provided for update",
       });
     }
 
@@ -424,80 +980,87 @@ router.put("/profile", checkValidClient, auth, async (req, res) => {
 });
 
 // router.js
-router.patch("/profile/change-password", checkValidClient, auth, async (req, res) => {
-  try {
-    const userId = req.user_id;      
-    const clientId = req.client_id;  
-    const { old_password, new_password } = req.body;
+router.patch(
+  "/profile/change-password",
+  checkValidClient,
+  auth,
+  async (req, res) => {
+    try {
+      const userId = req.user_id;
+      const clientId = req.client_id;
+      const { old_password, new_password } = req.body;
 
-    if (!old_password || !new_password) {
-      return res.status(400).json({
-        success: false,
-        message: "Both old_password and new_password are required"
-      });
-    }
+      if (!old_password || !new_password) {
+        return res.status(400).json({
+          success: false,
+          message: "Both old_password and new_password are required",
+        });
+      }
 
-    // Step 1: Get user
-    const userQuery = `
+      // Step 1: Get user
+      const userQuery = `
       SELECT id, password_hash 
       FROM users
       WHERE id = $1 AND client_id = $2
       LIMIT 1
     `;
-    const { rows } = await db.query(userQuery, [userId, clientId]);
+      const { rows } = await db.query(userQuery, [userId, clientId]);
 
-    if (rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found or you don't have access"
-      });
-    }
+      if (rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: "User not found or you don't have access",
+        });
+      }
 
-    const user = rows[0];
+      const user = rows[0];
 
-    // Step 2: Check old password
-    const validPassword = await bcrypt.compare(old_password, user.password_hash);
-    if (!validPassword) {
-      return res.status(401).json({
-        success: false,
-        message: "Old password is incorrect"
-      });
-    }
+      // Step 2: Check old password
+      const validPassword = await bcrypt.compare(
+        old_password,
+        user.password_hash
+      );
+      if (!validPassword) {
+        return res.status(401).json({
+          success: false,
+          message: "Old password is incorrect",
+        });
+      }
 
-    // Step 3: Hash new password
-    const hashedPassword = await bcrypt.hash(new_password, 8);
+      // Step 3: Hash new password
+      const hashedPassword = await bcrypt.hash(new_password, 8);
 
-    // Step 4: Update password
-    const updateQuery = `
+      // Step 4: Update password
+      const updateQuery = `
       UPDATE users
       SET password_hash = $1
       WHERE id = $2
       RETURNING id, name, email, role, client_id
     `;
-    const updatedUser = await db.query(updateQuery, [hashedPassword, userId]);
+      const updatedUser = await db.query(updateQuery, [hashedPassword, userId]);
 
-    return res.status(200).json({
-      success: true,
-      message: "Password changed successfully",
-      data: updatedUser.rows[0]
-    });
+      return res.status(200).json({
+        success: true,
+        message: "Password changed successfully",
+        data: updatedUser.rows[0],
+      });
+    } catch (error) {
+      console.error("Error changing password:", error);
 
-  } catch (error) {
-    console.error("Error changing password:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: "Something went wrong while changing password.",
-      error: error.message,
-    });
+      return res.status(500).json({
+        success: false,
+        message: "Something went wrong while changing password.",
+        error: error.message,
+      });
+    }
   }
-});
+);
 // router.js
 router.post("/logout", checkValidClient, auth, async (req, res) => {
   try {
-    const userId = req.user_id;      
-    const clientId = req.client_id;  
-    const token = req.token;          // from auth middleware
+    const userId = req.user_id;
+    const clientId = req.client_id;
+    const token = req.token; // from auth middleware
 
     // Remove this token from user's tokens
     const query = `
@@ -517,7 +1080,7 @@ router.post("/logout", checkValidClient, auth, async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Logged out successfully"
+      message: "Logged out successfully",
     });
   } catch (error) {
     console.error("Error logging out:", error);
@@ -530,125 +1093,126 @@ router.post("/logout", checkValidClient, auth, async (req, res) => {
   }
 });
 
+/**
+ * POST /ads/preview-pricing
+ * Body:
+ * {
+ *   "client_id": "...",
+ *   "user_id": "...",
+ *   "title": "...",
+ *   "description": "...",
+ *   "media_type": "video",
+ *   "duration_seconds": 30,
+ *   "start_date": "2025-09-20T10:00:00.000Z",
+ *   "end_date": "2025-09-25T10:00:00.000Z",
+ *   "selected_devices": ["uuid-device-1", "uuid-device-2"]
+ * }
+ */
+router.post(
+  "/ads/preview-pricing",
+  checkValidClient,
+  auth,
+  async (req, res) => {
+    const client_id = req.client_id;
+    const {
+      title,
+      description = "",
+      media_type,
+      start_date,
+      end_date,
+      selected_devices,
+    } = req.body;
 
-// API 1: Get Pricing Rules for Device
-router.get("/deviceId", checkValidClient, async (req, res) => {
-  try {
-    const { deviceId } = req.params;
-    const clientId = req.client_id; // comes from middleware
-
-    const result = await db.query(
-      `SELECT id, media_type, duration_seconds, base_price
-       FROM pricing
-       WHERE client_id = $1 AND device_id = $2
-       ORDER BY media_type, duration_seconds NULLS FIRST`,
-      [clientId, deviceId]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "No pricing rules found for this device"
-      });
+    if (
+      !client_id ||
+      !media_type ||
+      !start_date ||
+      !end_date ||
+      !selected_devices?.length
+    ) {
+      return res.status(400).json({ error: "Missing required fields" });
     }
 
-    return res.json({
-      success: true,
-      deviceId,
-      pricing_rules: result.rows
-    });
-  } catch (error) {
-    console.error("Error fetching pricing rules:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to fetch pricing rules",
-      error: error.message
-    });
-  }
-});
-// API 2: Calculate Price
-router.post("/calculate-price", checkValidClient, async (req, res) => {
-  try {
-    const { device_id, media_type, duration_seconds, start_date, end_date } = req.body;
-    const clientId = req.client_id;
+    try {
+      const start = new Date(start_date);
+      const end = new Date(end_date);
+      const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
 
-    if (!device_id || !media_type || !start_date || !end_date) {
-      return res.status(400).json({
-        success: false,
-        message: "device_id, media_type, start_date, and end_date are required"
-      });
-    }
+      const result = await db.query(
+        `SELECT d.id as device_id, d.name, d.location,
+              p.price_per_day, p.location_factor
+       FROM devices d
+       JOIN pricing_rules p
+         ON p.device_id = d.id
+        AND p.media_type = $1
+       WHERE d.id = ANY($2) AND d.client_id = $3`,
+        [(media_type || "").toLowerCase(), selected_devices, client_id]
+      );
 
-    // Calculate number of days
-    const start = new Date(start_date);
-    const end = new Date(end_date);
-    const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
-
-    if (days <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid date range"
-      });
-    }
-
-    // Get base price
-    const query = `
-      SELECT base_price FROM pricing
-      WHERE client_id = $1 AND device_id = $2 AND media_type = $3
-      AND (duration_seconds = $4 OR ($4 IS NULL AND duration_seconds IS NULL))
-      LIMIT 1
-    `;
-    const values = [clientId, device_id, media_type, duration_seconds || null];
-
-    const result = await db.query(query, values);
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "No pricing rule found for given media type and duration"
-      });
-    }
-
-    const basePrice = parseFloat(result.rows[0].base_price);
-
-    // Price calculation
-    const subtotal = basePrice * days;
-    const gst = +(subtotal * 0.18).toFixed(2); // 18% GST
-    const handling = +(subtotal * 0.05).toFixed(2); // 5% handling fee
-    const total = +(subtotal + gst + handling).toFixed(2);
-
-    return res.json({
-      success: true,
-      breakdown: {
-        days,
-        base_price_per_day: basePrice,
-        subtotal,
-        gst,
-        handling,
-        total
+      if (result.rows.length === 0) {
+        return res
+          .status(404)
+          .json({ error: "No pricing rules found for devices" });
       }
-    });
-  } catch (error) {
-    console.error("Error calculating price:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to calculate price",
-      error: error.message
-    });
+
+      // Build per-device items
+      const items = result.rows.map((r) => {
+        const daily = Number(r.price_per_day) * Number(r.location_factor);
+        const total = daily * days;
+        return {
+          device_id: r.device_id,
+          device_name: r.name,
+          location: r.location,
+          price_per_day: Number(r.price_per_day),
+          location_factor: Number(r.location_factor),
+          adjusted_per_day: daily,
+          days,
+          total,
+        };
+      });
+
+      // Totals
+      const subtotal = items.reduce((sum, i) => sum + i.total, 0);
+      const gst = subtotal * 0.18;
+      const handling = 30;
+      const grandTotal = subtotal + gst + handling;
+
+      return res.json({
+        success: true,
+        ad_preview: {
+          title,
+          description,
+          media_type,
+          start_date,
+          end_date,
+          devices: items,
+          totals: {
+            subtotal,
+            gst,
+            handling,
+            grand_total: grandTotal,
+          },
+        },
+      });
+    } catch (err) {
+      console.error("Pricing preview error:", err);
+      res.status(500).json({ error: "Failed to calculate pricing" });
+    }
   }
-});
+);
+
 // API 3: Create Payment Intent
 
-router.post("/create", checkValidClient, async (req, res) => {
+router.post("/payments/create", checkValidClient, auth, async (req, res) => {
   try {
-    const { ad_id, total_amount } = req.body;
+    const { total_amount } = req.body;
     const clientId = req.client_id;
     const advertiserId = req.user_id; // from auth middleware
 
-    if (!ad_id || !total_amount) {
+    if (!total_amount) {
       return res.status(400).json({
         success: false,
-        message: "ad_id and total_amount are required"
+        message: "ad_id and total_amount are required",
       });
     }
 
@@ -661,7 +1225,14 @@ router.post("/create", checkValidClient, async (req, res) => {
        (ad_id, advertiser_id, client_id, amount, total_amount, status, transaction_id)
        VALUES ($1, $2, $3, $4, $5, 'pending', $6)
        RETURNING id, status, transaction_id`,
-      [ad_id, advertiserId, clientId, total_amount, total_amount, transactionId]
+      [
+        advertiserId,
+        advertiserId,
+        clientId,
+        total_amount,
+        total_amount,
+        transactionId,
+      ]
     );
 
     return res.json({
@@ -671,20 +1242,20 @@ router.post("/create", checkValidClient, async (req, res) => {
       gateway_details: {
         transaction_id: transactionId,
         payable_amount: total_amount,
-        mock_gateway_url: `https://mockpay.com/checkout/${transactionId}`
-      }
+        mock_gateway_url: `https://mockpay.com/checkout/${transactionId}`,
+      },
     });
   } catch (error) {
     console.error("Error creating payment intent:", error);
     return res.status(500).json({
       success: false,
       message: "Failed to create payment intent",
-      error: error.message
+      error: error.message,
     });
   }
 });
 // API 4: Verify Payment
-router.post("/verify", checkValidClient, async (req, res) => {
+router.post("/verify", checkValidClient, auth, async (req, res) => {
   try {
     const { transaction_id, status } = req.body;
     const advertiserId = req.user_id; // from auth middleware
@@ -692,7 +1263,7 @@ router.post("/verify", checkValidClient, async (req, res) => {
     if (!transaction_id || !status) {
       return res.status(400).json({
         success: false,
-        message: "transaction_id and status are required"
+        message: "transaction_id and status are required",
       });
     }
 
@@ -705,17 +1276,17 @@ router.post("/verify", checkValidClient, async (req, res) => {
     if (paymentRes.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: "Payment not found"
+        message: "Payment not found",
       });
     }
 
     const payment = paymentRes.rows[0];
 
     // Update payment status
-    await db.query(
-      `UPDATE payments SET status = $1 WHERE id = $2`,
-      [status, payment.id]
-    );
+    await db.query(`UPDATE payments SET status = $1 WHERE id = $2`, [
+      status,
+      payment.id,
+    ]);
 
     // If success → mark ad as in_review
     if (status === "success") {
@@ -730,14 +1301,14 @@ router.post("/verify", checkValidClient, async (req, res) => {
       message: `Payment ${status}`,
       transaction_id,
       ad_id: payment.ad_id,
-      new_ad_status: status === "success" ? "in_review" : "pending_payment"
+      new_ad_status: status === "success" ? "in_review" : "pending_payment",
     });
   } catch (error) {
     console.error("Error verifying payment:", error);
     return res.status(500).json({
       success: false,
       message: "Failed to verify payment",
-      error: error.message
+      error: error.message,
     });
   }
 });
@@ -761,19 +1332,18 @@ router.get("/my", checkValidClient, async (req, res) => {
 
     return res.json({
       success: true,
-      payments: result.rows
+      payments: result.rows,
     });
   } catch (error) {
     console.error("Error fetching advertiser payments:", error);
     return res.status(500).json({
       success: false,
       message: "Failed to fetch payments",
-      error: error.message
+      error: error.message,
     });
   }
 });
 // advertiserDashboardApi.js
-
 
 /**
  * GET /advertiser/dashboard
@@ -795,32 +1365,109 @@ router.get("/my", checkValidClient, async (req, res) => {
  * GET /advertiser/dashboard
  * Returns dashboard summary for the logged-in advertiser.
  */
-router.get("/dashboard", checkValidClient,auth, async (req, res) => {
+// router.get("/dashboard", checkValidClient, auth, async (req, res) => {
+//   try {
+//     // assume auth middleware sets req.user_id (advertiser user id)
+//     const userId = req.user_id;
+//     if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+//     // 1) Counts for ads
+//     const countsQuery = `
+//       SELECT
+//         COUNT(*) FILTER (WHERE true)                             AS total_ads,
+//         COUNT(*) FILTER (WHERE status = 'active')                AS active_ads,
+//         COUNT(*) FILTER (WHERE status = 'in_review')             AS in_review,
+//         COUNT(*) FILTER (WHERE status = 'expired' OR end_date < NOW()) AS expired
+//       FROM ads
+//       WHERE user_id = $1
+//     `;
+//     const countsRes = await db.query(countsQuery, [userId]);
+//     const counts = countsRes.rows[0] || {
+//       total_ads: 0,
+//       active_ads: 0,
+//       in_review: 0,
+//       expired: 0,
+//     };
+
+//     // 2) Determine if ad_statistics table exists
+//     // to_regclass returns null if the table doesn't exist
+//     const tableCheck = await db.query(
+//       `SELECT to_regclass('public.ad_statistics') as reg`
+//     );
+
+//     let totalPlays = 0;
+//     let totalWatchTime = 0;
+
+//     if (tableCheck.rows[0] && tableCheck.rows[0].reg) {
+//       // table exists -> compute aggregates
+//       const statsQuery = `
+//         SELECT
+//           COALESCE(SUM(sub.play_count), 0) AS total_plays,
+//           COALESCE(SUM(sub.duration_played), 0) AS total_watch_time_seconds
+//         FROM (
+//           SELECT ad_statistics.ad_id,
+//                  COUNT(ad_statistics.id) AS play_count,
+//                  SUM(COALESCE(ad_statistics.duration_played, 0)) AS duration_played
+//           FROM ad_statistics
+//           INNER JOIN ads ON ads.id = ad_statistics.ad_id
+//           WHERE ads.user_id = $1
+//           GROUP BY ad_statistics.ad_id
+//         ) sub
+//       `;
+//       const statsRes = await db.query(statsQuery, [userId]);
+//       const stats = statsRes.rows[0] || {
+//         total_plays: 0,
+//         total_watch_time_seconds: 0,
+//       };
+//       totalPlays = Number(stats.total_plays) || 0;
+//       totalWatchTime = Number(stats.total_watch_time_seconds) || 0;
+//     } else {
+//       // table doesn't exist -> safe fallback to zeros
+//       totalPlays = 0;
+//       totalWatchTime = 0;
+//     }
+
+//     const response = {
+//       total_ads: Number(counts.total_ads) || 0,
+//       active_ads: Number(counts.active_ads) || 0,
+//       in_review: Number(counts.in_review) || 0,
+//       expired: Number(counts.expired) || 0,
+//       total_plays: totalPlays,
+//       total_watch_time_seconds: totalWatchTime,
+//     };
+
+//     return res.json(response);
+//   } catch (err) {
+//     console.error("Error fetching advertiser dashboard:", err);
+//     return res.status(500).json({ error: "Failed to fetch dashboard summary" });
+//   }
+// });
+router.get("/dashboard", checkValidClient, auth, async (req, res) => {
   try {
-    // assume auth middleware sets req.user_id (advertiser user id)
     const userId = req.user_id;
+    const clientId = req.client_id;
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
-    // 1) Counts for ads
+    // 1) Counts for ads (from ad_devices, joined with ads for filtering)
     const countsQuery = `
       SELECT
         COUNT(*) FILTER (WHERE true)                             AS total_ads,
-        COUNT(*) FILTER (WHERE status = 'active')                AS active_ads,
-        COUNT(*) FILTER (WHERE status = 'in_review')             AS in_review,
-        COUNT(*) FILTER (WHERE status = 'expired' OR end_date < NOW()) AS expired
-      FROM ads
-      WHERE user_id = $1
+        COUNT(*) FILTER (WHERE ad.status = 'active')             AS active_ads,
+        COUNT(*) FILTER (WHERE ad.status = 'in_review')          AS in_review,
+        COUNT(*) FILTER (WHERE ad.status = 'expired' OR ad.end_date < NOW()) AS expired
+      FROM ad_devices ad
+      JOIN ads a ON a.id = ad.ad_id
+      WHERE a.user_id = $1 AND a.client_id = $2
     `;
-    const countsRes = await db.query(countsQuery, [userId]);
+    const countsRes = await db.query(countsQuery, [userId, clientId]);
     const counts = countsRes.rows[0] || {
       total_ads: 0,
       active_ads: 0,
       in_review: 0,
-      expired: 0
+      expired: 0,
     };
 
-    // 2) Determine if ad_statistics table exists
-    // to_regclass returns null if the table doesn't exist
+    // 2) Check if ad_statistics table exists
     const tableCheck = await db.query(
       `SELECT to_regclass('public.ad_statistics') as reg`
     );
@@ -829,7 +1476,7 @@ router.get("/dashboard", checkValidClient,auth, async (req, res) => {
     let totalWatchTime = 0;
 
     if (tableCheck.rows[0] && tableCheck.rows[0].reg) {
-      // table exists -> compute aggregates
+      // Aggregate stats per ad across all devices
       const statsQuery = `
         SELECT
           COALESCE(SUM(sub.play_count), 0) AS total_plays,
@@ -839,19 +1486,18 @@ router.get("/dashboard", checkValidClient,auth, async (req, res) => {
                  COUNT(ad_statistics.id) AS play_count,
                  SUM(COALESCE(ad_statistics.duration_played, 0)) AS duration_played
           FROM ad_statistics
-          INNER JOIN ads ON ads.id = ad_statistics.ad_id
-          WHERE ads.user_id = $1
+          INNER JOIN ads a ON a.id = ad_statistics.ad_id
+          WHERE a.user_id = $1 AND a.client_id = $2
           GROUP BY ad_statistics.ad_id
         ) sub
       `;
-      const statsRes = await db.query(statsQuery, [userId]);
-      const stats = statsRes.rows[0] || { total_plays: 0, total_watch_time_seconds: 0 };
+      const statsRes = await db.query(statsQuery, [userId, clientId]);
+      const stats = statsRes.rows[0] || {
+        total_plays: 0,
+        total_watch_time_seconds: 0,
+      };
       totalPlays = Number(stats.total_plays) || 0;
       totalWatchTime = Number(stats.total_watch_time_seconds) || 0;
-    } else {
-      // table doesn't exist -> safe fallback to zeros
-      totalPlays = 0;
-      totalWatchTime = 0;
     }
 
     const response = {
@@ -860,7 +1506,7 @@ router.get("/dashboard", checkValidClient,auth, async (req, res) => {
       in_review: Number(counts.in_review) || 0,
       expired: Number(counts.expired) || 0,
       total_plays: totalPlays,
-      total_watch_time_seconds: totalWatchTime
+      total_watch_time_seconds: totalWatchTime,
     };
 
     return res.json(response);
@@ -880,26 +1526,113 @@ router.get("/dashboard", checkValidClient,auth, async (req, res) => {
  *   { "id": "2", "title": "Ad 2", "status": "expired", "start_date": "...", "end_date": "..." }
  * ]
  */
-router.get("/ads/recent", checkValidClient,auth, async (req, res) => {
+// router.get("/ads/recent", checkValidClient, auth, async (req, res) => {
+//   try {
+//     const userId = req.user_id;
+//     if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+//     const result = await db.query(
+//       `SELECT id, title, status, start_date, end_date,description
+//        FROM ads
+//        WHERE user_id = $1
+//        ORDER BY created_at DESC
+//        LIMIT 5`,
+//       [userId]
+//     );
+
+//     res.json(result.rows);
+//   } catch (err) {
+//     console.error("Error fetching recent ads:", err);
+//     res.status(500).json({ error: "Failed to fetch recent ads" });
+//   }
+// });
+// router.get("/ads/recent", checkValidClient, auth, async (req, res) => {
+//   try {
+//     const userId = req.user_id;
+//     const clientId = req.client_id;
+//     if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+//     const query = `
+//       SELECT 
+//         a.id AS ad_id,
+//         a.title,
+//         a.description,
+//         a.created_at,
+//         ad.device_id,
+//         ad.start_date,
+//         ad.end_date,
+//         ad.status,
+//         d.name AS device_name,
+//         d.location AS device_location
+//       FROM ads a
+//       JOIN ad_devices ad ON ad.ad_id = a.id
+//       JOIN devices d ON d.id = ad.device_id
+//       WHERE a.user_id = $1 AND a.client_id = $2
+//       ORDER BY a.created_at DESC
+//       LIMIT 20
+//     `;
+
+//     const { rows } = await db.query(query, [userId, clientId]);
+
+//     // Group ads by ad_id
+//     const grouped = {};
+//     for (const row of rows) {
+//       if (!grouped[row.ad_id]) {
+//         grouped[row.ad_id] = {
+//           ad_id: row.ad_id,
+//           title: row.title,
+//           description: row.description,
+//           created_at: row.created_at,
+//           devices: []
+//         };
+//       }
+//       grouped[row.ad_id].devices.push({
+//         device_id: row.device_id,
+//         device_name: row.device_name,
+//         device_location: row.device_location,
+//         start_date: row.start_date,
+//         end_date: row.end_date,
+//         status: row.status
+//       });
+//     }
+
+//     res.json({
+//       success: true,
+//       message: "Recent ads fetched successfully",
+//       data: Object.values(grouped).slice(0, 5) // ensure only top 5 ads
+//     });
+//   } catch (err) {
+//     console.error("Error fetching recent ads:", err);
+//     res.status(500).json({ error: "Failed to fetch recent ads" });
+//   }
+// });
+router.get("/ads/recent", checkValidClient, auth, async (req, res) => {
   try {
     const userId = req.user_id;
+    const clientId = req.client_id;
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
-    const result = await db.query(
-      `SELECT id, title, status, start_date, end_date
-       FROM ads
-       WHERE user_id = $1
-       ORDER BY created_at DESC
-       LIMIT 5`,
-      [userId]
-    );
+    const query = `
+      SELECT id AS ad_id, title, description, media_type, media_url, created_at
+      FROM ads
+      WHERE user_id = $1 AND client_id = $2
+      ORDER BY created_at DESC
+      LIMIT 5
+    `;
 
-    res.json(result.rows);
+    const { rows } = await db.query(query, [userId, clientId]);
+
+    res.json({
+      success: true,
+      message: "Recent ads fetched successfully",
+      data: rows
+    });
   } catch (err) {
     console.error("Error fetching recent ads:", err);
     res.status(500).json({ error: "Failed to fetch recent ads" });
   }
 });
+
 
 // delete helper
 async function deleteFileFromStorage(filePath) {
@@ -928,185 +1661,189 @@ async function deleteFileFromStorage(filePath) {
  *
  * Middleware: checkValidClient (sets req.client_id) and auth (sets req.user maybe)
  */
-router.post('/ads/create', checkValidClient, auth, upload.single('file'), async (req, res) => {
-  const file = req.file;
-  try {
-    // Basic req fields
-    const clientId = req.client_id; // adapt if different
-    const user_id = req.user_id;
-    if (!clientId) return res.status(400).json({ error: 'client_id_missing' });
-
-    const {
-       title, description = '', meme_type, start_date, end_date,
-    } = req.body || {};
-
-    // selected_devices might come as JSON string or as repeated fields (array)
-    let selected_devices = req.body.selected_devices;
-    if (!selected_devices) selected_devices = req.body['selected_devices[]']; // sometimes arrays sent like this
-    // normalize
-    if (typeof selected_devices === 'string') {
-      try {
-        selected_devices = JSON.parse(selected_devices);
-      } catch (err) {
-        // maybe comma separated
-        selected_devices = selected_devices.split(',').map(s => s.trim()).filter(Boolean);
-      }
-    }
-    if (!Array.isArray(selected_devices)) {
-      // maybe single value
-      if (selected_devices) selected_devices = [selected_devices];
-      else selected_devices = [];
-    }
-
-    // Validation
-    if (!user_id) return res.status(400).json({ error: 'user_id_required' });
-    if (!title || title.toString().trim().length === 0) return res.status(400).json({ error: 'title_required' });
-    if (!meme_type || !['image', 'video'].includes(meme_type)) return res.status(400).json({ error: 'invalid_media_type' });
-    if (!start_date || !end_date) return res.status(400).json({ error: 'start_and_end_dates_required' });
-    if (!file) return res.status(400).json({ error: 'file_required' });
-    if (selected_devices.length === 0) return res.status(400).json({ error: 'select_at_least_one_device' });
-
-    // parse dates
-    const start = new Date(start_date);
-    const end = new Date(end_date);
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) return res.status(400).json({ error: 'invalid_date_format' });
-
-    // start must be at least 24 hours from now
-    // const minStart = new Date(Date.now() + 24 * 60 * 60 * 1000);
-    // if (start < minStart) return res.status(400).json({ error: 'start_must_be_at_least_24_hours_from_now' });
-
-    // if (end <= start) return res.status(400).json({ error: 'end_must_be_after_start' });
-
-    // Prepare firebase filename
-    const timestamp = Date.now();
-    const safeOriginal = file.originalname.replace(/\s+/g, '_');
-    const filename = `uploads/${clientId}/${user_id}/${timestamp}_${safeOriginal}`;
-
-    // Upload to firebase storage
-    const fileUpload = bucket.file(filename);
-    const uuid = uuidv4();
-    const blobStream = fileUpload.createWriteStream({
-      metadata: {
-        contentType: file.mimetype,
-        metadata: {
-          firebaseStorageDownloadTokens: uuid,
-        },
-      },
-      resumable: false,
-    });
-
-    // Wrap upload in a promise
-    const uploadPromise = new Promise((resolve, reject) => {
-      blobStream.on('error', (err) => {
-        console.error('Firebase upload error:', err);
-        reject(err);
-      });
-
-      blobStream.on('finish', () => {
-        const url = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileUpload.name)}?alt=media&token=${uuid}`;
-        resolve({ url, filename });
-      });
-
-      blobStream.end(file.buffer);
-    });
-
-    let uploaded;
-    try {
-      uploaded = await uploadPromise; // { url, filename }
-    } catch (err) {
-      console.error('Upload failed:', err);
-      return res.status(500).json({ error: 'file_upload_failed' });
-    }
-
-    // At this point file is successfully uploaded. Now insert ads in DB inside a transaction.
-    // We'll use a transaction - if any insert fails - rollback and delete the uploaded file.
-    const insertQuery = `
-      INSERT INTO ads (
-        id, client_id, user_id, device_id, title, description,
-        media_type, media_url, start_date, end_date, filename, status, status_updated_at
-      ) VALUES (
-        $1, $2, $3, $4, $5, $6,
-        $7, $8, $9, $10, $11, $12, now()
-      ) RETURNING id
-    `;
-
-    const insertedAdIds = [];
-    const failedDevices = [];
+router.post(
+  "/ads/create",
+  checkValidClient,
+  auth,
+  upload.single("file"),
+  async (req, res) => {
+    const file = req.file;
 
     try {
-      await db.query('BEGIN');
+      // Basic req fields
+      const clientId = req.client_id; // adapt if different
+      const user_id = req.user_id;
+      if (!clientId)
+        return res.status(400).json({ error: "client_id_missing" });
 
-      for (const deviceId of selected_devices) {
-        const adId = uuidv4();
+      const {
+        title,
+        description = "",
+        meme_type,
+        start_date,
+        end_date,
+        adId,
+      } = req.body || {};
+
+      // selected_devices might come as JSON string or as repeated fields (array)
+      let selected_devices = req.body.selected_devices;
+      if (!selected_devices) selected_devices = req.body["selected_devices[]"]; // sometimes arrays sent like this
+      // normalize
+      if (typeof selected_devices === "string") {
         try {
-          const values = [
-            adId,
-            clientId,
-            user_id,
-            deviceId,
-            title,
-            description,
-            meme_type,
-            uploaded.url,
-            start.toISOString(),
-            end.toISOString(),
-            uploaded.filename,
-            'in_review', // default initial status
-          ];
-          const result = await db.query(insertQuery, values);
-          insertedAdIds.push(result.rows[0].id);
-        } catch (insertErr) {
-          console.error(`Error inserting ad for device ${deviceId}:`, insertErr);
-          failedDevices.push(deviceId);
-          // Don't break immediately - we want to attempt other inserts or fail the whole thing
+          selected_devices = JSON.parse(selected_devices);
+        } catch (err) {
+          // maybe comma separated
+          selected_devices = selected_devices
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean);
         }
       }
+      if (!Array.isArray(selected_devices)) {
+        // maybe single value
+        if (selected_devices) selected_devices = [selected_devices];
+        else selected_devices = [];
+      }
 
-      if (failedDevices.length > 0) {
-        // Something failed - rollback and delete uploaded file
-        await db.query('ROLLBACK');
-        await deleteFileFromStorage(uploaded.filename);
-        return res.status(500).json({
-          error: 'ad_insert_failed_for_some_devices',
-          failedDevices,
+      // Validation
+      if (!user_id) return res.status(400).json({ error: "user_id_required" });
+      if (!title || title.toString().trim().length === 0)
+        return res.status(400).json({ error: "title_required" });
+      if (!meme_type || !["image", "video"].includes(meme_type))
+        return res.status(400).json({ error: "invalid_media_type" });
+      if (!start_date || !end_date)
+        return res.status(400).json({ error: "start_and_end_dates_required" });
+      if (!file) return res.status(400).json({ error: "file_required" });
+      if (selected_devices.length === 0)
+        return res.status(400).json({ error: "select_at_least_one_device" });
+
+      // parse dates
+      // const start = new Date(start_date);
+      // const end = new Date(end_date);
+      // if (isNaN(start.getTime()) || isNaN(end.getTime())) return res.status(400).json({ error: 'invalid_date_format' });
+
+      // start must be at least 24 hours from now
+      // const minStart = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      // if (start < minStart) return res.status(400).json({ error: 'start_must_be_at_least_24_hours_from_now' });
+
+      // if (end <= start) return res.status(400).json({ error: 'end_must_be_after_start' });
+
+      // Prepare firebase filename
+      const timestamp = Date.now();
+      const safeOriginal = file.originalname.replace(/\s+/g, "_");
+      const filename = `uploads/${clientId}/${user_id}/${timestamp}_${safeOriginal}`;
+
+      // Upload to firebase storage
+      const fileUpload = bucket.file(filename);
+      const uuid = uuidv4();
+      const blobStream = fileUpload.createWriteStream({
+        metadata: {
+          contentType: file.mimetype,
+          metadata: {
+            firebaseStorageDownloadTokens: uuid,
+          },
+        },
+        resumable: false,
+      });
+
+      // Wrap upload in a promise
+      const uploadPromise = new Promise((resolve, reject) => {
+        blobStream.on("error", (err) => {
+          console.error("Firebase upload error:", err);
+          reject(err);
         });
-      } else {
-        // All good
-        await db.query('COMMIT');
+
+        blobStream.on("finish", () => {
+          const url = `https://firebasestorage.googleapis.com/v0/b/${
+            bucket.name
+          }/o/${encodeURIComponent(fileUpload.name)}?alt=media&token=${uuid}`;
+          resolve({ url, filename });
+        });
+
+        blobStream.end(file.buffer);
+      });
+
+      let uploaded;
+      try {
+        uploaded = await uploadPromise; // { url, filename }
+      } catch (err) {
+        console.error("Upload failed:", err);
+        return res.status(500).json({ error: "file_upload_failed" });
+      }
+      try {
+        await db.query("BEGIN");
+
+        const insertAdQuery = `
+        INSERT INTO ads (
+          id, client_id, user_id, title, description,
+          media_type, media_url, filename
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        ON CONFLICT (id) DO NOTHING
+        RETURNING id
+      `;
+        const adResult = await db.query(insertAdQuery, [
+          adId, // one ad_id (generated before payment)
+          clientId,
+          user_id,
+          title,
+          description,
+          meme_type,
+          uploaded.url,
+          uploaded.filename,
+        ]);
+        const finalAdId = adResult.rows.length > 0 ? adResult.rows[0].id : adId;
+        const insertDeviceQuery = `
+        INSERT INTO ad_devices (ad_id, device_id, start_date, end_date, status)
+        VALUES ($1, $2, $3, $4, 'in_review')
+      `;
+        for (const device of selected_devices) {
+        await db.query(insertDeviceQuery, [finalAdId, device, start_date, end_date]);
+      }
+        await db.query("COMMIT");
         return res.status(201).json({
           success: true,
-          message: 'Ads created for devices',
-          ads: insertedAdIds,
+          message: "Ads created for devices",
+          ads: finalAdId,
+         devices: selected_devices,
           media: {
             url: uploaded.url,
             filename: uploaded.filename,
             media_type: meme_type,
           },
         });
+      } catch (txErr) {
+        console.error("Transaction error:", txErr);
+        try {
+          await db.query("ROLLBACK");
+        } catch (_) {}
+        await deleteFileFromStorage(uploaded.filename);
+        return res
+          .status(500)
+          .json({ error: "database_error", detail: txErr.message });
       }
-    } catch (txErr) {
-      console.error('Transaction error:', txErr);
-      try { await db.query('ROLLBACK'); } catch (_) {}
-      // clean up uploaded file
-      await deleteFileFromStorage(uploaded.filename);
-      return res.status(500).json({ error: 'database_error', detail: txErr.message });
+    } catch (err) {
+      console.error("Unexpected error in /ads/create:", err);
+      return res
+        .status(500)
+        .json({ error: "server_error", detail: err.message });
     }
-  } catch (err) {
-    console.error('Unexpected error in /ads/create:', err);
-    return res.status(500).json({ error: 'server_error', detail: err.message });
   }
-});
+);
 
-router.post('/login', checkValidClient, async (req, res) => {
+router.post("/login", checkValidClient, async (req, res) => {
   try {
-    const clientId = req.clientId || req.client_id || req.headers['x-client-id'];
+    const clientId =
+      req.clientId || req.client_id || req.headers["x-client-id"];
     if (!clientId) {
-      return res.status(400).json({ error: 'Client not identified' });
+      return res.status(400).json({ error: "Client not identified" });
     }
 
     const { email, mobile_number, password, fcmtoken } = req.body ?? {};
     if ((!email && !mobile_number) || !password) {
-      return res.status(400).json({ error: 'email or mobile_number and password are required' });
+      return res
+        .status(400)
+        .json({ error: "email or mobile_number and password are required" });
     }
 
     // Find user by email OR mobile_number for the given client
@@ -1116,28 +1853,32 @@ router.post('/login', checkValidClient, async (req, res) => {
       WHERE client_id = $1 AND (lower(email) = lower($2) OR mobile_number = $3)
       LIMIT 1
     `;
-    const findValues = [clientId, email || '', mobile_number || null];
+    const findValues = [clientId, email || "", mobile_number || null];
     const result = await db.query(findQ, findValues);
 
     if (result.rowCount === 0) {
-      return res.status(401).json({ error: 'invalid_credentials' });
+      return res.status(401).json({ error: "invalid_credentials" });
     }
 
     const user = result.rows[0];
 
     // check active
     if (user.isactive === false) {
-      return res.status(403).json({ error: 'account_inactive' });
+      return res.status(403).json({ error: "account_inactive" });
     }
 
     // verify password
     const match = await bcrypt.compare(password, user.password_hash);
     if (!match) {
-      return res.status(401).json({ error: 'invalid_credentials' });
+      return res.status(401).json({ error: "invalid_credentials" });
     }
 
     // generate token (payload with userId and clientId)
-    const tokenPayload = { userId: user.id, clientId: user.client_id,role:user.role };
+    const tokenPayload = {
+      userId: user.id,
+      clientId: user.client_id,
+      role: user.role,
+    };
     const token = jsonwebtoken.sign(tokenPayload, "THISISTESTAPPFORHORDING");
 
     // update user's tokens column and optionally fcmtoken
@@ -1161,8 +1902,8 @@ router.post('/login', checkValidClient, async (req, res) => {
 
     return res.status(200).json({ success: true, user: responseUser, token });
   } catch (err) {
-    console.error('Login error:', err);
-    return res.status(500).json({ error: 'internal_server_error' });
+    console.error("Login error:", err);
+    return res.status(500).json({ error: "internal_server_error" });
   }
 });
 router.get("/ads/:id/statistics", auth, async (req, res) => {
@@ -1183,31 +1924,41 @@ router.get("/ads/:id/statistics", auth, async (req, res) => {
     return res.status(500).json({ error: "Failed to fetch ad statistics" });
   }
 });
-router.post('/signup', checkValidClient, async (req, res) => {
+router.post("/signup", checkValidClient, async (req, res) => {
   try {
-    const clientId = req.clientId || req.client_id || req.headers['x-client-id'];
-    if (!clientId) return res.status(400).json({ error: 'Client not identified' });
+    const clientId =
+      req.clientId || req.client_id || req.headers["x-client-id"];
+    if (!clientId)
+      return res.status(400).json({ error: "Client not identified" });
 
-    const { name, email, password, role,mobile } = req.body ?? {};
+    const { name, email, password, role, mobile } = req.body ?? {};
 
     // Basic validation
     if (!name || !email || !password) {
-      return res.status(400).json({ error: 'name, email and password are required' });
+      return res
+        .status(400)
+        .json({ error: "name, email and password are required" });
     }
     // Basic email regex (simple)
     const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRe.test(email)) return res.status(400).json({ error: 'invalid email' });
+    if (!emailRe.test(email))
+      return res.status(400).json({ error: "invalid email" });
 
     // password strength simple check (adjust as needed)
-    if (password.length < 6) return res.status(400).json({ error: 'password must be at least 6 characters' });
+    if (password.length < 6)
+      return res
+        .status(400)
+        .json({ error: "password must be at least 6 characters" });
 
     // Check if email already exists for this client
     const existing = await db.query(
-      'SELECT id FROM users WHERE email = $1 AND client_id = $2 LIMIT 1',
+      "SELECT id FROM users WHERE email = $1 AND client_id = $2 LIMIT 1",
       [email.toLowerCase(), clientId]
     );
     if (existing.rowCount > 0) {
-      return res.status(409).json({ error: 'email already registered for this client' });
+      return res
+        .status(409)
+        .json({ error: "email already registered for this client" });
     }
 
     // Hash password
@@ -1225,7 +1976,14 @@ router.post('/signup', checkValidClient, async (req, res) => {
       VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING id, name, email, role, client_id
     `;
-    const values = [ clientId, name.trim(), email.toLowerCase().trim(), passwordHash, role ?? 'advertiser',mobile];
+    const values = [
+      clientId,
+      name.trim(),
+      email.toLowerCase().trim(),
+      passwordHash,
+      role ?? "advertiser",
+      mobile,
+    ];
 
     const { rows } = await db.query(insertQuery, values);
     const created = rows[0];
@@ -1240,37 +1998,69 @@ router.post('/signup', checkValidClient, async (req, res) => {
         role: created.role,
         client_id: created.client_id,
       },
-      token:"",
+      token: "",
     });
   } catch (err) {
-    console.error('Signup error:', err);
-    return res.status(500).json({ error: 'internal_server_error' });
+    console.error("Signup error:", err);
+    return res.status(500).json({ error: "internal_server_error" });
   }
 });
+// router.get("/devices", checkValidClient, auth, async (req, res) => {
+//   try {
+//     const clientId = req.client_id;
+//     const query = `
+//       SELECT id, name, location, width, height, status, created_at
+//       FROM devices
+//       WHERE client_id = $1
+//       ORDER BY created_at DESC
+//     `;
+//     const { rows } = await db.query(query, [clientId]);
+
+//     return res.status(200).json({
+//       success: true,
+//       message: "Devices fetched successfully",
+//       data: rows
+//     });
+//   } catch (error) {
+//     console.error("Error fetching devices:", error);
+//     return res.status(500).json({
+//       success: false,
+//       message: "Something went wrong while fetching devices",
+//       error: error.message
+//     });
+//   }
+// });
 router.get("/devices", checkValidClient, auth, async (req, res) => {
   try {
-    const clientId = req.client_id;  
+    const clientId = req.client_id;
 
     const query = `
-      SELECT id, name, location, width, height, status, created_at
-      FROM devices
-      WHERE client_id = $1
-      ORDER BY created_at DESC
+      SELECT d.id, d.name, d.location, d.width, d.height, d.status, d.created_at,
+             COALESCE((
+               SELECT jsonb_object_agg(pr.media_type, pr.price_per_day * pr.location_factor)
+               FROM pricing_rules pr
+               WHERE pr.device_id = d.id
+             ), '{}'::jsonb) as pricing
+      FROM devices d
+      WHERE d.client_id = $1
+      ORDER BY d.created_at DESC
     `;
+
     const { rows } = await db.query(query, [clientId]);
 
     return res.status(200).json({
       success: true,
       message: "Devices fetched successfully",
-      data: rows
+      data: rows,
     });
   } catch (error) {
     console.error("Error fetching devices:", error);
     return res.status(500).json({
       success: false,
       message: "Something went wrong while fetching devices",
-      error: error.message
+      error: error.message,
     });
   }
 });
-module.exports=router
+
+module.exports = router;
