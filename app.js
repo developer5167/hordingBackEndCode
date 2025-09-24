@@ -1,6 +1,7 @@
 const express = require("./express_file");
 const { Server } = require("socket.io");
 const http = require("http");
+require('dotenv').config();
 const client = require("./db");
 const app = express();
 
@@ -18,8 +19,12 @@ const order = require("./order");
 const adminApis = require("./adminApis");
 const apiRoutes = require("./routes/index");
 const superAdminApis = require("./superadminApis");
+const superadminAnalyticsApis = require("./superadminAnalyticsApis");
+const superadminPayments = require("./superadminPayments");
 const apisForTv = require("./apisForTvApp");
 app.use("/superadmin", superAdminApis);
+app.use("/superadmin", superadminAnalyticsApis);
+app.use("/superadmin/payments", superadminPayments);
 app.use("/advertiser", rootRouterAdvertiser); // e.g. GET /
 app.use("/admin", adminApis); // e.g. GET /
 app.use("/api", apiRoutes); // e.g. GET /api/users

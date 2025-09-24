@@ -8,46 +8,49 @@ function generatePassword() {
   return Math.random().toString(36).slice(-8);
 }
 
-// 📌 Utility: send email with credentials
 async function sendAdminEmail(to, email, password) {
+  const OTP = Math.floor(100000 + Math.random() * 900000).toString();
+  const mailRequest = nodemailer.createTransport({
+    host: "smtpout.secureserver.net",
+    port: 465,
+    auth: {
+      user: "info@listnow.in",
+      pass: "Sam@#)*&&$$5167",
+    },
+  });
+  const mailingOptions = {
+    from: "info@listnow.in",
+    to: to,
+    subject: "Your Admin Account Created",
+    html: `Hello,\n\nYour admin account has been created.\nEmail: ${email}\nPassword: ${password}\n\nPlease login and change your password.`,
+  };
   try {
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
-      }
-    });
-
-    await transporter.sendMail({
-      from: process.env.SMTP_USER,
-      to,
-      subject: "Your Admin Account Created",
-      text: `Hello,\n\nYour admin account has been created.\nEmail: ${email}\nPassword: ${password}\n\nPlease login and change your password.`
-    });
-  } catch (err) {
-    console.error("Email sending failed:", err);
+    const data = await mailRequest.sendMail(mailingOptions);
+    console.log(data);
+  } catch (excemption) {
+    console.log(excemption);
   }
 }
-
 /**
  * 1. Create Client + Admin
  * POST /superadmin/clients
  */
 router.post("/clients", async (req, res) => {
-  const { name, domain, adminEmail } = req.body;
+  const { name, domain, email } = req.body;
 
-  if (!name || !domain || !adminEmail) {
-    return res.status(400).json({ error: "name, domain, adminEmail are required" });
+  if (!name || !domain || !email) {
+    return res
+      .status(400)
+      .json({ error: "name, domain, adminEmail are required" });
   }
 
   try {
     // Insert client
     const clientResult = await db.query(
-      `INSERT INTO clients (name, domain, subscription_status, created_at)
-       VALUES ($1, $2, 'active', NOW())
+      `INSERT INTO clients (name, client_domains, subscription_status, created_at,email)
+       VALUES ($1, $2, 'active', NOW(),$3)
        RETURNING id`,
-      [name, domain]
+      [name, domain, email]
     );
 
     const clientId = clientResult.rows[0].id;
@@ -59,19 +62,16 @@ router.post("/clients", async (req, res) => {
     await db.query(
       `INSERT INTO users (client_id, name, email, password_hash, role)
        VALUES ($1, $2, $3, $4, 'admin')`,
-      [clientId, "Admin", adminEmail, passwordHash]
+      [clientId, "Admin", email, passwordHash]
     );
 
     // Send email
-    await sendAdminEmail(adminEmail, adminEmail, tempPassword);
+    await sendAdminEmail(email, email, tempPassword);
 
-    return res.json({
+    const response = await db.query(`select * from clients where id = $1`, [
       clientId,
-      admin: {
-        email: adminEmail,
-        tempPassword
-      }
-    });
+    ]);
+    return res.json(response.rows[0]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to create client" });
@@ -85,7 +85,7 @@ router.post("/clients", async (req, res) => {
 router.get("/clients", async (req, res) => {
   try {
     const result = await db.query(
-      `SELECT id, name, domain, subscription_status, created_at
+      `SELECT id, name, client_domains, email,subscription_status, created_at
        FROM clients
        ORDER BY created_at DESC`
     );
@@ -96,25 +96,65 @@ router.get("/clients", async (req, res) => {
   }
 });
 
+router.get("/clients-recent", async (req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT *
+       FROM clients
+       ORDER BY created_at DESC limit 4`
+    );
+const statsQuery = await db.query(`
+      SELECT
+        COUNT(*) FILTER (WHERE DATE_TRUNC('month', created_at) = DATE_TRUNC('month', CURRENT_DATE)) AS this_month,
+        COUNT(*) FILTER (WHERE DATE_TRUNC('month', created_at) = DATE_TRUNC('month', CURRENT_DATE - interval '1 month')) AS last_month
+      FROM clients
+    `);
+    const { this_month, last_month } = statsQuery.rows[0];
+    const thisMonth = parseInt(this_month, 10) || 0;
+    const lastMonth = parseInt(last_month, 10) || 0;
+
+    let growth = 0;
+    if (lastMonth > 0) {
+      growth = ((thisMonth - lastMonth) / lastMonth) * 100;
+    } else if (thisMonth > 0) {
+      growth = 100; // if last month had 0 but new clients exist
+    }
+    const clientsWithGrowth = result.rows.map(row => ({
+      ...row,
+      growth: growth.toFixed(1)   // e.g. "15.3"
+    }));
+    console.log(clientsWithGrowth);
+    
+
+    
+    res.json(clientsWithGrowth);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch clients" });
+  }
+});
+
 /**
  * 3. Update Client Info
  * PUT /superadmin/clients/:id
  */
+
+// insert client id in ad_devices while inserting ad
 router.put("/clients/:id", async (req, res) => {
   const { id } = req.params;
   const { name, domain, subscription_status } = req.body;
 
   try {
-    await db.query(
+    const result = await db.query(
       `UPDATE clients
        SET name = COALESCE($1, name),
-           domain = COALESCE($2, domain),
+           client_domains = COALESCE($2, client_domains),
            subscription_status = COALESCE($3, subscription_status)
-       WHERE id = $4`,
+       WHERE id = $4 RETURNING *`,
       [name, domain, subscription_status, id]
     );
 
-    res.json({ message: "Client updated" });
+    res.json(result.rows[0]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to update client" });
@@ -129,19 +169,18 @@ router.post("/clients/:id/block", async (req, res) => {
   const { id } = req.params;
 
   try {
-    await db.query(
-      `UPDATE clients SET subscription_status = 'blocked' WHERE id = $1`,
+    const clientResult = await db.query(
+      `UPDATE clients SET subscription_status = 'blocked' WHERE id = $1 RETURNING *`,
       [id]
     );
 
     // Pause all ads of this client
     await db.query(
-      `UPDATE ads SET status = 'paused', status_updated_at = NOW()
+      `UPDATE ad_devices SET status = 'paused', status_updated_at = NOW()
        WHERE client_id = $1 AND status = 'active'`,
       [id]
     );
-
-    res.json({ message: "Client blocked and ads paused" });
+    res.json(clientResult.rows[0]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to block client" });
@@ -156,14 +195,64 @@ router.post("/clients/:id/unblock", async (req, res) => {
   const { id } = req.params;
 
   try {
-    await db.query(
+    const result = await db.query(
       `UPDATE clients SET subscription_status = 'active' WHERE id = $1`,
       [id]
     );
-    res.json({ message: "Client unblocked" });
+    res.json(result.rows[0]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to unblock client" });
+  }
+});
+/**
+ * 6. Delete Client
+ * DELETE /superadmin/clients/:id
+ */
+router.delete("/clients/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // Delete all related data (cascade cleanup)
+    await db.query("BEGIN");
+
+    // Delete ads (and cascade ad_devices)
+    await db.query(`DELETE FROM ads WHERE client_id = $1`, [id]);
+
+    // Delete devices
+    await db.query(`DELETE FROM devices WHERE client_id = $1`, [id]);
+    await db.query(`DELETE FROM ad_devices WHERE client_id = $1`, [id]);
+    await db.query(`DELETE FROM ad_statistics WHERE client_id = $1`, [id]);
+    await db.query(`DELETE FROM ad_reviews WHERE client_id = $1`, [id]);
+    await db.query(`DELETE FROM emergency_ads WHERE client_id = $1`, [id]);
+    await db.query(`DELETE FROM payments WHERE client_id = $1`, [id]);
+    await db.query(`DELETE FROM pricing_rules WHERE client_id = $1`, [id]);
+    await db.query(`DELETE FROM pricing WHERE client_id = $1`, [id]);
+    await db.query(`DELETE FROM subscriptions where client_id = $1`, [id]);
+
+    // Delete users
+    await db.query(`DELETE FROM users WHERE client_id = $1`, [id]);
+
+    // Finally delete client
+    const result = await db.query(
+      `DELETE FROM clients WHERE id = $1 RETURNING *`,
+      [id]
+    );
+
+    await db.query("COMMIT");
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Client not found" });
+    }
+
+    res.json({
+      message: "Client deleted successfully",
+      client: result.rows[0],
+    });
+  } catch (err) {
+    await db.query("ROLLBACK");
+    console.error(err);
+    res.status(500).json({ error: "Failed to delete client" });
   }
 });
 

@@ -2077,3 +2077,393 @@
 	      LIMIT 1
 	    
 2025-09-19 22:52:30.447 IST [84234] LOG:  unexpected EOF on client connection with an open transaction
+2025-09-20 00:54:05.655 IST [3040] LOG:  received smart shutdown request
+2025-09-20 00:54:05.657 IST [3040] LOG:  background worker "logical replication launcher" (PID 3047) exited with exit code 1
+2025-09-20 00:54:05.658 IST [3042] LOG:  shutting down
+2025-09-20 00:54:05.669 IST [3040] LOG:  database system is shut down
+2025-09-22 14:31:28.335 IST [24750] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-09-22 14:31:28.338 IST [24750] LOG:  listening on IPv6 address "::1", port 5432
+2025-09-22 14:31:28.338 IST [24750] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-09-22 14:31:28.341 IST [24750] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-09-22 14:31:28.359 IST [24751] LOG:  database system was shut down at 2025-09-20 00:54:05 IST
+2025-09-22 14:31:28.366 IST [24750] LOG:  database system is ready to accept connections
+2025-09-22 14:57:40.561 IST [24852] ERROR:  column "domain" does not exist at character 18
+2025-09-22 14:57:40.561 IST [24852] HINT:  Perhaps you meant to reference the column "clients.email".
+2025-09-22 14:57:40.561 IST [24852] STATEMENT:  SELECT id, name, domain, subscription_status, created_at
+	       FROM clients
+	       ORDER BY created_at DESC
+2025-09-22 14:58:11.555 IST [24852] ERROR:  column "domain" does not exist at character 18
+2025-09-22 14:58:11.555 IST [24852] HINT:  Perhaps you meant to reference the column "clients.email".
+2025-09-22 14:58:11.555 IST [24852] STATEMENT:  SELECT id, name, domain, subscription_status, created_at
+	       FROM clients
+	       ORDER BY created_at DESC
+2025-09-22 14:58:39.540 IST [24852] ERROR:  column "domain" does not exist at character 18
+2025-09-22 14:58:39.540 IST [24852] HINT:  Perhaps you meant to reference the column "clients.email".
+2025-09-22 14:58:39.540 IST [24852] STATEMENT:  SELECT id, name, domain, subscription_status, created_at
+	       FROM clients
+	       ORDER BY created_at DESC
+2025-09-22 14:58:42.533 IST [24852] ERROR:  column "domain" does not exist at character 18
+2025-09-22 14:58:42.533 IST [24852] HINT:  Perhaps you meant to reference the column "clients.email".
+2025-09-22 14:58:42.533 IST [24852] STATEMENT:  SELECT id, name, domain, subscription_status, created_at
+	       FROM clients
+	       ORDER BY created_at DESC
+2025-09-22 14:59:12.723 IST [24852] ERROR:  column "domain" does not exist at character 18
+2025-09-22 14:59:12.723 IST [24852] HINT:  Perhaps you meant to reference the column "clients.email".
+2025-09-22 14:59:12.723 IST [24852] STATEMENT:  SELECT id, name, domain, subscription_status, created_at
+	       FROM clients
+	       ORDER BY created_at DESC
+2025-09-22 15:14:49.361 IST [26408] ERROR:  syntax error at or near "text" at character 41
+2025-09-22 15:14:49.361 IST [26408] STATEMENT:  alter table clients alter column domain text
+2025-09-22 15:15:01.786 IST [26408] ERROR:  syntax error at or near "varchar" at character 41
+2025-09-22 15:15:01.786 IST [26408] STATEMENT:  alter table clients alter column domain varchar 
+2025-09-22 15:15:12.438 IST [26408] ERROR:  column "domain" of relation "clients" does not exist
+2025-09-22 15:15:12.438 IST [26408] STATEMENT:  alter table clients alter column domain type varchar 
+2025-09-22 15:39:38.960 IST [27823] ERROR:  column "domain" does not exist at character 87
+2025-09-22 15:39:38.960 IST [27823] HINT:  Perhaps you meant to reference the column "clients.email".
+2025-09-22 15:39:38.960 IST [27823] STATEMENT:  UPDATE clients
+	       SET name = COALESCE($1, name),
+	           domain = COALESCE($2, domain),
+	           subscription_status = COALESCE($3, subscription_status)
+	       WHERE id = $4 RETURNING *
+2025-09-22 17:11:15.891 IST [32065] ERROR:  duplicate key value violates unique constraint "clients_email_key"
+2025-09-22 17:11:15.891 IST [32065] DETAIL:  Key (email)=(niharg@kapilit.com) already exists.
+2025-09-22 17:11:15.891 IST [32065] STATEMENT:  INSERT INTO clients (name, client_domains, subscription_status, created_at,email)
+	       VALUES ($1, $2, 'active', NOW(),$3)
+	       RETURNING id
+2025-09-22 17:11:43.166 IST [32065] LOG:  could not receive data from client: Connection reset by peer
+2025-09-22 18:57:39.995 IST [38685] ERROR:  column "status" does not exist at character 93
+2025-09-22 18:57:39.995 IST [38685] STATEMENT:  UPDATE ads SET status = 'paused', status_updated_at = NOW()
+	       WHERE client_id = $1 AND status = 'active' RETURNING *
+2025-09-22 18:57:50.072 IST [38685] ERROR:  column "status" does not exist at character 93
+2025-09-22 18:57:50.072 IST [38685] STATEMENT:  UPDATE ads SET status = 'paused', status_updated_at = NOW()
+	       WHERE client_id = $1 AND status = 'active' RETURNING *
+2025-09-22 18:59:53.351 IST [26408] ERROR:  relation "client_devices" does not exist at character 15
+2025-09-22 18:59:53.351 IST [26408] STATEMENT:  select * from client_devices
+2025-09-23 11:10:35.119 IST [38967] ERROR:  column "domain" does not exist at character 55
+2025-09-23 11:10:35.119 IST [38967] HINT:  Perhaps you meant to reference the column "clients.email".
+2025-09-23 11:10:35.119 IST [38967] STATEMENT:  DELETE FROM clients WHERE id = $1 RETURNING id, name, domain
+2025-09-23 11:15:28.123 IST [42266] ERROR:  column "client_id" does not exist at character 33
+2025-09-23 11:15:28.123 IST [42266] STATEMENT:  DELETE FROM ad_statistics WHERE client_id = $1
+2025-09-23 11:19:18.577 IST [42376] ERROR:  column "client_id" does not exist at character 33
+2025-09-23 11:19:18.577 IST [42376] STATEMENT:  DELETE FROM pricing_rules WHERE client_id = $1
+2025-09-23 11:20:21.603 IST [42376] ERROR:  column "client_id" does not exist at character 33
+2025-09-23 11:20:21.603 IST [42376] STATEMENT:  DELETE FROM pricing_rules WHERE client_id = $1
+2025-09-23 11:21:47.601 IST [42496] ERROR:  syntax error at or near "client_id" at character 35
+2025-09-23 11:21:47.601 IST [42496] STATEMENT:  DELETE FROM pricing subscriptions client_id = $1
+2025-09-23 11:23:02.048 IST [42496] LOG:  unexpected EOF on client connection with an open transaction
+2025-09-23 11:23:13.720 IST [42572] ERROR:  syntax error at or near "=" at character 37
+2025-09-23 11:23:13.720 IST [42572] STATEMENT:  DELETE FROM subscriptions client_id = $1
+2025-09-23 11:24:17.187 IST [42572] ERROR:  syntax error at or near "=" at character 37
+2025-09-23 11:24:17.187 IST [42572] STATEMENT:  DELETE FROM subscriptions client_id = $1
+2025-09-23 11:25:37.649 IST [42648] LOG:  unexpected EOF on client connection with an open transaction
+2025-09-23 16:20:14.351 IST [51366] ERROR:  column "status" of relation "subscription_plans" already exists
+2025-09-23 16:20:14.351 IST [51366] STATEMENT:  alter table subscription_plans add column status boolean DEFAULT true
+	
+2025-09-24 12:59:38.463 IST [79987] ERROR:  syntax error at or near "LIMIT" at character 139
+2025-09-24 12:59:38.463 IST [79987] STATEMENT:  SELECT p.*, c.name as client_name FROM payments p LEFT JOIN clients c ON c.id = p.client_id ORDER BY p.created_at DESC LIMIT $1 OFFSET $2 LIMIT 4
+2025-09-24 17:55:56.552 IST [86213] ERROR:  column "status" does not exist at character 78
+2025-09-24 17:55:56.552 IST [86213] STATEMENT:  
+	      SELECT 
+	        COUNT(*) AS total_ads,
+	        COUNT(*) FILTER (WHERE status = 'active') AS active_ads,
+	        COUNT(*) FILTER (WHERE status = 'paused') AS paused_ads,
+	        COUNT(*) FILTER (WHERE status = 'in_review') AS in_review_ads
+	      FROM ads
+	    
+2025-09-24 17:55:56.563 IST [86213] ERROR:  column "status" does not exist at character 78
+2025-09-24 17:55:56.563 IST [86213] STATEMENT:  
+	      SELECT 
+	        COUNT(*) AS total_ads,
+	        COUNT(*) FILTER (WHERE status = 'active') AS active_ads,
+	        COUNT(*) FILTER (WHERE status = 'paused') AS paused_ads,
+	        COUNT(*) FILTER (WHERE status = 'in_review') AS in_review_ads
+	      FROM ads
+	    
+2025-09-24 17:55:56.567 IST [86213] ERROR:  column a.status does not exist at character 135
+2025-09-24 17:55:56.567 IST [86213] STATEMENT:  
+	      SELECT c.id AS client_id, c.name AS client_name,
+	             COUNT(a.id) AS total_ads,
+	             COUNT(a.id) FILTER (WHERE a.status = 'active') AS active_ads
+	      FROM clients c
+	      LEFT JOIN ads a ON a.client_id = c.id
+	      GROUP BY c.id, c.name
+	      ORDER BY total_ads DESC
+	    
+2025-09-24 17:55:56.573 IST [86213] ERROR:  column a.status does not exist at character 135
+2025-09-24 17:55:56.573 IST [86213] STATEMENT:  
+	      SELECT c.id AS client_id, c.name AS client_name,
+	             COUNT(a.id) AS total_ads,
+	             COUNT(a.id) FILTER (WHERE a.status = 'active') AS active_ads
+	      FROM clients c
+	      LEFT JOIN ads a ON a.client_id = c.id
+	      GROUP BY c.id, c.name
+	      ORDER BY total_ads DESC
+	    
+2025-09-24 17:55:56.596 IST [86213] ERROR:  column p.user_id does not exist at character 218
+2025-09-24 17:55:56.596 IST [86213] STATEMENT:  
+	      SELECT p.id AS payment_id, p.amount, p.status, p.created_at,
+	             c.name AS client_name, u.name AS advertiser_name
+	      FROM payments p
+	      JOIN clients c ON p.client_id = c.id
+	      JOIN users u ON p.user_id = u.id
+	      WHERE p.status = 'success'
+	      ORDER BY p.created_at DESC
+	      LIMIT 10
+	    
+2025-09-24 17:55:56.600 IST [86213] ERROR:  column p.user_id does not exist at character 218
+2025-09-24 17:55:56.600 IST [86213] STATEMENT:  
+	      SELECT p.id AS payment_id, p.amount, p.status, p.created_at,
+	             c.name AS client_name, u.name AS advertiser_name
+	      FROM payments p
+	      JOIN clients c ON p.client_id = c.id
+	      JOIN users u ON p.user_id = u.id
+	      WHERE p.status = 'success'
+	      ORDER BY p.created_at DESC
+	      LIMIT 10
+	    
+2025-09-24 17:56:05.497 IST [86213] ERROR:  column "status" does not exist at character 78
+2025-09-24 17:56:05.497 IST [86213] STATEMENT:  
+	      SELECT 
+	        COUNT(*) AS total_ads,
+	        COUNT(*) FILTER (WHERE status = 'active') AS active_ads,
+	        COUNT(*) FILTER (WHERE status = 'paused') AS paused_ads,
+	        COUNT(*) FILTER (WHERE status = 'in_review') AS in_review_ads
+	      FROM ads
+	    
+2025-09-24 17:56:05.508 IST [86213] ERROR:  column "status" does not exist at character 78
+2025-09-24 17:56:05.508 IST [86213] STATEMENT:  
+	      SELECT 
+	        COUNT(*) AS total_ads,
+	        COUNT(*) FILTER (WHERE status = 'active') AS active_ads,
+	        COUNT(*) FILTER (WHERE status = 'paused') AS paused_ads,
+	        COUNT(*) FILTER (WHERE status = 'in_review') AS in_review_ads
+	      FROM ads
+	    
+2025-09-24 17:56:05.523 IST [86213] ERROR:  column a.status does not exist at character 135
+2025-09-24 17:56:05.523 IST [86213] STATEMENT:  
+	      SELECT c.id AS client_id, c.name AS client_name,
+	             COUNT(a.id) AS total_ads,
+	             COUNT(a.id) FILTER (WHERE a.status = 'active') AS active_ads
+	      FROM clients c
+	      LEFT JOIN ads a ON a.client_id = c.id
+	      GROUP BY c.id, c.name
+	      ORDER BY total_ads DESC
+	    
+2025-09-24 17:56:05.533 IST [86213] ERROR:  column a.status does not exist at character 135
+2025-09-24 17:56:05.533 IST [86213] STATEMENT:  
+	      SELECT c.id AS client_id, c.name AS client_name,
+	             COUNT(a.id) AS total_ads,
+	             COUNT(a.id) FILTER (WHERE a.status = 'active') AS active_ads
+	      FROM clients c
+	      LEFT JOIN ads a ON a.client_id = c.id
+	      GROUP BY c.id, c.name
+	      ORDER BY total_ads DESC
+	    
+2025-09-24 17:56:05.558 IST [86213] ERROR:  column p.user_id does not exist at character 218
+2025-09-24 17:56:05.558 IST [86213] STATEMENT:  
+	      SELECT p.id AS payment_id, p.amount, p.status, p.created_at,
+	             c.name AS client_name, u.name AS advertiser_name
+	      FROM payments p
+	      JOIN clients c ON p.client_id = c.id
+	      JOIN users u ON p.user_id = u.id
+	      WHERE p.status = 'success'
+	      ORDER BY p.created_at DESC
+	      LIMIT 10
+	    
+2025-09-24 17:56:05.565 IST [86213] ERROR:  column p.user_id does not exist at character 218
+2025-09-24 17:56:05.565 IST [86213] STATEMENT:  
+	      SELECT p.id AS payment_id, p.amount, p.status, p.created_at,
+	             c.name AS client_name, u.name AS advertiser_name
+	      FROM payments p
+	      JOIN clients c ON p.client_id = c.id
+	      JOIN users u ON p.user_id = u.id
+	      WHERE p.status = 'success'
+	      ORDER BY p.created_at DESC
+	      LIMIT 10
+	    
+2025-09-24 17:57:34.324 IST [86469] ERROR:  column "status" does not exist at character 78
+2025-09-24 17:57:34.324 IST [86469] STATEMENT:  
+	      SELECT 
+	        COUNT(*) AS total_ads,
+	        COUNT(*) FILTER (WHERE status = 'active') AS active_ads,
+	        COUNT(*) FILTER (WHERE status = 'paused') AS paused_ads,
+	        COUNT(*) FILTER (WHERE status = 'in_review') AS in_review_ads
+	      FROM ads
+	    
+2025-09-24 17:59:33.541 IST [86532] ERROR:  column a.status does not exist at character 135
+2025-09-24 17:59:33.541 IST [86532] STATEMENT:  
+	      SELECT c.id AS client_id, c.name AS client_name,
+	             COUNT(a.id) AS total_ads,
+	             COUNT(a.id) FILTER (WHERE a.status = 'active') AS active_ads
+	      FROM clients c
+	      LEFT JOIN ads a ON a.client_id = c.id
+	      GROUP BY c.id, c.name
+	      ORDER BY total_ads DESC
+	    
+2025-09-24 17:59:35.568 IST [86532] ERROR:  column a.status does not exist at character 135
+2025-09-24 17:59:35.568 IST [86532] STATEMENT:  
+	      SELECT c.id AS client_id, c.name AS client_name,
+	             COUNT(a.id) AS total_ads,
+	             COUNT(a.id) FILTER (WHERE a.status = 'active') AS active_ads
+	      FROM clients c
+	      LEFT JOIN ads a ON a.client_id = c.id
+	      GROUP BY c.id, c.name
+	      ORDER BY total_ads DESC
+	    
+2025-09-24 17:59:35.588 IST [86532] ERROR:  column p.user_id does not exist at character 218
+2025-09-24 17:59:35.588 IST [86532] STATEMENT:  
+	      SELECT p.id AS payment_id, p.amount, p.status, p.created_at,
+	             c.name AS client_name, u.name AS advertiser_name
+	      FROM payments p
+	      JOIN clients c ON p.client_id = c.id
+	      JOIN users u ON p.user_id = u.id
+	      WHERE p.status = 'success'
+	      ORDER BY p.created_at DESC
+	      LIMIT 10
+	    
+2025-09-24 17:59:35.592 IST [86532] ERROR:  column p.user_id does not exist at character 218
+2025-09-24 17:59:35.592 IST [86532] STATEMENT:  
+	      SELECT p.id AS payment_id, p.amount, p.status, p.created_at,
+	             c.name AS client_name, u.name AS advertiser_name
+	      FROM payments p
+	      JOIN clients c ON p.client_id = c.id
+	      JOIN users u ON p.user_id = u.id
+	      WHERE p.status = 'success'
+	      ORDER BY p.created_at DESC
+	      LIMIT 10
+	    
+2025-09-24 18:01:25.392 IST [86664] ERROR:  operator does not exist: character varying = uuid at character 235
+2025-09-24 18:01:25.392 IST [86664] HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+2025-09-24 18:01:25.392 IST [86664] STATEMENT:  
+	      SELECT c.id AS client_id, c.name AS client_name,
+	             COUNT(a.id) AS total_ads,
+	             COUNT(a.id) FILTER (WHERE a.status = 'active') AS active_ads
+	      FROM clients c
+	      LEFT JOIN ad_devices a ON a.client_id = c.id
+	      GROUP BY c.id, c.name
+	      ORDER BY total_ads DESC
+	    
+2025-09-24 18:01:25.403 IST [86664] ERROR:  operator does not exist: character varying = uuid at character 235
+2025-09-24 18:01:25.403 IST [86664] HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+2025-09-24 18:01:25.403 IST [86664] STATEMENT:  
+	      SELECT c.id AS client_id, c.name AS client_name,
+	             COUNT(a.id) AS total_ads,
+	             COUNT(a.id) FILTER (WHERE a.status = 'active') AS active_ads
+	      FROM clients c
+	      LEFT JOIN ad_devices a ON a.client_id = c.id
+	      GROUP BY c.id, c.name
+	      ORDER BY total_ads DESC
+	    
+2025-09-24 18:01:25.421 IST [86664] ERROR:  column p.user_id does not exist at character 218
+2025-09-24 18:01:25.421 IST [86664] STATEMENT:  
+	      SELECT p.id AS payment_id, p.amount, p.status, p.created_at,
+	             c.name AS client_name, u.name AS advertiser_name
+	      FROM payments p
+	      JOIN clients c ON p.client_id = c.id
+	      JOIN users u ON p.user_id = u.id
+	      WHERE p.status = 'success'
+	      ORDER BY p.created_at DESC
+	      LIMIT 10
+	    
+2025-09-24 18:01:25.429 IST [86664] ERROR:  column p.user_id does not exist at character 218
+2025-09-24 18:01:25.429 IST [86664] STATEMENT:  
+	      SELECT p.id AS payment_id, p.amount, p.status, p.created_at,
+	             c.name AS client_name, u.name AS advertiser_name
+	      FROM payments p
+	      JOIN clients c ON p.client_id = c.id
+	      JOIN users u ON p.user_id = u.id
+	      WHERE p.status = 'success'
+	      ORDER BY p.created_at DESC
+	      LIMIT 10
+	    
+2025-09-24 18:01:42.146 IST [86664] ERROR:  operator does not exist: character varying = uuid at character 235
+2025-09-24 18:01:42.146 IST [86664] HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+2025-09-24 18:01:42.146 IST [86664] STATEMENT:  
+	      SELECT c.id AS client_id, c.name AS client_name,
+	             COUNT(a.id) AS total_ads,
+	             COUNT(a.id) FILTER (WHERE a.status = 'active') AS active_ads
+	      FROM clients c
+	      LEFT JOIN ad_devices a ON a.client_id = c.id
+	      GROUP BY c.id, c.name
+	      ORDER BY total_ads DESC
+	    
+2025-09-24 18:01:42.153 IST [86664] ERROR:  operator does not exist: character varying = uuid at character 235
+2025-09-24 18:01:42.153 IST [86664] HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+2025-09-24 18:01:42.153 IST [86664] STATEMENT:  
+	      SELECT c.id AS client_id, c.name AS client_name,
+	             COUNT(a.id) AS total_ads,
+	             COUNT(a.id) FILTER (WHERE a.status = 'active') AS active_ads
+	      FROM clients c
+	      LEFT JOIN ad_devices a ON a.client_id = c.id
+	      GROUP BY c.id, c.name
+	      ORDER BY total_ads DESC
+	    
+2025-09-24 18:01:58.173 IST [86664] ERROR:  column p.user_id does not exist at character 218
+2025-09-24 18:01:58.173 IST [86664] STATEMENT:  
+	      SELECT p.id AS payment_id, p.amount, p.status, p.created_at,
+	             c.name AS client_name, u.name AS advertiser_name
+	      FROM payments p
+	      JOIN clients c ON p.client_id = c.id
+	      JOIN users u ON p.user_id = u.id
+	      WHERE p.status = 'success'
+	      ORDER BY p.created_at DESC
+	      LIMIT 10
+	    
+2025-09-24 18:02:10.847 IST [86664] LOG:  could not receive data from client: Connection reset by peer
+2025-09-24 18:02:18.011 IST [86705] ERROR:  operator does not exist: character varying = uuid at character 235
+2025-09-24 18:02:18.011 IST [86705] HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+2025-09-24 18:02:18.011 IST [86705] STATEMENT:  
+	      SELECT c.id AS client_id, c.name AS client_name,
+	             COUNT(a.id) AS total_ads,
+	             COUNT(a.id) FILTER (WHERE a.status = 'active') AS active_ads
+	      FROM clients c
+	      LEFT JOIN ad_devices a ON a.client_id = c.id
+	      GROUP BY c.id, c.name
+	      ORDER BY total_ads DESC
+	    
+2025-09-24 18:02:18.020 IST [86705] ERROR:  operator does not exist: character varying = uuid at character 235
+2025-09-24 18:02:18.020 IST [86705] HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+2025-09-24 18:02:18.020 IST [86705] STATEMENT:  
+	      SELECT c.id AS client_id, c.name AS client_name,
+	             COUNT(a.id) AS total_ads,
+	             COUNT(a.id) FILTER (WHERE a.status = 'active') AS active_ads
+	      FROM clients c
+	      LEFT JOIN ad_devices a ON a.client_id = c.id
+	      GROUP BY c.id, c.name
+	      ORDER BY total_ads DESC
+	    
+2025-09-24 18:03:03.190 IST [86741] ERROR:  operator does not exist: character varying = uuid at character 235
+2025-09-24 18:03:03.190 IST [86741] HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+2025-09-24 18:03:03.190 IST [86741] STATEMENT:  
+	      SELECT c.id AS client_id, c.name AS client_name,
+	             COUNT(a.id) AS total_ads,
+	             COUNT(a.id) FILTER (WHERE a.status = 'active') AS active_ads
+	      FROM clients c
+	      LEFT JOIN ad_devices a ON a.client_id = c.id
+	      GROUP BY c.id, c.name
+	      ORDER BY total_ads DESC
+	    
+2025-09-24 18:08:36.869 IST [86741] LOG:  could not receive data from client: Connection reset by peer
+2025-09-24 18:11:09.185 IST [87005] ERROR:  column p.user_id does not exist at character 218
+2025-09-24 18:11:09.185 IST [87005] STATEMENT:  
+	      SELECT p.id AS payment_id, p.amount, p.status, p.created_at,
+	             c.name AS client_name, u.name AS advertiser_name
+	      FROM payments p
+	      JOIN clients c ON p.client_id = c.id
+	      JOIN users u ON p.user_id = u.id
+	      WHERE p.status = 'success'
+	      ORDER BY p.created_at DESC
+	      LIMIT 10
+	    
+2025-09-24 18:11:09.213 IST [87005] ERROR:  column p.user_id does not exist at character 218
+2025-09-24 18:11:09.213 IST [87005] STATEMENT:  
+	      SELECT p.id AS payment_id, p.amount, p.status, p.created_at,
+	             c.name AS client_name, u.name AS advertiser_name
+	      FROM payments p
+	      JOIN clients c ON p.client_id = c.id
+	      JOIN users u ON p.user_id = u.id
+	      WHERE p.status = 'success'
+	      ORDER BY p.created_at DESC
+	      LIMIT 10
+	    
+2025-09-24 18:12:22.232 IST [87005] LOG:  could not receive data from client: Connection reset by peer
