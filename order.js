@@ -8,7 +8,7 @@ const uuidV4 = require("uuid-v4");
 
 router.post("/create-order", checkValidClient, auth, async (req, res) => {
   try {
-    const { amount, currency, adId } = req.body; // amount in paise (e.g. 50000 = ₹500)
+    let { amount, currency, adId } = req.body; // amount in paise (e.g. 50000 = ₹500)
 
     if (adId == "") {
       adId = uuidV4();

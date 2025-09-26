@@ -7,6 +7,7 @@ const {
   db,
   auth,
 } = require("./deps");
+
 const { admin, fcm } = require("./firebaseAdmin");
 const bucket = admin.storage().bucket();
 const router = express.Router();
@@ -1878,6 +1879,7 @@ router.post("/login", checkValidClient, async (req, res) => {
       userId: user.id,
       clientId: user.client_id,
       role: user.role,
+      email:user.email
     };
     const token = jsonwebtoken.sign(tokenPayload, "THISISTESTAPPFORHORDING");
 
@@ -1906,7 +1908,7 @@ router.post("/login", checkValidClient, async (req, res) => {
     return res.status(500).json({ error: "internal_server_error" });
   }
 });
-router.get("/ads/:id/statistics", auth, async (req, res) => {
+router.get("/ads/:id/statistics",checkValidClient, auth, async (req, res) => {
   const { id } = req.params;
 
   try {

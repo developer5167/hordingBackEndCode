@@ -2467,3 +2467,744 @@
 	      LIMIT 10
 	    
 2025-09-24 18:12:22.232 IST [87005] LOG:  could not receive data from client: Connection reset by peer
+2025-09-24 20:43:44.633 IST [24750] LOG:  received smart shutdown request
+2025-09-24 20:43:44.635 IST [24750] LOG:  background worker "logical replication launcher" (PID 24757) exited with exit code 1
+2025-09-24 20:43:44.636 IST [24752] LOG:  shutting down
+2025-09-24 20:43:44.646 IST [24750] LOG:  database system is shut down
+2025-09-24 23:08:29.198 IST [4728] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-09-24 23:08:29.202 IST [4728] LOG:  listening on IPv6 address "::1", port 5432
+2025-09-24 23:08:29.202 IST [4728] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-09-24 23:08:29.203 IST [4728] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-09-24 23:08:29.237 IST [4729] LOG:  database system was shut down at 2025-09-24 20:43:44 IST
+2025-09-24 23:08:29.246 IST [4728] LOG:  database system is ready to accept connections
+2025-09-24 23:24:44.547 IST [5517] ERROR:  syntax error at or near "password" at character 41
+2025-09-24 23:24:44.547 IST [5517] STATEMENT:  alter table clients alter column rename password to password_hash 
+2025-09-24 23:26:23.238 IST [5517] ERROR:  syntax error at or near "column" at character 18
+2025-09-24 23:26:23.238 IST [5517] STATEMENT:  alter table drop column password_hash
+2025-09-24 23:41:35.657 IST [6715] ERROR:  column "password" does not exist at character 32
+2025-09-24 23:41:35.657 IST [6715] STATEMENT:  
+	      SELECT id, name, email, password, role, tokens
+	      FROM users
+	      WHERE email = $1 AND client_id = $2 AND role = 'admin'
+	      LIMIT 1
+	    
+2025-09-24 23:41:58.834 IST [6715] LOG:  could not receive data from client: Connection reset by peer
+2025-09-24 23:50:53.444 IST [7473] ERROR:  function array_append(text, unknown) does not exist at character 40
+2025-09-24 23:50:53.444 IST [7473] HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+2025-09-24 23:50:53.444 IST [7473] STATEMENT:  
+	      UPDATE users
+	      SET tokens = array_append(tokens, $1)
+	      WHERE id = $2
+	    
+2025-09-26 11:46:46.353 IST [54304] ERROR:  column "status" does not exist at character 47
+2025-09-26 11:46:46.353 IST [54304] STATEMENT:  
+	      SELECT 
+	        COUNT(*) FILTER (WHERE status = 'active') AS active_ads,
+	        COUNT(*) FILTER (WHERE status = 'paused') AS paused_ads,
+	        COUNT(*) FILTER (WHERE status = 'in_review') AS in_review_ads,
+	        COUNT(*) FILTER (WHERE status = 'approved') AS approved_ads,
+	        COUNT(*) FILTER (WHERE status = 'rejected') AS rejected_ads,
+	        COUNT(*) AS total_ads
+	      FROM ads
+	      WHERE client_id = $1
+	    
+2025-09-26 11:47:33.554 IST [54304] LOG:  could not receive data from client: Connection reset by peer
+2025-09-26 11:48:07.211 IST [54397] ERROR:  column a.device_id does not exist at character 149
+2025-09-26 11:48:07.211 IST [54397] STATEMENT:  
+	      SELECT d.id, d.device_name, d.location, d.status,
+	             COUNT(a.id) AS total_ads
+	      FROM devices d
+	      LEFT JOIN ads a ON d.id = a.device_id AND a.client_id = $1
+	      WHERE d.client_id = $1
+	      GROUP BY d.id, d.device_name, d.location, d.status
+	      ORDER BY d.created_at DESC
+	    
+2025-09-26 11:49:38.981 IST [54500] ERROR:  column d.device_name does not exist at character 21
+2025-09-26 11:49:38.981 IST [54500] STATEMENT:  
+	      SELECT d.id, d.device_name, d.location, d.status,
+	             COUNT(a.id) AS total_ads
+	      FROM devices d
+	      LEFT JOIN ads a ON d.id = a.id AND a.client_id = $1
+	      WHERE d.client_id = $1
+	      GROUP BY d.id, d.device_name, d.location, d.status
+	      ORDER BY d.created_at DESC
+	    
+2025-09-26 11:50:34.997 IST [54568] ERROR:  column d.device_name does not exist at character 218
+2025-09-26 11:50:34.997 IST [54568] STATEMENT:  
+	      SELECT d.id, d.name, d.location, d.status,
+	             COUNT(a.id) AS total_ads
+	      FROM devices d
+	      LEFT JOIN ads a ON d.id = a.id AND a.client_id = $1
+	      WHERE d.client_id = $1
+	      GROUP BY d.id, d.device_name, d.location, d.status
+	      ORDER BY d.created_at DESC
+	    
+2025-09-26 12:32:06.931 IST [54606] ERROR:  invalid input syntax for type uuid: "client-001"
+2025-09-26 12:32:06.931 IST [54606] CONTEXT:  unnamed portal parameter $4 = '...'
+2025-09-26 12:32:06.931 IST [54606] STATEMENT:  UPDATE clients
+	       SET name = COALESCE($1, name),
+	           client_domains = COALESCE($2, client_domains),
+	           subscription_status = COALESCE($3, subscription_status)
+	       WHERE id = $4 RETURNING *
+2025-09-26 12:32:17.275 IST [54606] ERROR:  column "device_name" does not exist at character 19
+2025-09-26 12:32:17.275 IST [54606] STATEMENT:  
+	      SELECT id, device_name, location, width, height, status, created_at
+	      FROM devices
+	      WHERE client_id = $1
+	      ORDER BY created_at DESC
+	    
+2025-09-26 12:33:05.694 IST [54606] ERROR:  column "device_name" does not exist at character 19
+2025-09-26 12:33:05.694 IST [54606] STATEMENT:  
+	      SELECT id, device_name, location, width, height, status, created_at
+	      FROM devices
+	      WHERE client_id = $1
+	      ORDER BY created_at DESC
+	    
+2025-09-26 13:12:57.480 IST [57801] ERROR:  column d.device_name does not exist at character 386
+2025-09-26 13:12:57.480 IST [57801] STATEMENT:  
+	      (
+	        SELECT 
+	          ad.ad_id AS entity_id,
+	          'ad' AS entity_type,
+	          'Ad ' || a.title || ' status changed to ' || ad.status AS description,
+	          ad.status_updated_at AS created_at,
+	          a.title,
+	          a.media_type,
+	          a.media_url,
+	          ad.status,
+	          ad.start_date,
+	          ad.end_date,
+	          ad.device_id,
+	          d.device_name,
+	          d.location
+	        FROM ad_devices ad
+	        JOIN ads a ON a.id = ad.ad_id
+	        JOIN devices d ON d.id = ad.device_id
+	        WHERE a.client_id = $1
+	      )
+	      UNION ALL
+	      (
+	        SELECT 
+	          d.id,
+	          'device',
+	          'Device ' || d.device_name || ' status: ' || d.status,
+	          d.created_at,
+	          NULL, NULL, NULL, d.status, NULL, NULL, d.id, d.device_name, d.location
+	        FROM devices d
+	        WHERE d.client_id = $1
+	      )
+	      UNION ALL
+	      (
+	        SELECT 
+	          p.id,
+	          'payment',
+	          'Payment of ₹' || p.amount || ' ' || p.status,
+	          p.created_at,
+	          NULL, NULL, NULL, p.status, NULL, NULL, NULL, NULL, NULL
+	        FROM payments p
+	        WHERE p.client_id = $1
+	      )
+	      ORDER BY created_at DESC
+	      LIMIT 20
+	    
+2025-09-26 13:16:17.034 IST [57801] LOG:  could not receive data from client: Connection reset by peer
+2025-09-26 13:16:30.859 IST [57911] ERROR:  column d.device_name does not exist at character 761
+2025-09-26 13:16:30.859 IST [57911] STATEMENT:  
+	      (
+	        SELECT 
+	          ad.ad_id AS entity_id,
+	          'ad' AS entity_type,
+	          'Ad ' || a.title || ' status changed to ' || ad.status AS description,
+	          ad.status_updated_at AS created_at,
+	          a.title,
+	          a.media_type,
+	          a.media_url,
+	          ad.status,
+	          ad.start_date,
+	          ad.end_date,
+	          ad.device_id,
+	          d.location
+	        FROM ad_devices ad
+	        JOIN ads a ON a.id = ad.ad_id
+	        JOIN devices d ON d.id = ad.device_id
+	        WHERE a.client_id = $1
+	      )
+	      UNION ALL
+	      (
+	        SELECT 
+	          d.id,
+	          'device',
+	          'Device ' || d.name || ' status: ' || d.status,
+	          d.created_at,
+	          NULL, NULL, NULL, d.status, NULL, NULL, d.id, d.device_name, d.location
+	        FROM devices d
+	        WHERE d.client_id = $1
+	      )
+	      UNION ALL
+	      (
+	        SELECT 
+	          p.id,
+	          'payment',
+	          'Payment of ₹' || p.amount || ' ' || p.status,
+	          p.created_at,
+	          NULL, NULL, NULL, p.status, NULL, NULL, NULL, NULL, NULL
+	        FROM payments p
+	        WHERE p.client_id = $1
+	      )
+	      ORDER BY created_at DESC
+	      LIMIT 20
+	    
+2025-09-26 13:16:57.818 IST [57911] LOG:  could not receive data from client: Connection reset by peer
+2025-09-26 13:17:04.826 IST [57963] ERROR:  syntax error at or near "," at character 766
+2025-09-26 13:17:04.826 IST [57963] STATEMENT:  
+	      (
+	        SELECT 
+	          ad.ad_id AS entity_id,
+	          'ad' AS entity_type,
+	          'Ad ' || a.title || ' status changed to ' || ad.status AS description,
+	          ad.status_updated_at AS created_at,
+	          a.title,
+	          a.media_type,
+	          a.media_url,
+	          ad.status,
+	          ad.start_date,
+	          ad.end_date,
+	          ad.device_id,
+	          d.location
+	        FROM ad_devices ad
+	        JOIN ads a ON a.id = ad.ad_id
+	        JOIN devices d ON d.id = ad.device_id
+	        WHERE a.client_id = $1
+	      )
+	      UNION ALL
+	      (
+	        SELECT 
+	          d.id,
+	          'device',
+	          'Device ' || d.name || ' status: ' || d.status,
+	          d.created_at,
+	          NULL, NULL, NULL, d.status, NULL, NULL, d.id, name., d.location
+	        FROM devices d
+	        WHERE d.client_id = $1
+	      )
+	      UNION ALL
+	      (
+	        SELECT 
+	          p.id,
+	          'payment',
+	          'Payment of ₹' || p.amount || ' ' || p.status,
+	          p.created_at,
+	          NULL, NULL, NULL, p.status, NULL, NULL, NULL, NULL, NULL
+	        FROM payments p
+	        WHERE p.client_id = $1
+	      )
+	      ORDER BY created_at DESC
+	      LIMIT 20
+	    
+2025-09-26 13:17:14.846 IST [57963] LOG:  could not receive data from client: Connection reset by peer
+2025-09-26 13:17:26.937 IST [58021] ERROR:  each UNION query must have the same number of columns at character 597
+2025-09-26 13:17:26.937 IST [58021] STATEMENT:  
+	      (
+	        SELECT 
+	          ad.ad_id AS entity_id,
+	          'ad' AS entity_type,
+	          'Ad ' || a.title || ' status changed to ' || ad.status AS description,
+	          ad.status_updated_at AS created_at,
+	          a.title,
+	          a.media_type,
+	          a.media_url,
+	          ad.status,
+	          ad.start_date,
+	          ad.end_date,
+	          ad.device_id,
+	          d.location
+	        FROM ad_devices ad
+	        JOIN ads a ON a.id = ad.ad_id
+	        JOIN devices d ON d.id = ad.device_id
+	        WHERE a.client_id = $1
+	      )
+	      UNION ALL
+	      (
+	        SELECT 
+	          d.id,
+	          'device',
+	          'Device ' || d.name || ' status: ' || d.status,
+	          d.created_at,
+	          NULL, NULL, NULL, d.status, NULL, NULL, d.id, d.name, d.location
+	        FROM devices d
+	        WHERE d.client_id = $1
+	      )
+	      UNION ALL
+	      (
+	        SELECT 
+	          p.id,
+	          'payment',
+	          'Payment of ₹' || p.amount || ' ' || p.status,
+	          p.created_at,
+	          NULL, NULL, NULL, p.status, NULL, NULL, NULL, NULL, NULL
+	        FROM payments p
+	        WHERE p.client_id = $1
+	      )
+	      ORDER BY created_at DESC
+	      LIMIT 20
+	    
+2025-09-26 13:19:17.283 IST [58021] ERROR:  each UNION query must have the same number of columns at character 597
+2025-09-26 13:19:17.283 IST [58021] STATEMENT:  
+	      (
+	        SELECT 
+	          ad.ad_id AS entity_id,
+	          'ad' AS entity_type,
+	          'Ad ' || a.title || ' status changed to ' || ad.status AS description,
+	          ad.status_updated_at AS created_at,
+	          a.title,
+	          a.media_type,
+	          a.media_url,
+	          ad.status,
+	          ad.start_date,
+	          ad.end_date,
+	          ad.device_id,
+	          d.location
+	        FROM ad_devices ad
+	        JOIN ads a ON a.id = ad.ad_id
+	        JOIN devices d ON d.id = ad.device_id
+	        WHERE a.client_id = $1
+	      )
+	      UNION ALL
+	      (
+	        SELECT 
+	          d.id,
+	          'device',
+	          'Device ' || d.name || ' status: ' || d.status,
+	          d.created_at,
+	          NULL, NULL, NULL, d.status, NULL, NULL, d.id, d.name, d.location
+	        FROM devices d
+	        WHERE d.client_id = $1
+	      )
+	      UNION ALL
+	      (
+	        SELECT 
+	          p.id,
+	          'payment',
+	          'Payment of ₹' || p.amount || ' ' || p.status,
+	          p.created_at,
+	          NULL, NULL, NULL, p.status, NULL, NULL, NULL, NULL, NULL
+	        FROM payments p
+	        WHERE p.client_id = $1
+	      )
+	      ORDER BY created_at DESC
+	      LIMIT 20
+	    
+2025-09-26 13:22:00.204 IST [58021] ERROR:  each UNION query must have the same number of columns at character 597
+2025-09-26 13:22:00.204 IST [58021] STATEMENT:  
+	      (
+	        SELECT 
+	          ad.ad_id AS entity_id,
+	          'ad' AS entity_type,
+	          'Ad ' || a.title || ' status changed to ' || ad.status AS description,
+	          ad.status_updated_at AS created_at,
+	          a.title,
+	          a.media_type,
+	          a.media_url,
+	          ad.status,
+	          ad.start_date,
+	          ad.end_date,
+	          ad.device_id,
+	          d.location
+	        FROM ad_devices ad
+	        JOIN ads a ON a.id = ad.ad_id
+	        JOIN devices d ON d.id = ad.device_id
+	        WHERE a.client_id = $1
+	      )
+	      UNION ALL
+	      (
+	        SELECT 
+	          d.id,
+	          'device',
+	          'Device ' || d.name || ' status: ' || d.status,
+	          d.created_at,
+	          NULL, NULL, NULL, d.status, NULL, NULL, d.id, d.name, d.location
+	        FROM devices d
+	        WHERE d.client_id = $1
+	      )
+	      UNION ALL
+	      (
+	        SELECT 
+	          p.id,
+	          'payment',
+	          'Payment of ₹' || p.amount || ' ' || p.status,
+	          p.created_at,
+	          NULL, NULL, NULL, p.status, NULL, NULL, NULL, NULL, NULL
+	        FROM payments p
+	        WHERE p.client_id = $1
+	      )
+	      ORDER BY created_at DESC
+	      LIMIT 20
+	    
+2025-09-26 13:22:44.898 IST [58275] ERROR:  relation "activity_log" does not exist at character 122
+2025-09-26 13:22:44.898 IST [58275] STATEMENT:  
+	      SELECT 
+	        id, actor_id, actor_role, action_type, entity_id, entity_type, description, created_at
+	      FROM activity_log
+	      WHERE client_id = $1
+	      ORDER BY created_at DESC
+	      LIMIT 20
+	    
+2025-09-26 13:24:06.742 IST [58275] ERROR:  relation "activity_log" does not exist at character 122
+2025-09-26 13:24:06.742 IST [58275] STATEMENT:  
+	      SELECT 
+	        id, actor_id, actor_role, action_type, entity_id, entity_type, description, created_at
+	      FROM activity_log
+	      WHERE client_id = $1
+	      ORDER BY created_at DESC
+	      LIMIT 20
+	    
+2025-09-26 13:24:55.742 IST [58275] ERROR:  relation "activity_log" does not exist at character 122
+2025-09-26 13:24:55.742 IST [58275] STATEMENT:  
+	      SELECT 
+	        id, actor_id, actor_role, action_type, entity_id, entity_type, description, created_at
+	      FROM activity_log
+	      WHERE client_id = $1
+	      ORDER BY created_at DESC
+	      LIMIT 20
+	    
+2025-09-26 13:25:06.546 IST [58275] ERROR:  relation "activity_log" does not exist at character 122
+2025-09-26 13:25:06.546 IST [58275] STATEMENT:  
+	      SELECT 
+	        id, actor_id, actor_role, action_type, entity_id, entity_type, description, created_at
+	      FROM activity_log
+	      WHERE client_id = $1
+	      ORDER BY created_at DESC
+	      LIMIT 20
+	    
+2025-09-26 13:25:23.617 IST [58388] ERROR:  column a.status does not exist at character 108
+2025-09-26 13:25:23.617 IST [58388] STATEMENT:  
+	      (
+	        SELECT a.id AS entity_id, 'ad' AS entity_type,
+	               CASE 
+	                 WHEN a.status = 'in_review' THEN 'New ad submitted: ' || a.title
+	                 WHEN a.status = 'approved' THEN 'Ad approved: ' || a.title
+	                 WHEN a.status = 'rejected' THEN 'Ad rejected: ' || a.title
+	                 WHEN a.status = 'paused' THEN 'Ad paused: ' || a.title
+	                 WHEN a.status = 'active' THEN 'Ad resumed: ' || a.title
+	                 ELSE 'Ad updated: ' || a.title
+	               END AS description,
+	               a.status_updated_at AS created_at
+	        FROM ads a
+	        WHERE a.client_id = $1
+	      )
+	      UNION ALL
+	      (
+	        SELECT d.id, 'device',
+	               'Device ' || d.device_name || ' status: ' || d.status,
+	               d.created_at
+	        FROM devices d
+	        WHERE d.client_id = $1
+	      )
+	      UNION ALL
+	      (
+	        SELECT p.id, 'payment',
+	               'Payment of ₹' || p.amount || ' ' || p.status,
+	               p.created_at
+	        FROM payments p
+	        WHERE p.client_id = $1
+	      )
+	      ORDER BY created_at DESC
+	      LIMIT 20
+	    
+2025-09-26 13:27:56.746 IST [58388] ERROR:  column a.status does not exist at character 108
+2025-09-26 13:27:56.746 IST [58388] STATEMENT:  
+	      (
+	        SELECT a.id AS entity_id, 'ad' AS entity_type,
+	               CASE 
+	                 WHEN a.status = 'in_review' THEN 'New ad submitted: ' || a.title
+	                 WHEN a.status = 'approved' THEN 'Ad approved: ' || a.title
+	                 WHEN a.status = 'rejected' THEN 'Ad rejected: ' || a.title
+	                 WHEN a.status = 'paused' THEN 'Ad paused: ' || a.title
+	                 WHEN a.status = 'active' THEN 'Ad resumed: ' || a.title
+	                 ELSE 'Ad updated: ' || a.title
+	               END AS description,
+	               a.status_updated_at AS created_at
+	        FROM ads a
+	        WHERE a.client_id = $1
+	      )
+	      UNION ALL
+	      (
+	        SELECT d.id, 'device',
+	               'Device ' || d.device_name || ' status: ' || d.status,
+	               d.created_at
+	        FROM devices d
+	        WHERE d.client_id = $1
+	      )
+	      UNION ALL
+	      (
+	        SELECT p.id, 'payment',
+	               'Payment of ₹' || p.amount || ' ' || p.status,
+	               p.created_at
+	        FROM payments p
+	        WHERE p.client_id = $1
+	      )
+	      ORDER BY created_at DESC
+	      LIMIT 20
+	    
+2025-09-26 13:28:26.750 IST [58388] ERROR:  column a.status does not exist at character 108
+2025-09-26 13:28:26.750 IST [58388] STATEMENT:  
+	      (
+	        SELECT a.id AS entity_id, 'ad' AS entity_type,
+	               CASE 
+	                 WHEN a.status = 'in_review' THEN 'New ad submitted: ' || a.title
+	                 WHEN a.status = 'approved' THEN 'Ad approved: ' || a.title
+	                 WHEN a.status = 'rejected' THEN 'Ad rejected: ' || a.title
+	                 WHEN a.status = 'paused' THEN 'Ad paused: ' || a.title
+	                 WHEN a.status = 'active' THEN 'Ad resumed: ' || a.title
+	                 ELSE 'Ad updated: ' || a.title
+	               END AS description,
+	               a.status_updated_at AS created_at
+	        FROM ads a
+	        WHERE a.client_id = $1
+	      )
+	      UNION ALL
+	      (
+	        SELECT d.id, 'device',
+	               'Device ' || d.device_name || ' status: ' || d.status,
+	               d.created_at
+	        FROM devices d
+	        WHERE d.client_id = $1
+	      )
+	      UNION ALL
+	      (
+	        SELECT p.id, 'payment',
+	               'Payment of ₹' || p.amount || ' ' || p.status,
+	               p.created_at
+	        FROM payments p
+	        WHERE p.client_id = $1
+	      )
+	      ORDER BY created_at DESC
+	      LIMIT 20
+	    
+2025-09-26 13:28:45.748 IST [58388] ERROR:  column a.status does not exist at character 108
+2025-09-26 13:28:45.748 IST [58388] STATEMENT:  
+	      (
+	        SELECT a.id AS entity_id, 'ad' AS entity_type,
+	               CASE 
+	                 WHEN a.status = 'in_review' THEN 'New ad submitted: ' || a.title
+	                 WHEN a.status = 'approved' THEN 'Ad approved: ' || a.title
+	                 WHEN a.status = 'rejected' THEN 'Ad rejected: ' || a.title
+	                 WHEN a.status = 'paused' THEN 'Ad paused: ' || a.title
+	                 WHEN a.status = 'active' THEN 'Ad resumed: ' || a.title
+	                 ELSE 'Ad updated: ' || a.title
+	               END AS description,
+	               a.status_updated_at AS created_at
+	        FROM ads a
+	        WHERE a.client_id = $1
+	      )
+	      UNION ALL
+	      (
+	        SELECT d.id, 'device',
+	               'Device ' || d.device_name || ' status: ' || d.status,
+	               d.created_at
+	        FROM devices d
+	        WHERE d.client_id = $1
+	      )
+	      UNION ALL
+	      (
+	        SELECT p.id, 'payment',
+	               'Payment of ₹' || p.amount || ' ' || p.status,
+	               p.created_at
+	        FROM payments p
+	        WHERE p.client_id = $1
+	      )
+	      ORDER BY created_at DESC
+	      LIMIT 20
+	    
+2025-09-26 13:28:54.748 IST [58388] ERROR:  column a.status does not exist at character 108
+2025-09-26 13:28:54.748 IST [58388] STATEMENT:  
+	      (
+	        SELECT a.id AS entity_id, 'ad' AS entity_type,
+	               CASE 
+	                 WHEN a.status = 'in_review' THEN 'New ad submitted: ' || a.title
+	                 WHEN a.status = 'approved' THEN 'Ad approved: ' || a.title
+	                 WHEN a.status = 'rejected' THEN 'Ad rejected: ' || a.title
+	                 WHEN a.status = 'paused' THEN 'Ad paused: ' || a.title
+	                 WHEN a.status = 'active' THEN 'Ad resumed: ' || a.title
+	                 ELSE 'Ad updated: ' || a.title
+	               END AS description,
+	               a.status_updated_at AS created_at
+	        FROM ads a
+	        WHERE a.client_id = $1
+	      )
+	      UNION ALL
+	      (
+	        SELECT d.id, 'device',
+	               'Device ' || d.device_name || ' status: ' || d.status,
+	               d.created_at
+	        FROM devices d
+	        WHERE d.client_id = $1
+	      )
+	      UNION ALL
+	      (
+	        SELECT p.id, 'payment',
+	               'Payment of ₹' || p.amount || ' ' || p.status,
+	               p.created_at
+	        FROM payments p
+	        WHERE p.client_id = $1
+	      )
+	      ORDER BY created_at DESC
+	      LIMIT 20
+	    
+2025-09-26 13:28:59.474 IST [58388] ERROR:  column a.status does not exist at character 108
+2025-09-26 13:28:59.474 IST [58388] STATEMENT:  
+	      (
+	        SELECT a.id AS entity_id, 'ad' AS entity_type,
+	               CASE 
+	                 WHEN a.status = 'in_review' THEN 'New ad submitted: ' || a.title
+	                 WHEN a.status = 'approved' THEN 'Ad approved: ' || a.title
+	                 WHEN a.status = 'rejected' THEN 'Ad rejected: ' || a.title
+	                 WHEN a.status = 'paused' THEN 'Ad paused: ' || a.title
+	                 WHEN a.status = 'active' THEN 'Ad resumed: ' || a.title
+	                 ELSE 'Ad updated: ' || a.title
+	               END AS description,
+	               a.status_updated_at AS created_at
+	        FROM ads a
+	        WHERE a.client_id = $1
+	      )
+	      UNION ALL
+	      (
+	        SELECT d.id, 'device',
+	               'Device ' || d.device_name || ' status: ' || d.status,
+	               d.created_at
+	        FROM devices d
+	        WHERE d.client_id = $1
+	      )
+	      UNION ALL
+	      (
+	        SELECT p.id, 'payment',
+	               'Payment of ₹' || p.amount || ' ' || p.status,
+	               p.created_at
+	        FROM payments p
+	        WHERE p.client_id = $1
+	      )
+	      ORDER BY created_at DESC
+	      LIMIT 20
+	    
+2025-09-26 13:31:36.977 IST [58537] ERROR:  column "device_name" does not exist at character 19
+2025-09-26 13:31:36.977 IST [58537] STATEMENT:  
+	      SELECT id, device_name, location, width, height, status, created_at
+	      FROM devices
+	      WHERE client_id = $1
+	      ORDER BY created_at DESC
+	    
+2025-09-26 13:31:57.378 IST [58537] ERROR:  column "device_name" does not exist at character 19
+2025-09-26 13:31:57.378 IST [58537] STATEMENT:  
+	      SELECT id, device_name, location, width, height, status, created_at
+	      FROM devices
+	      WHERE client_id = $1
+	      ORDER BY created_at DESC
+	    
+2025-09-26 13:38:19.427 IST [58685] ERROR:  column "device_name" of relation "devices" does not exist at character 40
+2025-09-26 13:38:19.427 IST [58685] STATEMENT:  
+	      INSERT INTO devices (client_id, device_name, location, width, height, status)
+	      VALUES ($1, $2, $3, $4, $5, COALESCE($6, 'active'))
+	      RETURNING id, device_name, location, width, height, status, created_at
+	    
+2025-09-26 13:43:27.230 IST [59024] ERROR:  column "device_name" does not exist at character 53
+2025-09-26 13:43:27.230 IST [59024] STATEMENT:  
+	      UPDATE devices
+	      SET name = COALESCE($1, device_name),
+	          location = COALESCE($2, location),
+	          width = COALESCE($3, width),
+	          height = COALESCE($4, height),
+	          status = COALESCE($5, status)
+	      WHERE id = $6 AND client_id = $7
+	      RETURNING id, name, location, width, height, status, created_at
+	    
+2025-09-26 13:44:57.407 IST [59024] ERROR:  column "device_name" does not exist at character 53
+2025-09-26 13:44:57.407 IST [59024] STATEMENT:  
+	      UPDATE devices
+	      SET name = COALESCE($1, device_name),
+	          location = COALESCE($2, location),
+	          width = COALESCE($3, width),
+	          height = COALESCE($4, height),
+	          status = COALESCE($5, status)
+	      WHERE id = $6 AND client_id = $7
+	      RETURNING id, name, location, width, height, status, created_at
+	    
+2025-09-26 13:45:15.073 IST [59024] ERROR:  column "device_name" does not exist at character 53
+2025-09-26 13:45:15.073 IST [59024] STATEMENT:  
+	      UPDATE devices
+	      SET name = COALESCE($1, device_name),
+	          location = COALESCE($2, location),
+	          width = COALESCE($3, width),
+	          height = COALESCE($4, height),
+	          status = COALESCE($5, status)
+	      WHERE id = $6 AND client_id = $7
+	      RETURNING id, name, location, width, height, status, created_at
+	    
+2025-09-26 13:49:48.512 IST [59230] ERROR:  column "status" does not exist at character 150
+2025-09-26 13:49:48.512 IST [59230] STATEMENT:  
+	      UPDATE ads
+	      SET status = 'paused',
+	          status_updated_at = NOW()
+	      WHERE id = $1 AND client_id = $2
+	      RETURNING id, title, status, status_updated_at
+	    
+2025-09-26 15:54:29.575 IST [67132] LOG:  could not receive data from client: Connection reset by peer
+2025-09-26 15:55:43.931 IST [67578] LOG:  could not receive data from client: Connection reset by peer
+2025-09-26 16:21:55.512 IST [65258] ERROR:  syntax error at or near "pricing_rules" at character 10
+2025-09-26 16:21:55.512 IST [65258] STATEMENT:  select * pricing_rules 
+	
+2025-09-26 16:49:59.253 IST [73740] ERROR:  column "duration_seconds" of relation "pricing_rules" does not exist at character 62
+2025-09-26 16:49:59.253 IST [73740] STATEMENT:  INSERT INTO pricing_rules (client_id, device_id, media_type, duration_seconds, base_price)
+	       VALUES ($1, $2, $3, $4, $5)
+	       RETURNING id, device_id, media_type, duration_seconds, base_price, created_at
+2025-09-26 16:50:35.132 IST [73740] LOG:  could not receive data from client: Connection reset by peer
+2025-09-26 16:50:53.469 IST [73853] ERROR:  column "base_price" of relation "pricing_rules" does not exist at character 72
+2025-09-26 16:50:53.469 IST [73853] STATEMENT:  INSERT INTO pricing_rules (client_id, device_id, media_type, duration, base_price)
+	       VALUES ($1, $2, $3, $4, $5)
+	       RETURNING id, device_id, media_type, duration, base_price, created_at
+2025-09-26 16:56:45.603 IST [74474] ERROR:  column "duration" does not exist at character 35
+2025-09-26 16:56:45.603 IST [74474] STATEMENT:  SELECT id, device_id, media_type, duration, price_per_day, created_at
+	       FROM pricing
+	       WHERE client_id = $1
+	       ORDER BY device_id, media_type, duration NULLS FIRST
+2025-09-26 16:59:14.431 IST [74684] ERROR:  duplicate key value violates unique constraint "unique_device_rule"
+2025-09-26 16:59:14.431 IST [74684] DETAIL:  Key (device_id, media_type)=(93c572e4-711e-47bd-a66c-9fb891640e5a, image) already exists.
+2025-09-26 16:59:14.431 IST [74684] STATEMENT:  INSERT INTO pricing_rules (client_id, device_id, media_type, duration, price_per_day)
+	       VALUES ($1, $2, $3, $4, $5)
+	       RETURNING id, device_id, media_type, duration, price_per_day, created_at
+2025-09-26 16:59:58.317 IST [74684] ERROR:  duplicate key value violates unique constraint "unique_device_rule"
+2025-09-26 16:59:58.317 IST [74684] DETAIL:  Key (device_id, media_type)=(93c572e4-711e-47bd-a66c-9fb891640e5a, image) already exists.
+2025-09-26 16:59:58.317 IST [74684] STATEMENT:  INSERT INTO pricing_rules (client_id, device_id, media_type, duration, price_per_day)
+	       VALUES ($1, $2, $3, $4, $5)
+	       RETURNING id, device_id, media_type, duration, price_per_day, created_at
+2025-09-26 17:00:20.370 IST [74684] ERROR:  duplicate key value violates unique constraint "unique_device_rule"
+2025-09-26 17:00:20.370 IST [74684] DETAIL:  Key (device_id, media_type)=(93c572e4-711e-47bd-a66c-9fb891640e5a, image) already exists.
+2025-09-26 17:00:20.370 IST [74684] STATEMENT:  INSERT INTO pricing_rules (client_id, device_id, media_type, duration, price_per_day)
+	       VALUES ($1, $2, $3, $4, $5)
+	       RETURNING id, device_id, media_type, duration, price_per_day, created_at
+2025-09-26 17:09:19.473 IST [74684] ERROR:  duplicate key value violates unique constraint "unique_device_rule"
+2025-09-26 17:09:19.473 IST [74684] DETAIL:  Key (device_id, media_type)=(93c572e4-711e-47bd-a66c-9fb891640e5a, image) already exists.
+2025-09-26 17:09:19.473 IST [74684] STATEMENT:  INSERT INTO pricing_rules (client_id, device_id, media_type, duration, price_per_day)
+	       VALUES ($1, $2, $3, $4, $5)
+	       RETURNING id, device_id, media_type, duration, price_per_day, created_at
+2025-09-26 17:09:54.590 IST [75703] ERROR:  duplicate key value violates unique constraint "unique_device_rule"
+2025-09-26 17:09:54.590 IST [75703] DETAIL:  Key (device_id, media_type)=(93c572e4-711e-47bd-a66c-9fb891640e5a, image) already exists.
+2025-09-26 17:09:54.590 IST [75703] STATEMENT:  INSERT INTO pricing_rules (client_id, device_id, media_type, duration, price_per_day)
+	       VALUES ($1, $2, $3, $4, $5)
+	       RETURNING id, device_id, media_type, duration, price_per_day, created_at
+2025-09-26 17:10:56.951 IST [75793] ERROR:  duplicate key value violates unique constraint "unique_device_rule"
+2025-09-26 17:10:56.951 IST [75793] DETAIL:  Key (device_id, media_type)=(93c572e4-711e-47bd-a66c-9fb891640e5a, image) already exists.
+2025-09-26 17:10:56.951 IST [75793] STATEMENT:  INSERT INTO pricing_rules (client_id, device_id, media_type, duration, price_per_day)
+	       VALUES ($1, $2, $3, $4, $5)
+	       RETURNING id, device_id, media_type, duration, price_per_day, created_at
+2025-09-26 17:36:47.283 IST [65258] ERROR:  syntax error at or near "DEFAULT" at character 50
+2025-09-26 17:36:47.283 IST [65258] STATEMENT:  	ALTER TABLE pricing_rules add column updated_at DEFAULT NOW()
+	
+2025-09-26 17:36:59.219 IST [65258] ERROR:  syntax error at or near ")" at character 54
+2025-09-26 17:36:59.219 IST [65258] STATEMENT:  	ALTER TABLE pricing_rules add column updated_at NOW()
+	
+2025-09-26 17:37:13.909 IST [65258] ERROR:  column "updated_at" of relation "pricing_rules" already exists
+2025-09-26 17:37:13.909 IST [65258] STATEMENT:  	ALTER TABLE pricing_rules add column updated_at TIMESTAMP DEFAULT NOW()
+	
+2025-09-26 17:51:55.840 IST [78850] ERROR:  invalid input syntax for type uuid: "client-001"
+2025-09-26 17:51:55.840 IST [78850] CONTEXT:  unnamed portal parameter $1 = '...'
+2025-09-26 17:51:55.840 IST [78850] STATEMENT:  UPDATE clients SET subscription_status = 'blocked' WHERE id = $1 RETURNING *

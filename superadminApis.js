@@ -9,7 +9,6 @@ function generatePassword() {
 }
 
 async function sendAdminEmail(to, email, password) {
-  const OTP = Math.floor(100000 + Math.random() * 900000).toString();
   const mailRequest = nodemailer.createTransport({
     host: "smtpout.secureserver.net",
     port: 465,

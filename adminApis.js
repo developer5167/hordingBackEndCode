@@ -2,7 +2,7 @@ const {
   express,
   upload,       // multer memory-storage ready
   uuidv4,
-  jwt,
+  jsonwebtoken,
   bcrypt,
   nodemailer,
   path,
@@ -14,6 +14,7 @@ const {
   admin,
   auth
 } = require("./deps");
+const bucket = admin.storage().bucket();
 // router.js (or a separate advertiser.routes.js if you want to keep clean)
 const router = express.Router();
 
@@ -22,13 +23,15 @@ const checkValidClient = require("./middleware/checkValidClient");
 
 
 // Admin Login
-router.post("/admin/login", checkValidClient, async (req, res) => {
+router.post("/login", checkValidClient, async (req, res) => {
+  console.log("DASDASD");
+  
   try {
     const { email, password } = req.body;
     const clientId = req.client_id; // from checkValidClient middleware
 
     if (!email || !password) {
-      return res.status(400).json({
+      return res.status(200).json({
         success: false,
         message: "Email and password are required"
       });
@@ -36,7 +39,7 @@ router.post("/admin/login", checkValidClient, async (req, res) => {
 
     // Step 1: Find admin
     const query = `
-      SELECT id, name, email, password, role, tokens
+      SELECT id, name, email, password_hash, role, tokens,client_id
       FROM users
       WHERE email = $1 AND client_id = $2 AND role = 'admin'
       LIMIT 1
@@ -44,7 +47,7 @@ router.post("/admin/login", checkValidClient, async (req, res) => {
     const { rows } = await db.query(query, [email, clientId]);
 
     if (rows.length === 0) {
-      return res.status(401).json({
+      return res.status(200).json({
         success: false,
         message: "Invalid credentials or not an admin"
       });
@@ -53,21 +56,27 @@ router.post("/admin/login", checkValidClient, async (req, res) => {
     const admin = rows[0];
 
     // Step 2: Verify password
-    const isValidPassword = await bcrypt.compare(password, admin.password);
+    const isValidPassword = await bcrypt.compare(password, admin.password_hash);
     if (!isValidPassword) {
-      return res.status(401).json({
+      return res.status(200).json({
         success: false,
         message: "Invalid credentials"
       });
     }
-     const token = jwtToken.sign({ email }, "THISISTESTAPPFORHORDING");
+    const tokenPayload = {
+      userId: admin.id,
+      clientId: admin.client_id,
+      role: admin.role,
+      email:admin.email
+    };
+     const token = jsonwebtoken.sign(tokenPayload, "THISISTESTAPPFORHORDING");
     // Step 3: Generate JWT
     
 
     // Step 4: Store token
     const updateTokens = `
       UPDATE users
-      SET tokens = array_append(tokens, $1)
+      SET tokens = $1
       WHERE id = $2
     `;
     await db.query(updateTokens, [token, admin.id]);
@@ -94,7 +103,7 @@ router.post("/admin/login", checkValidClient, async (req, res) => {
 });
 
 // router.js
-router.get("/admin/profile", checkValidClient, auth, async (req, res) => {
+router.get("/profile", checkValidClient, auth, async (req, res) => {
   try {
     const adminId = req.user_id;      
     const clientId = req.client_id;  
@@ -129,7 +138,7 @@ router.get("/admin/profile", checkValidClient, auth, async (req, res) => {
   }
 });
 // router.js
-router.put("/admin/profile", checkValidClient, auth, async (req, res) => {
+router.put("/profile", checkValidClient, auth, async (req, res) => {
   try {
     const adminId = req.user_id;      
     const clientId = req.client_id;  
@@ -176,7 +185,7 @@ router.put("/admin/profile", checkValidClient, auth, async (req, res) => {
 });
 
 // router.js
-router.patch("/admin/change-password", checkValidClient, auth, async (req, res) => {
+router.patch("/change-password", checkValidClient, auth, async (req, res) => {
   try {
     const adminId = req.user_id;      
     const clientId = req.client_id;  
@@ -244,7 +253,7 @@ router.patch("/admin/change-password", checkValidClient, auth, async (req, res) 
 });
 
 // router.js
-router.post("/admin/logout", checkValidClient, auth, async (req, res) => {
+router.post("/logout", checkValidClient, auth, async (req, res) => {
   try {
     const adminId = req.user_id;      
     const clientId = req.client_id;  
@@ -281,12 +290,12 @@ router.post("/admin/logout", checkValidClient, auth, async (req, res) => {
 
 // Device Management APIs (List, Add, Update, Delete, etc.).
 // API: List Devices
-router.get("/admin/devices", checkValidClient, auth, async (req, res) => {
+router.get("/devices", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;  
 
     const query = `
-      SELECT id, device_name, location, width, height, status, created_at
+      SELECT id, name, location, width, height, status, created_at
       FROM devices
       WHERE client_id = $1
       ORDER BY created_at DESC
@@ -310,12 +319,12 @@ router.get("/admin/devices", checkValidClient, auth, async (req, res) => {
 
 
 // API: Get Device Details
-router.get("/admin/devices/:id", checkValidClient, auth, async (req, res) => {
+router.get("/devices/:id", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
     const { id } = req.params;
     const query = `
-      SELECT id, device_name, location, width, height, status, created_at
+      SELECT id, name, location, width, height, status, created_at
       FROM devices
       WHERE id = $1 AND client_id = $2
       LIMIT 1
@@ -345,24 +354,24 @@ router.get("/admin/devices/:id", checkValidClient, auth, async (req, res) => {
 
 
 // API: Add Device
-router.post("/admin/devices", checkValidClient, auth, async (req, res) => {
+router.post("/devices", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
-    const { device_name, location, width, height, status } = req.body;
+    const { name, location, width, height, status } = req.body;
 
-    if (!device_name || !location || !width || !height) {
+    if (!name || !location || !width || !height) {
       return res.status(400).json({
         success: false,
-        message: "device_name, location, width, and height are required"
+        message: "name, location, width, and height are required"
       });
     }
 
     const query = `
-      INSERT INTO devices (client_id, device_name, location, width, height, status)
+      INSERT INTO devices (client_id, name, location, width, height, status)
       VALUES ($1, $2, $3, $4, $5, COALESCE($6, 'active'))
-      RETURNING id, device_name, location, width, height, status, created_at
+      RETURNING id, name, location, width, height, status, created_at
     `;
-    const values = [clientId, device_name, location, width, height, status || null];
+    const values = [clientId, name, location, width, height, status || null];
 
     const { rows } = await db.query(query, values);
 
@@ -383,7 +392,7 @@ router.post("/admin/devices", checkValidClient, auth, async (req, res) => {
 
 
 // API: Update Device
-router.put("/admin/devices/:id", checkValidClient, auth, async (req, res) => {
+router.put("/devices/:id", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
     const { id } = req.params;
@@ -398,13 +407,13 @@ router.put("/admin/devices/:id", checkValidClient, auth, async (req, res) => {
 
     const query = `
       UPDATE devices
-      SET device_name = COALESCE($1, device_name),
+      SET name = COALESCE($1, name),
           location = COALESCE($2, location),
           width = COALESCE($3, width),
           height = COALESCE($4, height),
           status = COALESCE($5, status)
       WHERE id = $6 AND client_id = $7
-      RETURNING id, device_name, location, width, height, status, created_at
+      RETURNING id, name, location, width, height, status, created_at
     `;
     const values = [device_name || null, location || null, width || null, height || null, status || null, id, clientId];
 
@@ -434,7 +443,7 @@ router.put("/admin/devices/:id", checkValidClient, auth, async (req, res) => {
 
 
 // API: Delete Device
-router.delete("/admin/devices/:id", checkValidClient, auth, async (req, res) => {
+router.delete("/devices/:id", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
     const { id } = req.params;
@@ -442,7 +451,7 @@ router.delete("/admin/devices/:id", checkValidClient, auth, async (req, res) => 
     const query = `
       DELETE FROM devices
       WHERE id = $1 AND client_id = $2
-      RETURNING id, device_name, location
+      RETURNING id, name, location
     `;
     const { rows } = await db.query(query, [id, clientId]);
 
@@ -471,14 +480,14 @@ router.delete("/admin/devices/:id", checkValidClient, auth, async (req, res) => 
 // Ad Management (Admin side)
 
 //List Ads by Device
-router.get("/admin/devices/:id/ads", checkValidClient, auth, async (req, res) => {
+router.get("/devices/:id/ads", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
     const { id } = req.params; // device id
 
     // Step 1: Ensure device belongs to client
     const deviceCheck = await db.query(
-      `SELECT id FROM devices WHERE id = $1 AND client_id = $2 LIMIT 1`,
+      `SELECT id, name, location FROM devices WHERE id = $1 AND client_id = $2 LIMIT 1`,
       [id, clientId]
     );
 
@@ -489,14 +498,30 @@ router.get("/admin/devices/:id/ads", checkValidClient, auth, async (req, res) =>
       });
     }
 
-    // Step 2: Fetch ads for this device
+    // Step 2: Fetch ads for this device (join ads + ad_devices)
     const query = `
-      SELECT id, title, description, media_type, media_url, fileName,
-             status, start_date, end_date, created_at
-      FROM ads
-      WHERE device_id = $1 AND client_id = $2
-      ORDER BY created_at DESC
+      SELECT 
+        a.id AS ad_id,
+        a.title,
+        a.description,
+        a.media_type,
+        a.media_url,
+        a.filename,
+        a.created_at,
+        ad.status,
+        ad.start_date,
+        ad.end_date,
+        ad.status_updated_at,
+        d.id AS device_id,
+        d.name AS device_name,
+        d.location
+      FROM ad_devices ad
+      JOIN ads a ON a.id = ad.ad_id
+      JOIN devices d ON d.id = ad.device_id
+      WHERE ad.device_id = $1 AND a.client_id = $2
+      ORDER BY ad.start_date DESC
     `;
+
     const { rows } = await db.query(query, [id, clientId]);
 
     return res.status(200).json({
@@ -514,8 +539,9 @@ router.get("/admin/devices/:id/ads", checkValidClient, auth, async (req, res) =>
   }
 });
 
+
 // API: Get Ad Details
-router.get("/admin/ads/:id", checkValidClient, auth, async (req, res) => {
+router.get("/ads/:id", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
     const { id } = req.params; // ad id
@@ -523,7 +549,7 @@ router.get("/admin/ads/:id", checkValidClient, auth, async (req, res) => {
     const query = `
       SELECT a.id, a.title, a.description, a.media_type, a.media_url, a."fileName",
              a.status, a.start_date, a.end_date, a.status_updated_at,
-             d.device_name, d.location, d.width, d.height
+             d.name, d.location, d.width, d.height
       FROM ads a
       JOIN devices d ON a.device_id = d.id
       WHERE a.id = $1 AND a.client_id = $2
@@ -552,78 +578,84 @@ router.get("/admin/ads/:id", checkValidClient, auth, async (req, res) => {
     });
   }
 });
-// API: Pause Ad
-router.patch("/admin/ads/:id/pause", checkValidClient, auth, async (req, res) => {
+router.post("/ads", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
-    const { id } = req.params;
+    const { device_id, status, location, page = 1, limit = 10 } = req.body;
+
+    const offset = (page - 1) * limit;
 
     const query = `
-      UPDATE ads
-      SET status = 'paused',
-          status_updated_at = NOW()
-      WHERE id = $1 AND client_id = $2
-      RETURNING id, title, status, status_updated_at
+      SELECT 
+        a.id AS ad_id,
+        a.title,
+        a.description,
+        a.media_type,
+        a.media_url,
+        a.filename,
+        a.created_at,
+        ad.status,
+        ad.start_date,
+        ad.end_date,
+        ad.status_updated_at,
+        d.id AS device_id,
+        d.name AS device_name,
+        d.location
+      FROM ad_devices ad
+      JOIN ads a ON a.id = ad.ad_id
+      JOIN devices d ON d.id = ad.device_id
+      WHERE a.client_id = $1
+        AND ($2::uuid IS NULL OR d.id = $2)
+        AND ($3::text IS NULL OR ad.status = $3)
+        AND ($4::text IS NULL OR d.location = $4)
+      ORDER BY ad.start_date DESC
+      LIMIT $5 OFFSET $6
     `;
-    const { rows } = await db.query(query, [id, clientId]);
 
-    if (rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "Ad not found or not authorized"
-      });
-    }
+    const { rows } = await db.query(query, [
+      clientId,
+      device_id || null,
+      status || null,
+      location || null,
+      limit,
+      offset,
+    ]);
+
+    // count total for pagination
+    const countQuery = `
+      SELECT COUNT(*) AS total
+      FROM ad_devices ad
+      JOIN ads a ON a.id = ad.ad_id
+      JOIN devices d ON d.id = ad.device_id
+      WHERE a.client_id = $1
+        AND ($2::uuid IS NULL OR d.id = $2)
+        AND ($3::text IS NULL OR ad.status = $3)
+        AND ($4::text IS NULL OR d.location = $4)
+    `;
+    const { rows: countRows } = await db.query(countQuery, [
+      clientId,
+      device_id || null,
+      status || null,
+      location || null,
+    ]);
 
     return res.status(200).json({
       success: true,
-      message: "Ad paused successfully",
-      data: rows[0]
+      message: "Ads fetched successfully",
+      data: rows,
+      pagination: {
+        total: Number(countRows[0].total),
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(Number(countRows[0].total) / limit),
+      },
     });
   } catch (error) {
-    console.error("Error pausing ad:", error);
+    console.error("Error fetching ads:", error);
     return res.status(500).json({
       success: false,
-      message: "Something went wrong while pausing ad",
-      error: error.message
-    });
-  }
-});
-
-
-//API: Resume Ad
-// router.js
-router.patch("/admin/ads/:id/resume", checkValidClient, auth, async (req, res) => {
-  try {
-    const clientId = req.client_id;
-    const { id } = req.params;
-
-    const query = `
-      UPDATE ads
-      SET status = 'active',
-          status_updated_at = NOW()
-      WHERE id = $1 AND client_id = $2
-      RETURNING id, title, status, status_updated_at
-    `;
-    const { rows } = await db.query(query, [id, clientId]);
-
-    if (rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "Ad not found or not authorized"
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-      message: "Ad resumed successfully",
-      data: rows[0]
-    });
-  } catch (error) {
-    console.error("Error resuming ad:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Something went wrong while resuming ad",
-      error: error.message
+      message: "Something went wrong while fetching ads",
+      error: error.message,
     });
   }
 });
@@ -631,14 +663,14 @@ router.patch("/admin/ads/:id/resume", checkValidClient, auth, async (req, res) =
 // API: Delete Ad
 
 // make sure you have a helper function to delete files from Firebase
-router.delete("/admin/ads/:id", checkValidClient, auth, async (req, res) => {
+router.delete("/ads/:id", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
     const { id } = req.params;
 
     // Step 1: Find ad to get fileName
     const findQuery = `
-      SELECT id, title, "fileName"
+      SELECT id, title, fileName
       FROM ads
       WHERE id = $1 AND client_id = $2
       LIMIT 1
@@ -651,7 +683,7 @@ router.delete("/admin/ads/:id", checkValidClient, auth, async (req, res) => {
         message: "Ad not found"
       });
     }
-
+      
     const ad = adRows[0];
 
     // Step 2: Delete ad from DB
@@ -660,12 +692,18 @@ router.delete("/admin/ads/:id", checkValidClient, auth, async (req, res) => {
       WHERE id = $1 AND client_id = $2
       RETURNING id, title
     `;
+    const deleteQueryFromAdDevices = `
+      DELETE FROM ad_devices
+      WHERE ad_id = $1 AND client_id = $2
+      
+    `;
     const { rows } = await db.query(deleteQuery, [id, clientId]);
+    await db.query(deleteQueryFromAdDevices, [id, clientId]);
 
     // Step 3: Delete file from Firebase Storage
-    if (ad.fileName) {
+    if (ad.filename) {
       try {
-        await deleteFileFromFirebase(ad.fileName);
+        await deleteFileFromStorage(ad.filename);
       } catch (firebaseError) {
         console.error("Error deleting file from Firebase:", firebaseError.message);
         // Don't fail the whole API, just log error
@@ -686,30 +724,47 @@ router.delete("/admin/ads/:id", checkValidClient, auth, async (req, res) => {
     });
   }
 });
-
+async function deleteFileFromStorage(filePath) {
+  try {
+    await bucket.file(filePath).delete();
+    console.log("File deleted successfully");
+  } catch (err) {
+    throw new exception("File Delete failed");
+  }
+}
 // API: List Ads Pending Review
 
-router.get("/admin/review/pending", checkValidClient, auth, async (req, res) => {
+router.get("/review/pending", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
     const { device_id } = req.query;
 
     let query = `
-      SELECT a.id, a.title, a.description, a.media_type, a.media_url, a."fileName",
-             a.start_date, a.end_date, a.status, a.created_at,
-             d.device_name, d.location
-      FROM ads a
-      JOIN devices d ON a.device_id = d.id
-      WHERE a.client_id = $1 AND a.status = 'in_review'
+      SELECT 
+        a.id AS ad_id,
+        a.title,
+        a.description,
+        a.media_url,
+        a.media_type,
+        ad.status,
+        ad.device_id,
+        ad.status_updated_at,
+        d.name AS device_name,
+        d.location AS device_location
+      FROM ad_devices ad
+      JOIN ads a ON ad.ad_id = a.id
+      JOIN devices d ON ad.device_id = d.id
+      WHERE a.client_id = $1
+        AND ad.status = 'in_review'
     `;
-    let params = [clientId];
+    const params = [clientId];
 
     if (device_id) {
-      query += ` AND a.device_id = $2`;
+      query += ` AND ad.device_id = $2`;
       params.push(device_id);
     }
 
-    query += ` ORDER BY a.created_at DESC`;
+    query += ` ORDER BY a.created_at DESC, ad.start_date ASC`;
 
     const { rows } = await db.query(query, params);
 
@@ -727,26 +782,30 @@ router.get("/admin/review/pending", checkValidClient, auth, async (req, res) => 
     });
   }
 });
-
-// API: Approve Ad
-router.patch("/admin/review/:id/approve", checkValidClient, auth, async (req, res) => {
+// Approve Ad (per device)
+router.patch("/review/:adId/devices/:deviceId/approve", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
-    const { id } = req.params;
+    const { adId, deviceId } = req.params;
 
     const query = `
-      UPDATE ads
-      SET status = 'approved',
+      UPDATE ad_devices ad
+      SET status = 'Active',
           status_updated_at = NOW()
-      WHERE id = $1 AND client_id = $2 AND status = 'in_review'
-      RETURNING id, title, status, status_updated_at
+      FROM ads a
+      WHERE ad.ad_id = a.id
+        AND ad.ad_id = $1
+        AND ad.device_id = $2
+        AND a.client_id = $3
+        AND ad.status = 'in_review'
+      RETURNING ad.ad_id, ad.device_id, ad.status, ad.status_updated_at
     `;
-    const { rows } = await db.query(query, [id, clientId]);
+    const { rows } = await db.query(query, [adId, deviceId, clientId]);
 
     if (rows.length === 0) {
       return res.status(400).json({
         success: false,
-        message: "Ad not found, not in review, or not authorized"
+        message: "Ad not found for this device, not in review, or not authorized"
       });
     }
 
@@ -765,34 +824,37 @@ router.patch("/admin/review/:id/approve", checkValidClient, auth, async (req, re
   }
 });
 
-// API: Reject Ad
-router.patch("/admin/review/:id/reject", checkValidClient, auth, async (req, res) => {
+
+// Reject Ad (per device)
+router.patch("/review/:adId/devices/:deviceId/reject", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
-    const { id } = req.params;
+    const { adId, deviceId } = req.params;
     const { reason } = req.body;
 
     if (!reason) {
-      return res.status(400).json({
-        success: false,
-        message: "Rejection reason is required"
-      });
+      return res.status(400).json({ success: false, message: "Rejection reason is required" });
     }
 
     const query = `
-      UPDATE ads
-      SET status = 'rejected',
+      UPDATE ad_devices ad
+      SET status = 'Rejected',
           status_updated_at = NOW(),
           rejection_reason = $1
-      WHERE id = $2 AND client_id = $3 AND status = 'in_review'
-      RETURNING id, title, status, rejection_reason, status_updated_at
+      FROM ads a
+      WHERE ad.ad_id = a.id
+        AND ad.ad_id = $2
+        AND ad.device_id = $3
+        AND a.client_id = $4
+        AND ad.status = 'in_review'
+      RETURNING ad.ad_id, ad.device_id, ad.status, ad.rejection_reason, ad.status_updated_at
     `;
-    const { rows } = await db.query(query, [reason, id, clientId]);
+    const { rows } = await db.query(query, [reason, adId, deviceId, clientId]);
 
     if (rows.length === 0) {
       return res.status(400).json({
         success: false,
-        message: "Ad not found, not in review, or not authorized"
+        message: "Ad not found for this device, not in review, or not authorized"
       });
     }
 
@@ -811,11 +873,92 @@ router.patch("/admin/review/:id/reject", checkValidClient, auth, async (req, res
   }
 });
 
-// Emergency / Company Ads
-// API: Play Company Ad
 
-// router.js
-router.post("/admin/company-ads/play", checkValidClient, auth, async (req, res) => {
+// Pause Ad (per device)
+router.patch("/review/:adId/devices/:deviceId/pause", checkValidClient, auth, async (req, res) => {
+  try {
+    const clientId = req.client_id;
+    const { adId, deviceId } = req.params;
+
+    const query = `
+      UPDATE ad_devices ad
+      SET status = 'Paused',
+          status_updated_at = NOW()
+      FROM ads a
+      WHERE ad.ad_id = a.id
+        AND ad.ad_id = $1
+        AND ad.device_id = $2
+        AND a.client_id = $3
+      RETURNING ad.ad_id, ad.device_id, ad.status, ad.status_updated_at
+    `;
+    const { rows } = await db.query(query, [adId, deviceId, clientId]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Ad not found or not authorized for this device"
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Ad paused successfully",
+      data: rows[0]
+    });
+  } catch (error) {
+    console.error("Error pausing ad:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong while pausing ad",
+      error: error.message
+    });
+  }
+});
+
+
+// Resume Ad (per device)
+router.patch("/review/:adId/devices/:deviceId/resume", checkValidClient, auth, async (req, res) => {
+  try {
+    const clientId = req.client_id;
+    const { adId, deviceId } = req.params;
+
+    const query = `
+      UPDATE ad_devices ad
+      SET status = 'Active',
+          status_updated_at = NOW()
+      FROM ads a
+      WHERE ad.ad_id = a.id
+        AND ad.ad_id = $1
+        AND ad.device_id = $2
+        AND a.client_id = $3
+      RETURNING ad.ad_id, ad.device_id, ad.status, ad.status_updated_at
+    `;
+    const { rows } = await db.query(query, [adId, deviceId, clientId]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Ad not found or not authorized for this device"
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Ad resumed successfully",
+      data: rows[0]
+    });
+  } catch (error) {
+    console.error("Error resuming ad:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong while resuming ad",
+      error: error.message
+    });
+  }
+});
+
+
+router.post("/company-ads/play", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
     const { title, media_type, media_url, fileName, device_ids, start_date, end_date } = req.body;
@@ -866,7 +1009,7 @@ router.post("/admin/company-ads/play", checkValidClient, auth, async (req, res) 
 });
 
 // Stop Company Ad
-router.patch("/admin/company-ads/:id/stop", checkValidClient, auth, async (req, res) => {
+router.patch("/company-ads/:id/stop", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
     const { id } = req.params;
@@ -906,7 +1049,7 @@ router.patch("/admin/company-ads/:id/stop", checkValidClient, auth, async (req, 
 // API: Get Ad Analytics
 
 // router.js
-router.get("/admin/reports/ads", checkValidClient, auth, async (req, res) => {
+router.get("/reports/ads", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
 
@@ -918,7 +1061,7 @@ router.get("/admin/reports/ads", checkValidClient, auth, async (req, res) => {
         COUNT(*) FILTER (WHERE status = 'approved') AS approved_ads,
         COUNT(*) FILTER (WHERE status = 'rejected') AS rejected_ads,
         COUNT(*) AS total_ads
-      FROM ads
+      FROM ad_devices
       WHERE client_id = $1
     `;
     const { rows } = await db.query(query, [clientId]);
@@ -937,19 +1080,96 @@ router.get("/admin/reports/ads", checkValidClient, auth, async (req, res) => {
     });
   }
 });
+// adminApis.js
 
-// API: Get Device Usage Report
-router.get("/admin/analytics/devices", checkValidClient, auth, async (req, res) => {
+// adminApis.js
+
+// adminApis.js
+// adminApis.js
+router.get("/recent-activity", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
 
     const query = `
-      SELECT d.id, d.device_name, d.location, d.status,
+      (
+        SELECT 
+          ad.ad_id AS entity_id,
+          'ad' AS entity_type,
+          'Ad ' || a.title || ' status changed to ' || ad.status AS description,
+          ad.status_updated_at AS created_at,
+          a.title,
+          a.media_type,
+          a.media_url,
+          ad.status,
+          ad.start_date,
+          ad.end_date,
+          ad.device_id,
+          d.name AS device_name,
+          d.location
+        FROM ad_devices ad
+        JOIN ads a ON a.id = ad.ad_id
+        JOIN devices d ON d.id = ad.device_id
+        WHERE a.client_id = $1
+      )
+      UNION ALL
+      (
+        SELECT 
+          d.id AS entity_id,
+          'device' AS entity_type,
+          'Device ' || d.name || ' status: ' || d.status AS description,
+          d.created_at,
+          NULL, NULL, NULL, d.status, NULL, NULL, d.id, d.name, d.location
+        FROM devices d
+        WHERE d.client_id = $1
+      )
+      UNION ALL
+      (
+        SELECT 
+          p.id AS entity_id,
+          'payment' AS entity_type,
+          'Payment of ₹' || p.amount || ' ' || p.status AS description,
+          p.created_at,
+          NULL, NULL, NULL, p.status, NULL, NULL, NULL, NULL, NULL
+        FROM payments p
+        WHERE p.client_id = $1
+      )
+      ORDER BY created_at DESC
+      LIMIT 20
+    `;
+
+    const { rows } = await db.query(query, [clientId]);
+
+    return res.json({
+      success: true,
+      message: "Recent activity fetched successfully",
+      data: rows
+    });
+  } catch (error) {
+    console.error("Error fetching recent activity:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong while fetching recent activity",
+      error: error.message
+    });
+  }
+});
+
+
+
+
+
+// API: Get Device Usage Report
+router.get("/analytics/devices", checkValidClient, auth, async (req, res) => {
+  try {
+    const clientId = req.client_id;
+
+    const query = `
+      SELECT d.id, d.name, d.location, d.status,
              COUNT(a.id) AS total_ads
       FROM devices d
-      LEFT JOIN ads a ON d.id = a.device_id AND a.client_id = $1
+      LEFT JOIN ads a ON d.id = a.id AND a.client_id = $1
       WHERE d.client_id = $1
-      GROUP BY d.id, d.device_name, d.location, d.status
+      GROUP BY d.id, d.name, d.location, d.status
       ORDER BY d.created_at DESC
     `;
     const { rows } = await db.query(query, [clientId]);
@@ -968,27 +1188,39 @@ router.get("/admin/analytics/devices", checkValidClient, auth, async (req, res) 
     });
   }
 });
-// Admin Pricing APIs
 // ✅ Create Pricing Rule
-router.post("/", checkValidClient, async (req, res) => {
+router.post("/create-pricing-rule", checkValidClient,auth, async (req, res) => {
   try {
-    const { device_id, media_type, duration_seconds, base_price } = req.body;
-    const clientId = req.clientId;
+    const { id, media_type, duration_seconds, base_price } = req.body;
+    const clientId = req.client_id;
 
     // Validation
-    if (!device_id || !media_type || !base_price) {
+    if (!id || !media_type || !base_price) {
       return res.status(400).json({
         success: false,
-        message: "device_id, media_type, and base_price are required"
+        message: "id, media_type, and price_per_day are required"
       });
     }
-
+    let finalDuration;
+    if(media_type=="image"){
+      finalDuration = (duration_seconds==undefined||duration_seconds==null)?5:duration_seconds
+    }else{
+      finalDuration = (duration_seconds==undefined||duration_seconds==null)?10:duration_seconds
+    }
+    const select =`select * from pricing_rules where client_id=$1 and media_type=$2`;
+    const {rows} = await db.query(select,[clientId,media_type])
+    if(rows.length>0){
+     return res.status(200).json({
+      success: false,
+      message: "Pricing rule already exists for selected media type ",
+    })
+    }
     // Insert into DB
     const result = await db.query(
-      `INSERT INTO pricing (client_id, device_id, media_type, duration_seconds, base_price)
+      `INSERT INTO pricing_rules (client_id, device_id, media_type, duration, price_per_day)
        VALUES ($1, $2, $3, $4, $5)
-       RETURNING id, device_id, media_type, duration_seconds, base_price, created_at`,
-      [clientId, device_id, media_type, duration_seconds || null, base_price]
+       RETURNING id, device_id, media_type, duration, price_per_day, created_at`,
+      [clientId, id, media_type, duration_seconds || null, base_price]
     );
 
     return res.status(201).json({
@@ -1007,7 +1239,7 @@ router.post("/", checkValidClient, async (req, res) => {
 });
 
 // API 2: Update Pricing Rule
-router.put("/:id", checkValidClient, async (req, res) => {
+router.put("/update-pricing-rule:id", checkValidClient,auth, async (req, res) => {
   try {
     const { id } = req.params;
     const { base_price, media_type, duration_seconds, device_id } = req.body;
@@ -1015,25 +1247,25 @@ router.put("/:id", checkValidClient, async (req, res) => {
 
     // Check if exists
     const checkRes = await db.query(
-      `SELECT * FROM pricing WHERE id = $1 AND client_id = $2`,
+      `SELECT * FROM pricing_rules WHERE id = $1 AND client_id = $2`,
       [id, clientId]
     );
     if (checkRes.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: "Pricing rule not found"
+        message: "pricing rule not found"
       });
     }
 
     // Update
     const result = await db.query(
-      `UPDATE pricing
-       SET base_price = COALESCE($1, base_price),
+      `UPDATE pricing_rules
+       SET price_per_day = COALESCE($1, price_per_day),
            media_type = COALESCE($2, media_type),
-           duration_seconds = COALESCE($3, duration_seconds),
-           device_id = COALESCE($4, device_id)
+           duration = COALESCE($3, duration),
+           device_id = COALESCE($4, device_id),updated_at = NOW()
        WHERE id = $5 AND client_id = $6
-       RETURNING id, device_id, media_type, duration_seconds, base_price, created_at`,
+       RETURNING id, device_id, media_type, duration, price_per_day, created_at,updated_at`,
       [base_price, media_type, duration_seconds, device_id, id, clientId]
     );
 
@@ -1052,25 +1284,25 @@ router.put("/:id", checkValidClient, async (req, res) => {
   }
 });
 // API 3: Delete Pricing Rule
-router.delete("/:id", checkValidClient, async (req, res) => {
+router.delete("/delete-pricing-rule:id", checkValidClient, async (req, res) => {
   try {
     const { id } = req.params;
     const clientId = req.client_id;
 
     // Check if exists
     const checkRes = await db.query(
-      `SELECT * FROM pricing WHERE id = $1 AND client_id = $2`,
+      `SELECT * FROM pricing_rules WHERE id = $1 AND client_id = $2`,
       [id, clientId]
     );
     if (checkRes.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: "Pricing rule not found"
+        message: "pricing rule not found"
       });
     }
 
     // Delete
-    await db.query(`DELETE FROM pricing WHERE id = $1 AND client_id = $2`, [
+    await db.query(`DELETE FROM pricing_rules WHERE id = $1 AND client_id = $2`, [
       id,
       clientId
     ]);
@@ -1089,21 +1321,31 @@ router.delete("/:id", checkValidClient, async (req, res) => {
   }
 });
 // API 4: List Pricing Rules
-router.get("/", checkValidClient, async (req, res) => {
+router.get("/get-pricing-rules", checkValidClient, async (req, res) => {
   try {
-    const clientId = req.client_id  ;
+    const clientId = req.client_id;
 
     const result = await db.query(
-      `SELECT id, device_id, media_type, duration_seconds, base_price, created_at
-       FROM pricing
-       WHERE client_id = $1
-       ORDER BY device_id, media_type, duration_seconds NULLS FIRST`,
+      `SELECT 
+         pr.id,
+         pr.device_id,
+         d.name AS device_name,
+         d.location AS device_location,
+         pr.media_type,
+         pr.duration,
+         pr.price_per_day,
+         pr.created_at,
+         pr.updated_at
+       FROM pricing_rules pr
+       JOIN devices d ON pr.device_id = d.id
+       WHERE pr.client_id = $1
+       ORDER BY d.name, pr.media_type, pr.duration NULLS FIRST`,
       [clientId]
     );
 
     return res.json({
       success: true,
-      pricing_rules: result.rows
+      data: result.rows
     });
   } catch (error) {
     console.error("Error fetching pricing rules:", error);
@@ -1114,6 +1356,7 @@ router.get("/", checkValidClient, async (req, res) => {
     });
   }
 });
+
 
 
 module.exports=router
