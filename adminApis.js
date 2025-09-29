@@ -200,7 +200,7 @@ router.patch("/change-password", checkValidClient, auth, async (req, res) => {
 
     // Step 1: Get admin
     const query = `
-      SELECT id, password 
+      SELECT id, password_hash 
       FROM users
       WHERE id = $1 AND client_id = $2 AND role = 'admin'
       LIMIT 1
@@ -217,7 +217,7 @@ router.patch("/change-password", checkValidClient, auth, async (req, res) => {
     const admin = rows[0];
 
     // Step 2: Check old password
-    const validPassword = await bcrypt.compare(old_password, admin.password);
+    const validPassword = await bcrypt.compare(old_password, admin.password_hash);
     if (!validPassword) {
       return res.status(401).json({
         success: false,
@@ -226,12 +226,12 @@ router.patch("/change-password", checkValidClient, auth, async (req, res) => {
     }
 
     // Step 3: Hash new password
-    const hashedPassword = await bcrypt.hash(new_password, 10);
+    const hashedPassword = await bcrypt.hash(new_password, 8);
 
     // Step 4: Update password
     const updateQuery = `
       UPDATE users
-      SET password = $1
+      SET password_hash = $1
       WHERE id = $2
       RETURNING id, name, email, role, client_id
     `;
@@ -354,41 +354,60 @@ router.get("/devices/:id", checkValidClient, auth, async (req, res) => {
 
 
 // API: Add Device
-router.post("/devices", checkValidClient, auth, async (req, res) => {
+// POST /admin/devices
+router.post("/admin/devices", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
     const { name, location, width, height, status } = req.body;
 
     if (!name || !location || !width || !height) {
-      return res.status(400).json({
+      return res.status(400).json({ success: false, message: "name, location, width, height required" });
+    }
+
+    // 1. Get client's active subscription
+    const subQ = `
+      SELECT sp.max_devices
+      FROM client_subscriptions cs
+      JOIN subscription_plans sp ON sp.id = cs.plan_id
+      WHERE cs.client_id = $1 AND cs.status = 'active'
+      ORDER BY cs.created_at DESC
+      LIMIT 1
+    `;
+    const subRes = await db.query(subQ, [clientId]);
+    if (subRes.rows.length === 0) {
+      return res.status(403).json({ success: false, message: "No active subscription" });
+    }
+    const maxDevices = subRes.rows[0].max_devices;
+
+    // 2. Count existing devices
+    const countQ = `SELECT COUNT(*)::int AS device_count FROM devices WHERE client_id = $1`;
+    const countRes = await db.query(countQ, [clientId]);
+    const deviceCount = countRes.rows[0].device_count;
+
+    // 3. Enforce limit
+    if (maxDevices && deviceCount >= maxDevices) {
+      return res.status(403).json({
         success: false,
-        message: "name, location, width, and height are required"
+        message: `Device limit reached. Your plan allows only ${maxDevices} devices.`,
       });
     }
 
-    const query = `
+    // 4. Insert device
+    const insertQ = `
       INSERT INTO devices (client_id, name, location, width, height, status)
-      VALUES ($1, $2, $3, $4, $5, COALESCE($6, 'active'))
-      RETURNING id, name, location, width, height, status, created_at
+      VALUES ($1,$2,$3,$4,$5,$6)
+      RETURNING *
     `;
-    const values = [clientId, name, location, width, height, status || null];
+    const values = [clientId, name, location, width, height, status || 'active'];
+    const { rows } = await db.query(insertQ, values);
 
-    const { rows } = await db.query(query, values);
-
-    return res.status(201).json({
-      success: true,
-      message: "Device added successfully",
-      data: rows[0]
-    });
-  } catch (error) {
-    console.error("Error adding device:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Something went wrong while adding device",
-      error: error.message
-    });
+    res.status(201).json({ success: true, device: rows[0] });
+  } catch (err) {
+    console.error("Error adding device:", err);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
+
 
 
 // API: Update Device
@@ -578,7 +597,7 @@ router.get("/ads/:id", checkValidClient, auth, async (req, res) => {
     });
   }
 });
-router.post("/ads", checkValidClient, auth, async (req, res) => {
+router.post("/ads",checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
     const { device_id, status, location, page = 1, limit = 10 } = req.body;
@@ -931,8 +950,7 @@ router.patch("/review/:adId/devices/:deviceId/resume", checkValidClient, auth, a
         AND ad.ad_id = $1
         AND ad.device_id = $2
         AND a.client_id = $3
-      RETURNING ad.ad_id, ad.device_id, ad.status, ad.status_updated_at
-    `;
+      RETURNING ad.ad_id, ad.device_id, ad.status, ad.status_updated_at`;
     const { rows } = await db.query(query, [adId, deviceId, clientId]);
 
     if (rows.length === 0) {
@@ -941,7 +959,6 @@ router.patch("/review/:adId/devices/:deviceId/resume", checkValidClient, auth, a
         message: "Ad not found or not authorized for this device"
       });
     }
-
     return res.status(200).json({
       success: true,
       message: "Ad resumed successfully",
@@ -958,95 +975,274 @@ router.patch("/review/:adId/devices/:deviceId/resume", checkValidClient, auth, a
 });
 
 
-router.post("/company-ads/play", checkValidClient, auth, async (req, res) => {
-  try {
-    const clientId = req.client_id;
-    const { title, media_type, media_url, fileName, device_ids, start_date, end_date } = req.body;
+// in adminApis.js / advertiserApis.js (wherever you have company-ads route)
+router.post(
+  "/company-ads/create",
 
-    if (!title || !media_type || !device_ids || device_ids.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "title, media_type, and at least one device_id are required"
+  // 1) require multipart/form-data
+  (req, res, next) => {
+    const ct = req.headers["content-type"] || "";
+    if (!ct.includes("multipart/form-data")) {
+      return res.status(400).json({ error: "Content-Type must be multipart/form-data" });
+    }
+    next();
+  },
+
+  // 2) accept any file field (we'll pick "file" if present). fields() allows files + fields parsing.
+  upload.fields([{ name: "file", maxCount: 1 }]),
+
+  // 3) your auth middleware(s) (keep as-is)
+  checkValidClient,
+  auth,
+
+  // 4) handler
+  async (req, res) => {
+    try {
+      // helpful debug logs (remove later)
+      console.log("=== /company-ads/create incoming ===");
+      console.log("content-type:", req.headers["content-type"]);
+      console.log("req.files keys:", req.files ? Object.keys(req.files) : null);
+      console.log("req.body keys:", Object.keys(req.body || {}));
+      // console.log("req.body raw:", req.body);
+
+      // pick uploaded file robustly
+      const file =
+        (req.files && req.files.file && req.files.file[0]) ||
+        (req.file ? req.file : null);
+
+      // safety: req.body might be undefined (but multer should set it); use body = {}
+      const body = req.body || {};
+
+      const title = body.title;
+      const media_type = body.media_type;
+      const start_date = body.start_date;
+      const end_date = body.end_date;
+      const companyAdId = body.companyAdId;
+
+      // ------- parse selected_devices in multiple possible formats -------
+      let selected_devices = [];
+
+      // 1) JSON string in field: selected_devices = '["id1","id2"]'
+      if (body.selected_devices) {
+        if (Array.isArray(body.selected_devices)) {
+          // unlikely for stringified array, but handle it
+          selected_devices = body.selected_devices.flatMap((v) => {
+            if (typeof v === "string") {
+              try {
+                return JSON.parse(v);
+              } catch {
+                return v.split(",").map((s) => s.trim()).filter(Boolean);
+              }
+            }
+            return [v];
+          });
+        } else {
+          // single string
+          try {
+            selected_devices = JSON.parse(body.selected_devices);
+            if (!Array.isArray(selected_devices)) {
+              // if parsed to single value, normalize
+              selected_devices = [String(selected_devices)];
+            }
+          } catch (e) {
+            // fallback: comma-separated string "id1,id2"
+            selected_devices = String(body.selected_devices)
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean);
+          }
+        }
+      } else if (body["selected_devices[]"]) {
+        // repeated fields: selected_devices[]=id1 & selected_devices[]=id2
+        selected_devices = Array.isArray(body["selected_devices[]"])
+          ? body["selected_devices[]"]
+          : [body["selected_devices[]"]];
+      } else {
+        // maybe client sent multiple fields named selected_devices each separately
+        // multer would give a single joined string for same keys in many setups; keep fallback
+        selected_devices = [];
+      }
+
+      // ---------- validations ----------
+      if (!title) return res.status(400).json({ error: "title_required" });
+      if (!media_type || !["image", "video"].includes(media_type))
+        return res.status(400).json({ error: "invalid_media_type" });
+      if (!file) {
+        // return helpful debug to client so you can see what arrived
+        return res.status(400).json({
+          error: "file_required",
+          debug: {
+            files: req.files ? Object.keys(req.files) : null,
+            bodyKeys: Object.keys(body),
+          },
+        });
+      }
+      if (!start_date || !end_date)
+        return res.status(400).json({ error: "start_and_end_dates_required" });
+      if (!selected_devices || selected_devices.length === 0)
+        return res.status(400).json({ error: "select_at_least_one_device" });
+
+      // ---------- upload to firebase (same as your logic) ----------
+      const timestamp = Date.now();
+      const safeOriginal = file.originalname.replace(/\s+/g, "_");
+      const filename = `company_ads/${req.client_id}/${timestamp}_${safeOriginal}`;
+
+      const fileUpload = bucket.file(filename);
+      const uuid = uuidv4();
+      const blobStream = fileUpload.createWriteStream({
+        metadata: { contentType: file.mimetype, metadata: { firebaseStorageDownloadTokens: uuid } },
+        resumable: false,
       });
+
+      const uploadPromise = new Promise((resolve, reject) => {
+        blobStream.on("error", (err) => reject(err));
+        blobStream.on("finish", () => {
+          const url = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileUpload.name)}?alt=media&token=${uuid}`;
+          resolve({ url, filename });
+        });
+        blobStream.end(file.buffer);
+      });
+
+      let uploaded;
+      try {
+        uploaded = await uploadPromise;
+      } catch (err) {
+        console.error("Firebase upload error:", err);
+        return res.status(500).json({ error: "file_upload_failed" });
+      }
+
+      // ---------- insert into company_ads + company_ad_devices in a transaction ----------
+      try {
+        await db.query("BEGIN");
+
+        const compAdId = companyAdId || uuidv4();
+        const insertCompanyAd = `
+          INSERT INTO company_ads (
+            id, client_id, title, media_type, media_url, filename,
+            start_date, end_date, status, status_updated_at, created_at
+          )
+          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'active',NOW(), NOW())
+          ON CONFLICT (id) DO NOTHING
+          RETURNING id
+        `;
+        const { rows: adRows } = await db.query(insertCompanyAd, [
+          compAdId,
+          req.client_id,
+          title,
+          media_type,
+          uploaded.url,
+          uploaded.filename,
+          start_date,
+          end_date,
+        ]);
+        const finalCompanyAdId = adRows.length ? adRows[0].id : compAdId;
+
+        const insertDeviceMapping = `
+          INSERT INTO company_ad_devices
+            (company_ad_id, device_id, start_date, end_date, status, status_updated_at)
+          VALUES ($1,$2,$3,$4,'active',NOW())
+        `;
+        for (const device of selected_devices) {
+          await db.query(insertDeviceMapping, [
+            finalCompanyAdId,
+            device,
+            start_date,
+            end_date,
+          ]);
+        }
+
+        await db.query("COMMIT");
+
+        return res.status(201).json({
+          success: true,
+          message: "Company ad created successfully",
+          company_ad_id: finalCompanyAdId,
+          devices: selected_devices,
+          media: uploaded,
+        });
+      } catch (txErr) {
+        console.error("DB tx error:", txErr);
+        try { await db.query("ROLLBACK"); } catch(_) {}
+        // delete firebase file
+        try { await bucket.file(uploaded.filename).delete(); } catch(_) {}
+        return res.status(500).json({ error: "database_error", detail: txErr.message });
+      }
+    } catch (err) {
+      console.error("Unexpected error in /company-ads/create:", err);
+      return res.status(500).json({ error: "server_error", detail: err.message });
     }
-
-    // Insert company ad for each device
-    const query = `
-      INSERT INTO ads (title, media_type, media_url, "fileName", client_id, device_id, 
-                       start_date, end_date, status, status_updated_at, company_ad)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active', NOW(), true)
-      RETURNING id, title, media_type, device_id, status
-    `;
-
-    let results = [];
-    for (const deviceId of device_ids) {
-      const { rows } = await db.query(query, [
-        title,
-        media_type,
-        media_url || null,
-        fileName || null,
-        clientId,
-        deviceId,
-        start_date || new Date(),
-        end_date || null
-      ]);
-      results.push(rows[0]);
-    }
-
-    return res.status(201).json({
-      success: true,
-      message: "Company ad(s) started successfully",
-      data: results
-    });
-  } catch (error) {
-    console.error("Error playing company ad:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Something went wrong while starting company ad",
-      error: error.message
-    });
   }
-});
-
-// Stop Company Ad
-router.patch("/company-ads/:id/stop", checkValidClient, auth, async (req, res) => {
+);
+// ===============================
+// Delete Company Ad
+// ===============================
+router.delete("/company-ads/:id", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
-    const { id } = req.params;
+    const { id } = req.params; // company_ad_id
 
-    const query = `
-      UPDATE ads
-      SET status = 'stopped',
-          status_updated_at = NOW()
-      WHERE id = $1 AND client_id = $2 AND company_ad = true
-      RETURNING id, title, status, status_updated_at
-    `;
-    const { rows } = await db.query(query, [id, clientId]);
+    // Step 1: Check if the company ad exists
+    const adCheck = await db.query(
+      `SELECT id, filename 
+       FROM company_ads 
+       WHERE id = $1 AND client_id = $2 
+       LIMIT 1`,
+      [id, clientId]
+    );
 
-    if (rows.length === 0) {
+    if (adCheck.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: "Company ad not found or already stopped"
+        message: "Company ad not found or not authorized"
       });
+    }
+
+    const ad = adCheck.rows[0];
+
+    // Step 2: Delete device mappings
+    await db.query(`DELETE FROM company_ad_devices WHERE company_ad_id = $1`, [id]);
+
+    // Step 3: Delete company ad row
+    await db.query(`DELETE FROM company_ads WHERE id = $1 AND client_id = $2`, [id, clientId]);
+
+    // Step 4: Delete file from Firebase (if exists)
+    if (ad.filename) {
+      try {
+        const file = bucket.file(ad.filename);
+        await file.delete();
+        console.log("Deleted company ad file:", ad.filename);
+      } catch (err) {
+        if (err.code === 404) {
+          console.warn("File not found in Firebase:", ad.filename);
+        } else {
+          console.error("Error deleting company ad file:", err.message);
+        }
+      }
     }
 
     return res.status(200).json({
       success: true,
-      message: "Company ad stopped successfully",
-      data: rows[0]
+      message: "Company ad deleted successfully",
+      deleted_id: id
     });
   } catch (error) {
-    console.error("Error stopping company ad:", error);
+    console.error("Error deleting company ad:", error);
     return res.status(500).json({
       success: false,
-      message: "Something went wrong while stopping company ad",
+      message: "Something went wrong while deleting company ad",
       error: error.message
     });
   }
 });
 
-// Reports & Analytics APIs
-// API: Get Ad Analytics
+
+
+
+
+
+
+
+
 
 // router.js
 router.get("/reports/ads", checkValidClient, auth, async (req, res) => {
@@ -1134,7 +1330,7 @@ router.get("/recent-activity", checkValidClient, auth, async (req, res) => {
         WHERE p.client_id = $1
       )
       ORDER BY created_at DESC
-      LIMIT 20
+      LIMIT 5
     `;
 
     const { rows } = await db.query(query, [clientId]);
@@ -1153,7 +1349,124 @@ router.get("/recent-activity", checkValidClient, auth, async (req, res) => {
     });
   }
 });
+// ===============================
+// Get Company Ads by Device
+// ===============================
+router.get("/company-ads/devices/:deviceId", checkValidClient, auth, async (req, res) => {
+  try {
+    const clientId = req.client_id;
+    const { deviceId } = req.params;
 
+    // ✅ Step 1: Verify device belongs to this client
+    const deviceCheck = await db.query(
+      `SELECT id, name FROM devices WHERE id = $1 AND client_id = $2 LIMIT 1`,
+      [deviceId, clientId]
+    );
+    if (deviceCheck.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Device not found or not authorized"
+      });
+    }
+
+    // ✅ Step 2: Fetch company ads linked to this device
+    const query = `
+      SELECT 
+        ca.id AS company_ad_id,
+        ca.title,
+        ca.media_type,
+        ca.media_url,
+        ca.filename,
+        ca.start_date,
+        ca.end_date,
+        ca.status,
+        ca.status_updated_at,
+        cad.device_id,
+        d.name AS device_name,
+        d.location AS device_location,
+        cad.status AS device_status
+      FROM company_ads ca
+      JOIN company_ad_devices cad ON cad.company_ad_id = ca.id
+      JOIN devices d ON d.id = cad.device_id
+      WHERE cad.device_id = $1 AND ca.client_id = $2
+      ORDER BY ca.created_at DESC
+    `;
+    const { rows } = await db.query(query, [deviceId, clientId]);
+
+    return res.status(200).json({
+      success: true,
+      message: "Company ads for device fetched successfully",
+      data: rows
+    });
+  } catch (error) {
+    console.error("Error fetching company ads by device:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong while fetching company ads",
+      error: error.message
+    });
+  }
+});
+
+// DELETE /admin/company-ads/:id
+router.delete("/company-ads/:id", checkValidClient, auth, async (req, res) => {
+  try {
+    const clientId = req.client_id;
+    const { id } = req.params;
+
+    // Step 1: Find the ad (for file cleanup)
+    const findQuery = `
+      SELECT id, filename
+      FROM company_ads
+      WHERE id = $1 AND client_id = $2
+      LIMIT 1
+    `;
+    const { rows: adRows } = await db.query(findQuery, [id, clientId]);
+
+    if (adRows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Company ad not found or not authorized",
+      });
+    }
+
+    const ad = adRows[0];
+
+    // Step 2: Delete mappings from company_ad_devices
+    await db.query(`DELETE FROM company_ad_devices WHERE company_ad_id = $1`, [id]);
+
+    // Step 3: Delete from company_ads
+    const deleteQuery = `
+      DELETE FROM company_ads
+      WHERE id = $1 AND client_id = $2
+      RETURNING id, title
+    `;
+    const { rows } = await db.query(deleteQuery, [id, clientId]);
+
+    // Step 4: Delete file from Firebase
+    if (ad.filename) {
+      try {
+        await bucket.file(ad.filename).delete();
+      } catch (err) {
+        console.error("Error deleting file from Firebase:", err.message);
+        // Don't fail API if file deletion fails
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Company ad deleted successfully",
+      data: rows[0],
+    });
+  } catch (error) {
+    console.error("Error deleting company ad:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong while deleting company ad",
+      error: error.message,
+    });
+  }
+});
 
 
 

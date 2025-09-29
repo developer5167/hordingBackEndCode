@@ -1,4 +1,4 @@
-const express = require("./express_file");
+const { express} = require("./deps");
 const { Server } = require("socket.io");
 const http = require("http");
 require('dotenv').config();
@@ -10,10 +10,8 @@ const port = process.env.PORT || 4000;
 
 // Middleware
 app.use(cors());
-app.use(express.json()); // Parse JSON body
 
-// Routers
-// const rootRouter = require("./router");
+app.use(express.json())
 const rootRouterAdvertiser = require("./advertiserApis");
 const order = require("./order");
 const adminApis = require("./adminApis");
@@ -30,6 +28,8 @@ app.use("/admin", adminApis); // e.g. GET /
 app.use("/api", apiRoutes); // e.g. GET /api/users
 app.use("/tvApp", apisForTv); // e.g. GET /api/users
 app.use("/advertiser/payments",order)
+
+
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {

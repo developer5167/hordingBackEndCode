@@ -3208,3 +3208,202 @@
 2025-09-26 17:51:55.840 IST [78850] ERROR:  invalid input syntax for type uuid: "client-001"
 2025-09-26 17:51:55.840 IST [78850] CONTEXT:  unnamed portal parameter $1 = '...'
 2025-09-26 17:51:55.840 IST [78850] STATEMENT:  UPDATE clients SET subscription_status = 'blocked' WHERE id = $1 RETURNING *
+2025-09-27 12:20:58.253 IST [3643] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-09-27 12:20:58.255 IST [3643] LOG:  listening on IPv6 address "::1", port 5432
+2025-09-27 12:20:58.255 IST [3643] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-09-27 12:20:58.256 IST [3643] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-09-27 12:20:58.281 IST [3644] LOG:  database system was shut down at 2025-09-27 00:25:21 IST
+2025-09-27 12:20:58.290 IST [3643] LOG:  database system is ready to accept connections
+2025-09-27 13:54:37.582 IST [5591] ERROR:  column "fileName" of relation "ads" does not exist at character 55
+2025-09-27 13:54:37.582 IST [5591] STATEMENT:  
+	      INSERT INTO ads (title, media_type, media_url, "fileName", client_id, device_id, 
+	                       start_date, end_date, status, status_updated_at, company_ad)
+	      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active', NOW(), true)
+	      RETURNING id, title, media_type, device_id, status
+	    
+2025-09-28 02:13:32.867 IST [30740] ERROR:  invalid input syntax for type uuid: "all"
+2025-09-28 02:13:32.867 IST [30740] CONTEXT:  unnamed portal parameter $1 = '...'
+2025-09-28 02:13:32.867 IST [30740] STATEMENT:  SELECT id, name FROM devices WHERE id = $1 AND client_id = $2 LIMIT 1
+2025-09-29 12:28:46.711 IST [31697] ERROR:  column "password" does not exist at character 19
+2025-09-29 12:28:46.711 IST [31697] STATEMENT:  
+	      SELECT id, password 
+	      FROM users
+	      WHERE id = $1 AND client_id = $2 AND role = 'admin'
+	      LIMIT 1
+	    
+2025-09-29 12:33:57.989 IST [34949] ERROR:  function array_remove(text, unknown) does not exist at character 40
+2025-09-29 12:33:57.989 IST [34949] HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+2025-09-29 12:33:57.989 IST [34949] STATEMENT:  
+	      UPDATE users
+	      SET tokens = array_remove(tokens, $1)
+	      WHERE id = $2 AND client_id = $3 AND role = 'admin'
+	      RETURNING id, email
+	    
+2025-09-29 12:33:58.001 IST [34949] ERROR:  function array_remove(text, unknown) does not exist at character 40
+2025-09-29 12:33:58.001 IST [34949] HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+2025-09-29 12:33:58.001 IST [34949] STATEMENT:  
+	      UPDATE users
+	      SET tokens = array_remove(tokens, $1)
+	      WHERE id = $2 AND client_id = $3 AND role = 'admin'
+	      RETURNING id, email
+	    
+2025-09-29 12:34:11.575 IST [34949] ERROR:  function array_remove(text, unknown) does not exist at character 40
+2025-09-29 12:34:11.575 IST [34949] HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+2025-09-29 12:34:11.575 IST [34949] STATEMENT:  
+	      UPDATE users
+	      SET tokens = array_remove(tokens, $1)
+	      WHERE id = $2 AND client_id = $3 AND role = 'admin'
+	      RETURNING id, email
+	    
+2025-09-29 12:34:11.590 IST [34949] ERROR:  function array_remove(text, unknown) does not exist at character 40
+2025-09-29 12:34:11.590 IST [34949] HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+2025-09-29 12:34:11.590 IST [34949] STATEMENT:  
+	      UPDATE users
+	      SET tokens = array_remove(tokens, $1)
+	      WHERE id = $2 AND client_id = $3 AND role = 'admin'
+	      RETURNING id, email
+	    
+2025-09-29 12:38:29.678 IST [34949] ERROR:  function array_remove(text, unknown) does not exist at character 40
+2025-09-29 12:38:29.678 IST [34949] HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+2025-09-29 12:38:29.678 IST [34949] STATEMENT:  
+	      UPDATE users
+	      SET tokens = array_remove(tokens, $1)
+	      WHERE id = $2 AND client_id = $3 AND role = 'admin'
+	      RETURNING id, email
+	    
+2025-09-29 12:38:29.690 IST [34949] ERROR:  function array_remove(text, unknown) does not exist at character 40
+2025-09-29 12:38:29.690 IST [34949] HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+2025-09-29 12:38:29.690 IST [34949] STATEMENT:  
+	      UPDATE users
+	      SET tokens = array_remove(tokens, $1)
+	      WHERE id = $2 AND client_id = $3 AND role = 'admin'
+	      RETURNING id, email
+	    
+2025-09-29 12:45:46.905 IST [34949] ERROR:  invalid input syntax for type uuid: "client-001"
+2025-09-29 12:45:46.905 IST [34949] CONTEXT:  unnamed portal parameter $4 = '...'
+2025-09-29 12:45:46.905 IST [34949] STATEMENT:  UPDATE clients
+	       SET name = COALESCE($1, name),
+	           client_domains = COALESCE($2, client_domains),
+	           subscription_status = COALESCE($3, subscription_status)
+	       WHERE id = $4 RETURNING *
+2025-09-29 13:38:09.491 IST [38407] ERROR:  column "plan_type" of relation "subscription_plans" does not exist at character 117
+2025-09-29 13:38:09.491 IST [38407] STATEMENT:  
+	      INSERT INTO subscription_plans (razorpay_plan_id, name, amount, amount_paise, period, interval, description, plan_type, max_devices)
+	      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+	      RETURNING *
+	    
+2025-09-29 13:42:03.290 IST [37395] ERROR:  syntax error at or near "table" at character 8
+2025-09-29 13:42:03.290 IST [37395] STATEMENT:  update table subscription_plans set status= false where id='9ab00b13-e598-4697-a03c-c5431a48a88b'
+2025-09-29 13:54:35.438 IST [39998] ERROR:  invalid input syntax for type uuid: "client-001"
+2025-09-29 13:54:35.438 IST [39998] CONTEXT:  unnamed portal parameter $1 = '...'
+2025-09-29 13:54:35.438 IST [39998] STATEMENT:  UPDATE clients SET subscription_status = 'blocked' WHERE id = $1 RETURNING *
+2025-09-29 13:54:36.587 IST [39998] ERROR:  invalid input syntax for type uuid: "client-001"
+2025-09-29 13:54:36.587 IST [39998] CONTEXT:  unnamed portal parameter $1 = '...'
+2025-09-29 13:54:36.587 IST [39998] STATEMENT:  UPDATE clients SET subscription_status = 'active' WHERE id = $1
+2025-09-29 13:55:02.732 IST [40051] ERROR:  invalid input syntax for type uuid: "client-001"
+2025-09-29 13:55:02.732 IST [40051] CONTEXT:  unnamed portal parameter $1 = '...'
+2025-09-29 13:55:02.732 IST [40051] STATEMENT:  UPDATE clients SET subscription_status = 'blocked' WHERE id = $1 RETURNING *
+2025-09-29 13:55:07.502 IST [40051] ERROR:  invalid input syntax for type uuid: "client-001"
+2025-09-29 13:55:07.502 IST [40051] CONTEXT:  unnamed portal parameter $1 = '...'
+2025-09-29 13:55:07.502 IST [40051] STATEMENT:  UPDATE clients SET subscription_status = 'active' WHERE id = $1
+2025-09-29 14:06:44.799 IST [40051] ERROR:  invalid input syntax for type uuid: "client-001"
+2025-09-29 14:06:44.799 IST [40051] CONTEXT:  unnamed portal parameter $1 = '...'
+2025-09-29 14:06:44.799 IST [40051] STATEMENT:  UPDATE clients SET subscription_status = 'blocked' WHERE id = $1 RETURNING *
+2025-09-29 14:06:45.968 IST [40051] ERROR:  invalid input syntax for type uuid: "client-001"
+2025-09-29 14:06:45.968 IST [40051] CONTEXT:  unnamed portal parameter $1 = '...'
+2025-09-29 14:06:45.968 IST [40051] STATEMENT:  UPDATE clients SET subscription_status = 'active' WHERE id = $1
+2025-09-29 14:07:02.949 IST [40051] ERROR:  invalid input syntax for type uuid: "client-001"
+2025-09-29 14:07:02.949 IST [40051] CONTEXT:  unnamed portal parameter $4 = '...'
+2025-09-29 14:07:02.949 IST [40051] STATEMENT:  UPDATE clients
+	       SET name = COALESCE($1, name),
+	           client_domains = COALESCE($2, client_domains),
+	           subscription_status = COALESCE($3, subscription_status)
+	       WHERE id = $4 RETURNING *
+2025-09-29 14:13:03.998 IST [40051] ERROR:  invalid input syntax for type uuid: "client-001"
+2025-09-29 14:13:03.998 IST [40051] CONTEXT:  unnamed portal parameter $4 = '...'
+2025-09-29 14:13:03.998 IST [40051] STATEMENT:  UPDATE clients
+	       SET name = COALESCE($1, name),
+	           client_domains = COALESCE($2, client_domains),
+	           subscription_status = COALESCE($3, subscription_status)
+	       WHERE id = $4 RETURNING *
+2025-09-29 14:33:05.422 IST [41519] ERROR:  column "domain" does not exist at character 18
+2025-09-29 14:33:05.422 IST [41519] HINT:  Perhaps you meant to reference the column "clients.email".
+2025-09-29 14:33:05.422 IST [41519] STATEMENT:  SELECT id, name, domain FROM clients WHERE id = $1 LIMIT 1
+2025-09-29 14:34:07.630 IST [41619] ERROR:  column "client_domain" does not exist at character 18
+2025-09-29 14:34:07.630 IST [41619] HINT:  Perhaps you meant to reference the column "clients.client_domains".
+2025-09-29 14:34:07.630 IST [41619] STATEMENT:  SELECT id, name, client_domain FROM clients WHERE id = $1 LIMIT 1
+2025-09-29 14:35:08.770 IST [41667] ERROR:  relation "client" does not exist at character 15
+2025-09-29 14:35:08.770 IST [41667] STATEMENT:  select * from client
+2025-09-29 14:35:55.710 IST [41727] ERROR:  invalid input syntax for type uuid: ":id"
+2025-09-29 14:35:55.710 IST [41727] CONTEXT:  unnamed portal parameter $1 = '...'
+2025-09-29 14:35:55.710 IST [41727] STATEMENT:  SELECT id, name, client_domains FROM clients WHERE id = $1 LIMIT 1
+2025-09-29 15:16:18.997 IST [41667] ERROR:  null value in column "plan_id" of relation "client_subscriptions" violates not-null constraint
+2025-09-29 15:16:18.997 IST [41667] DETAIL:  Failing row contains (a10114ae-c513-4b99-8e28-5a7c7d110e3c, 17b79a61-ed56-4730-8fd3-788b3ae240c2, null, sub_RNMoNuit3CN5SS, created, null, null, null, 2025-09-29 14:55:21.440712, 2025-09-29 14:55:21.440712).
+2025-09-29 15:16:18.997 IST [41667] CONTEXT:  SQL statement "UPDATE ONLY "public"."client_subscriptions" SET "plan_id" = NULL WHERE $1 OPERATOR(pg_catalog.=) "plan_id""
+2025-09-29 15:16:18.997 IST [41667] STATEMENT:  delete from subscription_plans
+	
+2025-09-29 15:30:02.901 IST [44351] ERROR:  column "duration_days" of relation "subscription_plans" does not exist at character 62
+2025-09-29 15:30:02.901 IST [44351] STATEMENT:  
+	      INSERT INTO subscription_plans (name, amount, period, duration_days, max_devices, description)
+	      VALUES ($1,$2,$3,$4,$5,$6) RETURNING *
+2025-09-29 15:32:16.618 IST [44480] ERROR:  column "duration_days" of relation "subscription_plans" does not exist at character 62
+2025-09-29 15:32:16.618 IST [44480] STATEMENT:  
+	      INSERT INTO subscription_plans (name, amount, period, duration_days, max_devices, description)
+	      VALUES ($1,$2,$3,$4,$5,$6) RETURNING *
+2025-09-29 15:34:10.651 IST [44480] LOG:  could not receive data from client: Connection reset by peer
+2025-09-29 15:34:25.236 IST [44582] ERROR:  INSERT has more expressions than target columns at character 117
+2025-09-29 15:34:25.236 IST [44582] STATEMENT:  
+	      INSERT INTO subscription_plans (name, amount, period, max_devices, description)
+	      VALUES ($1,$2,$3,$4,$5,$6) RETURNING *
+2025-09-29 15:35:12.942 IST [44582] LOG:  could not receive data from client: Connection reset by peer
+2025-09-29 15:35:26.034 IST [44639] ERROR:  null value in column "amount_paise" of relation "subscription_plans" violates not-null constraint
+2025-09-29 15:35:26.034 IST [44639] DETAIL:  Failing row contains (f259874e-a267-456c-8ff6-016647b8af09, Base Plan, null, 6000, null, Monthly, 1, null, 2025-09-29 15:35:26.033868, t, 10, null).
+2025-09-29 15:35:26.034 IST [44639] STATEMENT:  
+	      INSERT INTO subscription_plans (name, amount, period, max_devices, description)
+	      VALUES ($1,$2,$3,$4,$5) RETURNING *
+2025-09-29 15:36:02.974 IST [41667] ERROR:  cannot drop table subscription_plans because other objects depend on it
+2025-09-29 15:36:02.974 IST [41667] DETAIL:  constraint client_subscriptions_plan_id_fkey on table client_subscriptions depends on table subscription_plans
+2025-09-29 15:36:02.974 IST [41667] HINT:  Use DROP ... CASCADE to drop the dependent objects too.
+2025-09-29 15:36:02.974 IST [41667] STATEMENT:  drop table subscription_plans
+2025-09-29 15:36:29.006 IST [41667] ERROR:  cannot drop table client_subscriptions because other objects depend on it
+2025-09-29 15:36:29.006 IST [41667] DETAIL:  constraint payments_subscription_id_fkey on table payments depends on table client_subscriptions
+2025-09-29 15:36:29.006 IST [41667] HINT:  Use DROP ... CASCADE to drop the dependent objects too.
+2025-09-29 15:36:29.006 IST [41667] STATEMENT:  drop table client_subscriptions
+2025-09-29 15:37:58.118 IST [41667] ERROR:  column "intervel" of relation "subscription_plans" does not exist
+2025-09-29 15:37:58.118 IST [41667] STATEMENT:  alter table subscription_plans drop column intervel
+2025-09-29 15:38:46.488 IST [44639] LOG:  could not receive data from client: Connection reset by peer
+2025-09-29 15:40:41.229 IST [44762] ERROR:  column "plan_id" of relation "payments" does not exist at character 34
+2025-09-29 15:40:41.229 IST [44762] STATEMENT:  INSERT INTO payments (client_id, plan_id, razorpay_payment_id, amount, status, notes)
+	       VALUES ($1,$2,$3,$4,'pending',$5)
+2025-09-29 15:44:36.300 IST [44762] LOG:  could not receive data from client: Connection reset by peer
+2025-09-29 15:44:50.901 IST [44966] ERROR:  null value in column "total_amount" of relation "payments" violates not-null constraint
+2025-09-29 15:44:50.901 IST [44966] DETAIL:  Failing row contains (cb583be4-c1c2-4abd-8d06-2f66ed24c542, null, null, 17b79a61-ed56-4730-8fd3-788b3ae240c2, 3000.00, 0.00, 0.00, null, pending, null, 2025-09-29 15:44:50.897789, null, null, order_RNNf4hHm6QwFUv, null, null, {"plan_id": "4f61f768-5bce-4bb0-8ff6-82ebe178cbe5", "client_id":..., razorpay, 4f61f768-5bce-4bb0-8ff6-82ebe178cbe5).
+2025-09-29 15:44:50.901 IST [44966] STATEMENT:  INSERT INTO payments (client_id, plan_id, razorpay_payment_id, amount, status, notes)
+	       VALUES ($1,$2,$3,$4,'pending',$5)
+2025-09-29 15:45:56.451 IST [44966] LOG:  could not receive data from client: Connection reset by peer
+2025-09-29 15:46:13.206 IST [45027] ERROR:  null value in column "amount" of relation "payments" violates not-null constraint
+2025-09-29 15:46:13.206 IST [45027] DETAIL:  Failing row contains (4fae72b5-26a7-44ca-ae9b-85fca127ea3d, null, null, 17b79a61-ed56-4730-8fd3-788b3ae240c2, null, 0.00, 0.00, 3000.00, pending, null, 2025-09-29 15:46:13.204038, null, null, order_RNNgX5sq3C2OQx, null, null, {"plan_id": "4f61f768-5bce-4bb0-8ff6-82ebe178cbe5", "client_id":..., razorpay, 4f61f768-5bce-4bb0-8ff6-82ebe178cbe5).
+2025-09-29 15:46:13.206 IST [45027] STATEMENT:  INSERT INTO payments (client_id, plan_id, razorpay_payment_id, total_amount, status, notes)
+	       VALUES ($1,$2,$3,$4,'pending',$5)
+2025-09-29 21:22:33.242 IST [57417] ERROR:  relation "client_subscription" does not exist at character 15
+2025-09-29 21:22:33.242 IST [57417] STATEMENT:  select * from client_subscription
+	
+2025-09-29 22:28:20.392 IST [62842] ERROR:  null value in column "total_amount" of relation "payments" violates not-null constraint
+2025-09-29 22:28:20.392 IST [62842] DETAIL:  Failing row contains (106bf1cc-8730-4d38-83ae-452112dbbbb7, null, null, 17b79a61-ed56-4730-8fd3-788b3ae240c2, 3000.00, 0.00, 0.00, null, success, null, 2025-09-29 22:28:20.392372, null, null, pay_RNUX5jYpjyCJKM, null, null, {"order_id": "order_RNUWdfk2QiBk9z"}, razorpay, 4f61f768-5bce-4bb0-8ff6-82ebe178cbe5).
+2025-09-29 22:28:20.392 IST [62842] STATEMENT:  
+	      INSERT INTO payments (client_id, plan_id, razorpay_payment_id, amount, status, notes, created_at)
+	      VALUES ($1,$2,$3,$4,'success',$5,NOW())
+	      RETURNING *
+2025-09-29 22:30:07.135 IST [62890] ERROR:  null value in column "total_amount" of relation "payments" violates not-null constraint
+2025-09-29 22:30:07.135 IST [62890] DETAIL:  Failing row contains (272adcc5-e4ac-4ee0-a913-73e8cab17021, null, null, 17b79a61-ed56-4730-8fd3-788b3ae240c2, 3000.00, 0.00, 0.00, null, success, null, 2025-09-29 22:30:07.134359, null, null, pay_RNUY09nexkeZwM, null, null, {"order_id": "order_RNUXsloVQlwsd2"}, razorpay, 4f61f768-5bce-4bb0-8ff6-82ebe178cbe5).
+2025-09-29 22:30:07.135 IST [62890] STATEMENT:  
+	      INSERT INTO payments (client_id, plan_id, razorpay_payment_id, amount, status, notes, created_at)
+	      VALUES ($1,$2,$3,$4,'success',$5,NOW())
+	      RETURNING *
+2025-09-29 22:39:16.571 IST [62890] LOG:  could not receive data from client: Connection reset by peer
+2025-09-29 22:43:07.572 IST [57417] ERROR:  syntax error at or near "table" at character 28
+2025-09-29 22:43:07.572 IST [57417] STATEMENT:  delete from payments
+	alter table clients drop column password_hash
+	
+	select * from client_subscriptions
+	select * from payments
