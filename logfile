@@ -3407,3 +3407,191 @@
 	
 	select * from client_subscriptions
 	select * from payments
+2025-09-30 00:25:01.762 IST [3643] LOG:  received smart shutdown request
+2025-09-30 00:25:01.764 IST [3643] LOG:  background worker "logical replication launcher" (PID 3650) exited with exit code 1
+2025-09-30 00:25:01.764 IST [3645] LOG:  shutting down
+2025-09-30 00:25:01.781 IST [3643] LOG:  database system is shut down
+2025-10-04 09:59:12.922 IST [2876] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-10-04 09:59:12.925 IST [2876] LOG:  listening on IPv6 address "::1", port 5432
+2025-10-04 09:59:12.925 IST [2876] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-10-04 09:59:12.926 IST [2876] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-10-04 09:59:12.952 IST [2877] LOG:  database system was shut down at 2025-10-01 19:13:22 IST
+2025-10-04 09:59:12.960 IST [2876] LOG:  database system is ready to accept connections
+2025-10-04 12:13:28.287 IST [4913] ERROR:  syntax error at or near "f61f768" at character 50
+2025-10-04 12:13:28.287 IST [4913] STATEMENT:  select status from subscription_plans where id=`4f61f768-5bce-4bb0-8ff6-82ebe178cbe5`
+2025-10-04 12:14:02.213 IST [9434] LOG:  could not receive data from client: Connection reset by peer
+2025-10-04 12:58:16.550 IST [4913] ERROR:  null value in column "plan_id" of relation "client_subscriptions" violates not-null constraint
+2025-10-04 12:58:16.550 IST [4913] DETAIL:  Failing row contains (3fcfd966-d28e-40e6-9cde-639d762f5af0, 17b79a61-ed56-4730-8fd3-788b3ae240c2, null, null, active, 2025-09-29 23:04:35.247, 2025-11-29 23:04:35.247, null, 2025-09-29 23:04:56.850655, 2025-09-30 18:35:22.2793).
+2025-10-04 12:58:16.550 IST [4913] CONTEXT:  SQL statement "UPDATE ONLY "public"."client_subscriptions" SET "plan_id" = NULL WHERE $1 OPERATOR(pg_catalog.=) "plan_id""
+2025-10-04 12:58:16.550 IST [4913] STATEMENT:  delete from subscription_plans
+	
+2025-10-04 12:58:49.985 IST [4913] ERROR:  null value in column "plan_id" of relation "client_subscriptions" violates not-null constraint
+2025-10-04 12:58:49.985 IST [4913] DETAIL:  Failing row contains (3fcfd966-d28e-40e6-9cde-639d762f5af0, 17b79a61-ed56-4730-8fd3-788b3ae240c2, null, null, active, 2025-09-29 23:04:35.247, 2025-11-29 23:04:35.247, null, 2025-09-29 23:04:56.850655, 2025-09-30 18:35:22.2793).
+2025-10-04 12:58:49.985 IST [4913] CONTEXT:  SQL statement "UPDATE ONLY "public"."client_subscriptions" SET "plan_id" = NULL WHERE $1 OPERATOR(pg_catalog.=) "plan_id""
+2025-10-04 12:58:49.985 IST [4913] STATEMENT:  delete from subscription_plans where id ='4f61f768-5bce-4bb0-8ff6-82ebe178cbe5'
+	
+2025-10-04 17:37:15.953 IST [24639] ERROR:  column "duration_days" does not exist at character 34
+2025-10-04 17:37:15.953 IST [24639] STATEMENT:  SELECT id, name, amount, period, duration_days, max_devices FROM subscription_plans WHERE id=$1 LIMIT 1
+2025-10-04 17:37:20.795 IST [24639] ERROR:  column "duration_days" does not exist at character 34
+2025-10-04 17:37:20.795 IST [24639] STATEMENT:  SELECT id, name, amount, period, duration_days, max_devices FROM subscription_plans WHERE id=$1 LIMIT 1
+2025-10-04 17:40:30.867 IST [24639] ERROR:  column "duration_days" does not exist at character 34
+2025-10-04 17:40:30.867 IST [24639] STATEMENT:  SELECT id, name, amount, period, duration_days, max_devices FROM subscription_plans WHERE id=$1 LIMIT 1
+2025-10-04 17:40:40.491 IST [24639] ERROR:  column "duration_days" does not exist at character 34
+2025-10-04 17:40:40.491 IST [24639] STATEMENT:  SELECT id, name, amount, period, duration_days, max_devices FROM subscription_plans WHERE id=$1 LIMIT 1
+2025-10-04 19:19:09.270 IST [28312] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-04 19:19:09.270 IST [28312] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-05 14:14:41.878 IST [30018] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-05 14:14:41.878 IST [30018] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-05 14:28:28.370 IST [30018] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-05 14:28:28.370 IST [30018] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-05 14:41:34.854 IST [30018] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-05 14:41:34.854 IST [30018] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-05 15:05:31.684 IST [4913] ERROR:  syntax error at or near "client_wallets" at character 1
+2025-10-05 15:05:31.684 IST [4913] STATEMENT:  client_wallets (
+	  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+	  client_id UUID REFERENCES clients(id),
+	  balance NUMERIC(10,2) DEFAULT 0,
+	  updated_at TIMESTAMP DEFAULT now()
+	)
+2025-10-05 16:03:43.945 IST [35008] ERROR:  there is no unique or exclusion constraint matching the ON CONFLICT specification
+2025-10-05 16:03:43.945 IST [35008] STATEMENT:  INSERT INTO client_wallets (client_id, balance) VALUES ($1, $2) ON CONFLICT (client_id) DO UPDATE SET balance = client_wallets.balance + $2, updated_at = NOW()
+2025-10-05 16:07:15.611 IST [35008] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-05 16:07:15.611 IST [35008] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-05 16:09:02.826 IST [35008] ERROR:  column "updated_at" of relation "payments" does not exist at character 108
+2025-10-05 16:09:02.826 IST [35008] STATEMENT:  
+	      UPDATE payments
+	      SET status='PAID', razorpay_payment_id=$2, razorpay_signature=$3, plan_id=$4, updated_at=NOW()
+	      WHERE razorpay_order_id=$1 AND client_id=$5
+	      RETURNING *
+2025-10-05 16:10:59.087 IST [35008] LOG:  could not receive data from client: Connection reset by peer
+2025-10-05 16:11:32.428 IST [35748] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-05 16:11:32.428 IST [35748] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-05 16:14:46.632 IST [35748] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-05 16:14:46.632 IST [35748] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-05 16:19:07.790 IST [35748] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-05 16:19:07.790 IST [35748] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-05 16:21:02.596 IST [36184] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-05 16:21:02.596 IST [36184] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-05 16:22:07.766 IST [36184] ERROR:  there is no unique or exclusion constraint matching the ON CONFLICT specification
+2025-10-05 16:22:07.766 IST [36184] STATEMENT:  INSERT INTO client_wallets (client_id, balance) VALUES ($1, $2) ON CONFLICT (client_id) DO UPDATE SET balance = client_wallets.balance + $2, updated_at = NOW()
+2025-10-06 12:36:28.814 IST [36765] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-06 12:36:28.814 IST [36765] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-06 12:41:56.483 IST [36765] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-06 12:41:56.483 IST [36765] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-06 12:45:38.343 IST [36765] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-06 12:45:38.343 IST [36765] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-06 12:47:42.510 IST [36765] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-06 12:47:42.510 IST [36765] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-06 12:48:51.488 IST [36765] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-06 12:48:51.488 IST [36765] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-06 12:49:48.617 IST [36765] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-06 12:49:48.617 IST [36765] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-06 12:49:59.279 IST [36765] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-06 12:49:59.279 IST [36765] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-06 12:50:38.485 IST [36765] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-06 12:50:38.485 IST [36765] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-06 12:51:54.352 IST [36765] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-06 12:51:54.352 IST [36765] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-06 12:52:13.720 IST [36765] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-06 12:52:13.720 IST [36765] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-06 12:53:05.026 IST [36765] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-06 12:53:05.026 IST [36765] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-06 12:54:55.204 IST [36765] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-06 12:54:55.204 IST [36765] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-06 12:55:10.463 IST [36765] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-06 12:55:10.463 IST [36765] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-06 12:58:42.542 IST [36765] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-06 12:58:42.542 IST [36765] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-06 12:58:58.210 IST [36765] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-06 12:58:58.210 IST [36765] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-06 12:59:04.366 IST [36765] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-06 12:59:04.366 IST [36765] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-06 13:01:06.417 IST [36765] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-06 13:01:06.417 IST [36765] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-06 13:02:06.020 IST [36765] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-06 13:02:06.020 IST [36765] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-06 13:11:04.574 IST [36765] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-06 13:11:04.574 IST [36765] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-06 13:33:06.524 IST [36765] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-06 13:33:06.524 IST [36765] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-06 13:33:37.289 IST [36765] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-06 13:33:37.289 IST [36765] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-06 13:55:20.407 IST [36765] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-06 13:55:20.407 IST [36765] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-06 14:00:42.570 IST [36765] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-06 14:00:42.570 IST [36765] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-06 14:16:15.684 IST [36765] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-06 14:16:15.684 IST [36765] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-06 14:22:18.627 IST [36765] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-06 14:22:18.627 IST [36765] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-06 14:27:09.092 IST [36765] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-06 14:27:09.092 IST [36765] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-06 14:39:06.151 IST [36765] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-06 14:39:06.151 IST [36765] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-06 14:45:44.498 IST [36765] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-06 14:45:44.498 IST [36765] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-06 15:42:05.267 IST [69828] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-06 15:42:05.267 IST [69828] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-06 15:48:07.656 IST [70516] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-06 15:48:07.656 IST [70516] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-06 16:04:51.714 IST [71292] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-06 16:04:51.714 IST [71292] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-06 16:12:11.828 IST [71292] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-06 16:12:11.828 IST [71292] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-06 16:56:18.728 IST [73394] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-06 16:56:18.728 IST [73394] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-06 16:56:30.549 IST [73394] ERROR:  column "updated_at" of relation "payments" does not exist at character 108
+2025-10-06 16:56:30.549 IST [73394] STATEMENT:  
+	      UPDATE payments
+	      SET status='PAID', razorpay_payment_id=$2, razorpay_signature=$3, plan_id=$4, updated_at=NOW()
+	      WHERE razorpay_order_id=$1 AND client_id=$5
+	      RETURNING *
+	    
+2025-10-06 16:57:30.594 IST [73547] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-06 16:57:30.594 IST [73547] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2
+2025-10-06 17:03:51.333 IST [73547] ERROR:  column "updated_at" of relation "payments" does not exist at character 36
+2025-10-06 17:03:51.333 IST [73547] STATEMENT:  UPDATE payments SET status='PAID', updated_at=NOW()
+	         WHERE razorpay_payment_id=$1 OR razorpay_order_id=$2

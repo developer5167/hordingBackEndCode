@@ -102,7 +102,7 @@ router.get("/clients-recent", async (req, res) => {
        FROM clients
        ORDER BY created_at DESC limit 4`
     );
-const statsQuery = await db.query(`
+    const statsQuery = await db.query(`
       SELECT
         COUNT(*) FILTER (WHERE DATE_TRUNC('month', created_at) = DATE_TRUNC('month', CURRENT_DATE)) AS this_month,
         COUNT(*) FILTER (WHERE DATE_TRUNC('month', created_at) = DATE_TRUNC('month', CURRENT_DATE - interval '1 month')) AS last_month
@@ -118,14 +118,12 @@ const statsQuery = await db.query(`
     } else if (thisMonth > 0) {
       growth = 100; // if last month had 0 but new clients exist
     }
-    const clientsWithGrowth = result.rows.map(row => ({
+    const clientsWithGrowth = result.rows.map((row) => ({
       ...row,
-      growth: growth.toFixed(1)   // e.g. "15.3"
+      growth: growth.toFixed(1), // e.g. "15.3"
     }));
     console.log(clientsWithGrowth);
-    
 
-    
     res.json(clientsWithGrowth);
   } catch (err) {
     console.error(err);
@@ -137,7 +135,6 @@ const statsQuery = await db.query(`
  * 3. Update Client Info
  * PUT /superadmin/clients/:id
  */
-
 // insert client id in ad_devices while inserting ad
 router.put("/clients/:id", async (req, res) => {
   const { id } = req.params;
@@ -153,6 +150,30 @@ router.put("/clients/:id", async (req, res) => {
       [name, domain, subscription_status, id]
     );
 
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to update client" });
+  }
+});
+
+router.post("/disable-subscription/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const query = `select status from subscription_plans where id=$1`;
+    const { rows } = await db.query(query, [id]);
+    console.log(rows[0].status)
+    let status_value;
+    if (rows[0].status == true) {
+      status_value = false;
+    } else {
+      status_value = true;
+    }
+    const result = await db.query(
+      `UPDATE subscription_plans
+       SET status =${status_value} WHERE id = $1 RETURNING *`,
+      [id]
+    );
     res.json(result.rows[0]);
   } catch (err) {
     console.error(err);

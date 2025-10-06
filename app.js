@@ -7,10 +7,10 @@ const app = express();
 
 const cors = require("cors");
 const port = process.env.PORT || 4000;
-
+const webhook = require("./weebhook");
 // Middleware
 app.use(cors());
-
+app.use("/superadmin/payments/webhooks",webhook)
 app.use(express.json())
 const rootRouterAdvertiser = require("./advertiserApis");
 const order = require("./order");
