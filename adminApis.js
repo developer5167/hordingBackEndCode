@@ -101,7 +101,29 @@ router.post("/login", checkValidClient, async (req, res) => {
     });
   }
 });
-
+router.get("/getWalletBalance",checkValidClient,auth,async(req,res)=>{
+  const query= `select balance, updated_at from client_wallets where client_id = $1`
+  try{
+    const {rows} = await db.query(query,[req.client_id])
+    if(rows.length>0){
+     return res.json({
+      success: true,
+      message: "Wallet balance fetched successfully.",
+      data: rows[0],
+    });
+  }else{
+    return res.json({
+      success: true,
+      message: "Wallet balance fetched successfully.",
+      data: {balance:0,update_at: `${new Date().toLocaleDateString() +","+new Date().toLocaleTimeString()}`},
+    });
+  }
+  }catch(e){
+    console.log(e);
+    
+    res.status(500).json({ success: false, message: "Failed to fetch wallet balance", detail: err.message });
+  }
+})
 // router.js
 router.get("/profile", checkValidClient, auth, async (req, res) => {
   try {
@@ -355,7 +377,7 @@ router.get("/devices/:id", checkValidClient, auth, async (req, res) => {
 
 // API: Add Device
 // POST /admin/devices
-router.post("/admin/devices", checkValidClient, auth, async (req, res) => {
+router.post("/devices", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
     const { name, location, width, height, status } = req.body;
@@ -1234,11 +1256,218 @@ router.delete("/company-ads/:id", checkValidClient, auth, async (req, res) => {
     });
   }
 });
+router.post("/use-wallet", checkValidClient, auth, async (req, res) => {
+  try {
+    const client_id = req.client_id;
+    const { plan_id } = req.body;
+    if (!plan_id) return res.status(400).json({ success: false, message: "plan_id required" });
 
+    // fetch plan
+    const planRes = await db.query(`SELECT * FROM subscription_plans WHERE id=$1`, [plan_id]);
+    if (planRes.rows.length === 0) return res.status(404).json({ success: false, message: "Plan not found" });
+    const plan = planRes.rows[0];
+    const newPlanPrice = Number(plan.amount || 0);
 
+    // fetch active subscription to compute proration
+    const activeSubRes = await db.query(
+      `SELECT cs.*, sp.amount AS old_plan_amount, sp.period AS old_plan_period, sp.name AS old_plan_name
+       FROM client_subscriptions cs
+       LEFT JOIN subscription_plans sp ON sp.id = cs.plan_id
+       WHERE cs.client_id=$1 AND cs.status='active'
+       ORDER BY cs.current_period_end DESC
+       LIMIT 1`,
+      [client_id]
+    );
+    const existingSub = activeSubRes.rows[0] || null;
 
+    // compute credit
+    const now = new Date();
+    const MS_PER_DAY = 1000*60*60*24;
+    let credit = 0;
+    if (existingSub && existingSub.current_period_end && new Date(existingSub.current_period_end) > now) {
+      const endDate = new Date(existingSub.current_period_end);
+      const startDate = existingSub.current_period_start ? new Date(existingSub.current_period_start) : null;
+      let totalPeriodDays = (existingSub.old_plan_period||'').toLowerCase().startsWith('month') ? 28 : Math.ceil((endDate.getTime()-startDate.getTime())/MS_PER_DAY) || 1;
+      const remainingMs = endDate.getTime() - now.getTime();
+      const days_remaining = remainingMs>0 ? Math.ceil(remainingMs/MS_PER_DAY) : 0;
+      const oldPlanAmount = Number(existingSub.old_plan_amount || 0);
+      const dailyRate = oldPlanAmount / totalPeriodDays;
+      credit = Number(Math.min(dailyRate * days_remaining, oldPlanAmount).toFixed(2));
+    }
 
+    let payable = Number((newPlanPrice - credit).toFixed(2));
+    if (payable < 0) payable = 0;
 
+    // fetch wallet balance
+    const wallet = await getWalletBalance(client_id);
+    const available = wallet.available || wallet.balance || 0;
+
+    if (available < payable) {
+      return res.status(400).json({ success: false, message: "Insufficient wallet balance", payable, available });
+    }
+
+    // Debit wallet and create subscription in same atomic flow
+    try {
+      await db.query('BEGIN');
+      // debit wallet
+      const up = await upsertWallet(client_id, -Number(payable), {
+        reference_type: 'use_wallet',
+        reference_id: null,
+        description: `Wallet debit for switching to plan ${plan.name}`,
+        idempotency_key: `use_wallet_${client_id}_${plan_id}_${Date.now()}`
+      });
+
+      if (up.error) {
+        await db.query('ROLLBACK');
+        return res.status(400).json({ success: false, message: "Insufficient funds" });
+      }
+
+      // create subscription row
+      const startDate = new Date();
+      const endDate = new Date();
+      const period = (plan.period || "").toLowerCase();
+      if (period.startsWith("week")) endDate.setDate(endDate.getDate() + 7);
+      else if (period.startsWith("month")) endDate.setDate(endDate.getDate() + 28);
+      else if (period.startsWith("quarter")) endDate.setMonth(endDate.getMonth() + 3);
+      else if (period.startsWith("year")) endDate.setFullYear(endDate.getFullYear() + 1);
+      else endDate.setDate(endDate.getDate() + 28);
+
+      const ins = await db.query(`INSERT INTO client_subscriptions (client_id, plan_id, status, current_period_start, current_period_end, created_at, updated_at)
+        VALUES ($1,$2,'active',$3,$4,NOW(),NOW()) RETURNING *`, [client_id, plan_id, startDate, endDate]);
+
+      // record a payments row marking wallet used
+      const payIns = await db.query(`INSERT INTO payments (client_id, plan_id, amount, total_amount, status, transaction_id, receipt, razorpay_order_id, wallet_applied, created_at)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,NOW()) RETURNING *`, [
+          client_id,
+          plan_id,
+          toPaise(payable),
+          toPaise(payable),
+          'PAID',
+          `WALLET-${uuidv4()}`,
+          `rcpt_wallet_${Date.now()}`,
+          `wallet_${Date.now()}`,
+          Number(payable)
+      ]);
+
+      await db.query('COMMIT');
+      return res.json({ success: true, subscription: ins.rows[0], wallet: { balance: up.balance_after } });
+    } catch (err) {
+      await db.query('ROLLBACK');
+      throw err;
+    }   
+
+  } catch (err) {
+    console.error("use-wallet error:", err);
+    return res.status(500).json({ success: false, message: "failed_use_wallet", detail: err.message });
+  }
+});
+function toPaise(amountRupee) {
+  return Math.round(Number(amountRupee) * 100);
+}
+async function createWalletTransaction(txClient, payload) {
+  const {
+    client_id,
+    tr_type,
+    amount,
+    balance_after,
+    description = "",
+    idempotency_key = null,
+    reference_type = null,
+    reference_id = null,
+    created_by = null,
+  } = payload;
+
+  // If idempotency_key provided, try to return existing txn
+  if (idempotency_key) {
+    const checkQ = `SELECT * FROM wallet_transactions WHERE idempotency_key = $1 LIMIT 1`;
+    const check = txClient ? await txClient.query(checkQ, [idempotency_key]) : await db.query(checkQ, [idempotency_key]);
+    if (check.rows.length) return check.rows[0];
+  }
+
+  const id = uuidv4();
+
+  const insertQ = `
+    INSERT INTO wallet_transactions
+      (id, client_id, amount, tr_type, balance_after, description, reference_type, reference_id, idempotency_key, created_by, updated_at)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW())
+    RETURNING *
+  `;
+  const vals = [id, client_id, amount, tr_type, balance_after, description, reference_type, reference_id, idempotency_key, created_by];
+
+  const inserted = txClient ? await txClient.query(insertQ, vals) : await db.query(insertQ, vals);
+  return inserted.rows[0];
+}
+async function getWalletBalance(client_id) {
+  const r = await db.query(
+    `SELECT balance FROM client_wallets WHERE client_id = $1 LIMIT 1`,
+    [client_id]
+  );
+  const balance = r.rows.length ? Number(r.rows[0].balance) : 0.0;
+  // For now we don't implement holds; held=0
+  return { balance, held: 0.0, available: balance };
+}
+
+async function upsertWallet(client_id, delta_amount, options = {}) {
+  try {
+    await db.query("BEGIN");
+
+    // ensure a wallet row exists; lock it
+    let sel = await db.query(`SELECT id, balance FROM client_wallets WHERE client_id=$1 FOR UPDATE`, [client_id]);
+    if (sel.rows.length === 0) {
+      // create
+      const wid = uuidV4();
+      await db.query(`INSERT INTO client_wallets (id, client_id, balance, updated_at) VALUES ($1,$2,$3,NOW())`, [wid, client_id, 0.0]);
+      sel = await db.query(`SELECT id, balance FROM client_wallets WHERE client_id=$1 FOR UPDATE`, [client_id]);
+    }
+
+    const current = sel.rows[0];
+    const curAmount = Number(current.balance || 0);
+    const newAmount = Number((curAmount + Number(delta_amount)).toFixed(2));
+
+    // prevent negative balance
+    if (newAmount < 0) {
+      await db.query("ROLLBACK");
+      return { error: "INSUFFICIENT_FUNDS", balance: curAmount };
+    }
+
+    // idempotency: if idempotency_key provided and txn exists, return it (no-op)
+    if (options.idempotency_key) {
+      const exist = await db.query(
+        `SELECT * FROM wallet_transactions WHERE idempotency_key=$1 LIMIT 1`,
+        [options.idempotency_key]
+      );
+      if (exist.rows.length) {
+        await db.query("COMMIT");
+        return { balance_after: exist.rows[0].balance_after, txn: exist.rows[0] };
+      }
+    }
+
+    // update wallet
+    await db.query(`UPDATE client_wallets SET balance=$1, updated_at=NOW() WHERE client_id=$2`, [newAmount, client_id]);
+
+    // insert wallet transaction
+    const tr_type = Number(delta_amount) >= 0 ? "credit" : "debit";
+    const desc = options.description || (tr_type === "credit" ? "Wallet credit" : "Wallet debit");
+
+    const txn = await createWalletTransaction(db, {
+      client_id,
+      tr_type,
+      amount: Math.abs(Number(delta_amount)),
+      balance_after: newAmount,
+      description: desc,
+      idempotency_key: options.idempotency_key || null,
+      reference_type: options.reference_type || null,
+      reference_id: options.reference_id || null,
+      created_by: options.created_by || null,
+    });
+
+    await db.query("COMMIT");
+    return { balance_after: newAmount, txn };
+  } catch (err) {
+    await db.query("ROLLBACK");
+    throw err;
+  } 
+}
 
 
 
