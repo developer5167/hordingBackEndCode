@@ -700,8 +700,165 @@ router.post("/ads",checkValidClient, auth, async (req, res) => {
     });
   }
 });
+// ✅ Get full user profile with ad info
+router.get("/users/:id/profile", checkValidClient, auth, async (req, res) => {
+  try {
+    const clientId = req.client_id;
+    const { id } = req.params;
 
-// API: Delete Ad
+    const userQuery = `
+      SELECT id AS user_id, name, email, mobile_number, role, isactive, created_at
+      FROM users
+      WHERE id = $1 AND client_id = $2
+      LIMIT 1
+    `;
+    const { rows: userRows } = await db.query(userQuery, [id, clientId]);
+
+    if (userRows.length === 0) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    const user = userRows[0];
+
+    const adsQuery = `
+      SELECT 
+        a.id AS ad_id,
+        a.title,
+        a.description,
+        a.media_type,
+        a.media_url,
+        a.created_at,
+        ad.start_date,
+        ad.end_date,
+        ad.status,
+        d.id AS device_id,
+        d.name AS device_name,
+        d.location
+      FROM ads a
+      JOIN ad_devices ad ON ad.ad_id = a.id
+      JOIN devices d ON d.id = ad.device_id
+      WHERE a.user_id = $1 AND a.client_id = $2
+      ORDER BY a.created_at DESC
+    `;
+    const { rows: ads } = await db.query(adsQuery, [id, clientId]);
+
+    return res.status(200).json({
+      success: true,
+      message: "User profile fetched successfully",
+      data: {
+        ...user,
+        total_ads: ads.length,
+        ads,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching user profile:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong while fetching user profile",
+      error: error.message,
+    });
+  }
+});
+// ✅ Toggle user active status
+router.patch("/users/:id/toggle-status", checkValidClient, auth, async (req, res) => {
+  try {
+    const clientId = req.client_id;
+    const { id } = req.params;
+
+    // Fetch current status
+    const userCheck = await db.query(
+      `SELECT id, isactive FROM users WHERE id = $1 AND client_id = $2 LIMIT 1`,
+      [id, clientId]
+    );
+    if (userCheck.rows.length === 0)
+      return res.status(404).json({ success: false, message: "User not found" });
+
+    const isActive = userCheck.rows[0].isactive;
+
+    // Toggle it
+    const updated = await db.query(
+      `UPDATE users SET isactive = ${!isActive} WHERE id = $1 RETURNING id, name, email, isactive`,
+      [id]
+    );
+
+    const newStatus = updated.rows[0].isactive ? "activated" : "deactivated";
+
+    return res.status(200).json({
+      success: true,
+      message: `User ${newStatus} successfully`,
+      data: updated.rows[0],
+    });
+  } catch (error) {
+    console.error("Error toggling user status:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong while toggling user status",
+      error: error.message,
+    });
+  }
+});
+
+router.post("/users", checkValidClient, auth, async (req, res) => {
+  try {
+    const clientId = req.client_id;
+    const { page = 1, limit = 10, search = "" } = req.body;
+    const offset = (page - 1) * limit;
+
+    // 🩵 Use ILIKE for case-insensitive search (Postgres)
+    const searchPattern = `%${search.trim()}%`;
+
+    const query = `
+      SELECT 
+        id AS user_id,
+        name AS user_name,
+        email,
+        mobile_number,
+        role,
+        isactive,
+        created_at
+      FROM users
+      WHERE client_id = $1
+        AND role = 'advertiser'
+        AND ($2 = '%%' OR name ILIKE $2 OR email ILIKE $2 OR mobile_number ILIKE $2)
+      ORDER BY created_at DESC
+      LIMIT $3 OFFSET $4
+    `;
+    const { rows } = await db.query(query, [clientId, searchPattern, limit, offset]);
+
+    const countQuery = `
+      SELECT COUNT(*) AS total
+      FROM users
+      WHERE client_id = $1
+        AND role = 'advertiser'
+        AND ($2 = '%%' OR name ILIKE $2 OR email ILIKE $2 OR mobile_number ILIKE $2)
+    `;
+    const { rows: countRows } = await db.query(countQuery, [clientId, searchPattern]);
+
+    return res.status(200).json({
+      success: true,
+      message: "Users fetched successfully",
+      data: rows,
+      pagination: {
+        total: Number(countRows[0].total),
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(Number(countRows[0].total) / limit),
+        hasNext: page * limit < Number(countRows[0].total),
+        hasPrev: page > 1
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong while fetching users",
+      error: error.message
+    });
+  }
+});
+
+
 
 // make sure you have a helper function to delete files from Firebase
 router.delete("/ads/:id", checkValidClient, auth, async (req, res) => {
