@@ -1,6 +1,6 @@
 const {
   express,
-  upload,       // multer memory-storage ready
+  upload, // multer memory-storage ready
   uuidv4,
   jsonwebtoken,
   bcrypt,
@@ -12,20 +12,18 @@ const {
   cors,
   db,
   admin,
-  auth
+  auth,
 } = require("./deps");
 const bucket = admin.storage().bucket();
 // router.js (or a separate advertiser.routes.js if you want to keep clean)
 const router = express.Router();
 
-
 const checkValidClient = require("./middleware/checkValidClient");
-
 
 // Admin Login
 router.post("/login", checkValidClient, async (req, res) => {
   console.log("DASDASD");
-  
+
   try {
     const { email, password } = req.body;
     const clientId = req.client_id; // from checkValidClient middleware
@@ -33,7 +31,7 @@ router.post("/login", checkValidClient, async (req, res) => {
     if (!email || !password) {
       return res.status(200).json({
         success: false,
-        message: "Email and password are required"
+        message: "Email and password are required",
       });
     }
 
@@ -49,7 +47,7 @@ router.post("/login", checkValidClient, async (req, res) => {
     if (rows.length === 0) {
       return res.status(200).json({
         success: false,
-        message: "Invalid credentials or not an admin"
+        message: "Invalid credentials or not an admin",
       });
     }
 
@@ -60,18 +58,17 @@ router.post("/login", checkValidClient, async (req, res) => {
     if (!isValidPassword) {
       return res.status(200).json({
         success: false,
-        message: "Invalid credentials"
+        message: "Invalid credentials",
       });
     }
     const tokenPayload = {
       userId: admin.id,
       clientId: admin.client_id,
       role: admin.role,
-      email:admin.email
+      email: admin.email,
     };
-     const token = jsonwebtoken.sign(tokenPayload, "THISISTESTAPPFORHORDING");
+    const token = jsonwebtoken.sign(tokenPayload, "THISISTESTAPPFORHORDING");
     // Step 3: Generate JWT
-    
 
     // Step 4: Store token
     const updateTokens = `
@@ -89,46 +86,59 @@ router.post("/login", checkValidClient, async (req, res) => {
         id: admin.id,
         name: admin.name,
         email: admin.email,
-        role: admin.role
-      }
+        role: admin.role,
+      },
     });
   } catch (error) {
     console.error("Error in admin login:", error);
     return res.status(500).json({
       success: false,
       message: "Something went wrong during login.",
-      error: error.message
+      error: error.message,
     });
   }
 });
-router.get("/getWalletBalance",checkValidClient,auth,async(req,res)=>{
-  const query= `select balance, updated_at from client_wallets where client_id = $1`
-  try{
-    const {rows} = await db.query(query,[req.client_id])
-    if(rows.length>0){
-     return res.json({
-      success: true,
-      message: "Wallet balance fetched successfully.",
-      data: rows[0],
-    });
-  }else{
-    return res.json({
-      success: true,
-      message: "Wallet balance fetched successfully.",
-      data: {balance:0,update_at: `${new Date().toLocaleDateString() +","+new Date().toLocaleTimeString()}`},
-    });
-  }
-  }catch(e){
+router.get("/getWalletBalance", checkValidClient, auth, async (req, res) => {
+  const query = `select balance, updated_at from client_wallets where client_id = $1`;
+  try {
+    const { rows } = await db.query(query, [req.client_id]);
+    if (rows.length > 0) {
+      return res.json({
+        success: true,
+        message: "Wallet balance fetched successfully.",
+        data: rows[0],
+      });
+    } else {
+      return res.json({
+        success: true,
+        message: "Wallet balance fetched successfully.",
+        data: {
+          balance: 0,
+          update_at: `${
+            new Date().toLocaleDateString() +
+            "," +
+            new Date().toLocaleTimeString()
+          }`,
+        },
+      });
+    }
+  } catch (e) {
     console.log(e);
-    
-    res.status(500).json({ success: false, message: "Failed to fetch wallet balance", detail: err.message });
+
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "Failed to fetch wallet balance",
+        detail: err.message,
+      });
   }
-})
+});
 // router.js
 router.get("/profile", checkValidClient, auth, async (req, res) => {
   try {
-    const adminId = req.user_id;      
-    const clientId = req.client_id;  
+    const adminId = req.user_id;
+    const clientId = req.client_id;
 
     const query = `
       SELECT id, name, email, role, client_id, created_at
@@ -141,35 +151,35 @@ router.get("/profile", checkValidClient, auth, async (req, res) => {
     if (rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: "Admin profile not found"
+        message: "Admin profile not found",
       });
     }
 
     return res.status(200).json({
       success: true,
       message: "Admin profile fetched successfully",
-      data: rows[0]
+      data: rows[0],
     });
   } catch (error) {
     console.error("Error fetching admin profile:", error);
     return res.status(500).json({
       success: false,
       message: "Something went wrong while fetching profile",
-      error: error.message
+      error: error.message,
     });
   }
 });
 // router.js
 router.put("/profile", checkValidClient, auth, async (req, res) => {
   try {
-    const adminId = req.user_id;      
-    const clientId = req.client_id;  
+    const adminId = req.user_id;
+    const clientId = req.client_id;
     const { name, email } = req.body;
 
     if (!name && !email) {
       return res.status(400).json({
         success: false,
-        message: "At least one field (name or email) must be provided"
+        message: "At least one field (name or email) must be provided",
       });
     }
 
@@ -187,21 +197,21 @@ router.put("/profile", checkValidClient, auth, async (req, res) => {
     if (rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: "Admin profile not found or not authorized"
+        message: "Admin profile not found or not authorized",
       });
     }
 
     return res.status(200).json({
       success: true,
       message: "Profile updated successfully",
-      data: rows[0]
+      data: rows[0],
     });
   } catch (error) {
     console.error("Error updating admin profile:", error);
     return res.status(500).json({
       success: false,
       message: "Something went wrong while updating profile",
-      error: error.message
+      error: error.message,
     });
   }
 });
@@ -209,14 +219,14 @@ router.put("/profile", checkValidClient, auth, async (req, res) => {
 // router.js
 router.patch("/change-password", checkValidClient, auth, async (req, res) => {
   try {
-    const adminId = req.user_id;      
-    const clientId = req.client_id;  
+    const adminId = req.user_id;
+    const clientId = req.client_id;
     const { old_password, new_password } = req.body;
 
     if (!old_password || !new_password) {
       return res.status(400).json({
         success: false,
-        message: "Both old_password and new_password are required"
+        message: "Both old_password and new_password are required",
       });
     }
 
@@ -232,18 +242,21 @@ router.patch("/change-password", checkValidClient, auth, async (req, res) => {
     if (rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: "Admin not found"
+        message: "Admin not found",
       });
     }
 
     const admin = rows[0];
 
     // Step 2: Check old password
-    const validPassword = await bcrypt.compare(old_password, admin.password_hash);
+    const validPassword = await bcrypt.compare(
+      old_password,
+      admin.password_hash
+    );
     if (!validPassword) {
       return res.status(401).json({
         success: false,
-        message: "Old password is incorrect"
+        message: "Old password is incorrect",
       });
     }
 
@@ -262,14 +275,14 @@ router.patch("/change-password", checkValidClient, auth, async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Password changed successfully",
-      data: updated.rows[0]
+      data: updated.rows[0],
     });
   } catch (error) {
     console.error("Error changing admin password:", error);
     return res.status(500).json({
       success: false,
       message: "Something went wrong while changing password",
-      error: error.message
+      error: error.message,
     });
   }
 });
@@ -277,9 +290,9 @@ router.patch("/change-password", checkValidClient, auth, async (req, res) => {
 // router.js
 router.post("/logout", checkValidClient, auth, async (req, res) => {
   try {
-    const adminId = req.user_id;      
-    const clientId = req.client_id;  
-    const token = req.token;          // from auth middleware
+    const adminId = req.user_id;
+    const clientId = req.client_id;
+    const token = req.token; // from auth middleware
 
     const query = `
       UPDATE users
@@ -292,20 +305,20 @@ router.post("/logout", checkValidClient, auth, async (req, res) => {
     if (rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: "Admin not found or already logged out"
+        message: "Admin not found or already logged out",
       });
     }
 
     return res.status(200).json({
       success: true,
-      message: "Logged out successfully"
+      message: "Logged out successfully",
     });
   } catch (error) {
     console.error("Error logging out admin:", error);
     return res.status(500).json({
       success: false,
       message: "Something went wrong while logging out",
-      error: error.message
+      error: error.message,
     });
   }
 });
@@ -314,7 +327,7 @@ router.post("/logout", checkValidClient, auth, async (req, res) => {
 // API: List Devices
 router.get("/devices", checkValidClient, auth, async (req, res) => {
   try {
-    const clientId = req.client_id;  
+    const clientId = req.client_id;
 
     const query = `
       SELECT id, name, location, width, height, status, created_at
@@ -327,18 +340,17 @@ router.get("/devices", checkValidClient, auth, async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Devices fetched successfully",
-      data: rows
+      data: rows,
     });
   } catch (error) {
     console.error("Error fetching devices:", error);
     return res.status(500).json({
       success: false,
       message: "Something went wrong while fetching devices",
-      error: error.message
+      error: error.message,
     });
   }
 });
-
 
 // API: Get Device Details
 router.get("/devices/:id", checkValidClient, auth, async (req, res) => {
@@ -356,24 +368,23 @@ router.get("/devices/:id", checkValidClient, auth, async (req, res) => {
     if (rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: "Device not found"
+        message: "Device not found",
       });
     }
     return res.status(200).json({
       success: true,
       message: "Device details fetched successfully",
-      data: rows[0]
+      data: rows[0],
     });
   } catch (error) {
     console.error("Error fetching device details:", error);
     return res.status(500).json({
       success: false,
       message: "Something went wrong while fetching device details",
-      error: error.message
+      error: error.message,
     });
   }
 });
-
 
 // API: Add Device
 // POST /admin/devices
@@ -383,7 +394,12 @@ router.post("/devices", checkValidClient, auth, async (req, res) => {
     const { name, location, width, height, status } = req.body;
 
     if (!name || !location || !width || !height) {
-      return res.status(400).json({ success: false, message: "name, location, width, height required" });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "name, location, width, height required",
+        });
     }
 
     // 1. Get client's active subscription
@@ -397,7 +413,9 @@ router.post("/devices", checkValidClient, auth, async (req, res) => {
     `;
     const subRes = await db.query(subQ, [clientId]);
     if (subRes.rows.length === 0) {
-      return res.status(403).json({ success: false, message: "No active subscription" });
+      return res
+        .status(403)
+        .json({ success: false, message: "No active subscription" });
     }
     const maxDevices = subRes.rows[0].max_devices;
 
@@ -420,7 +438,14 @@ router.post("/devices", checkValidClient, auth, async (req, res) => {
       VALUES ($1,$2,$3,$4,$5,$6)
       RETURNING *
     `;
-    const values = [clientId, name, location, width, height, status || 'active'];
+    const values = [
+      clientId,
+      name,
+      location,
+      width,
+      height,
+      status || "active",
+    ];
     const { rows } = await db.query(insertQ, values);
 
     res.status(201).json({ success: true, device: rows[0] });
@@ -429,8 +454,6 @@ router.post("/devices", checkValidClient, auth, async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
-
-
 
 // API: Update Device
 router.put("/devices/:id", checkValidClient, auth, async (req, res) => {
@@ -442,7 +465,7 @@ router.put("/devices/:id", checkValidClient, auth, async (req, res) => {
     if (!device_name && !location && !width && !height && !status) {
       return res.status(400).json({
         success: false,
-        message: "At least one field must be provided for update"
+        message: "At least one field must be provided for update",
       });
     }
 
@@ -456,32 +479,39 @@ router.put("/devices/:id", checkValidClient, auth, async (req, res) => {
       WHERE id = $6 AND client_id = $7
       RETURNING id, name, location, width, height, status, created_at
     `;
-    const values = [device_name || null, location || null, width || null, height || null, status || null, id, clientId];
+    const values = [
+      device_name || null,
+      location || null,
+      width || null,
+      height || null,
+      status || null,
+      id,
+      clientId,
+    ];
 
     const { rows } = await db.query(query, values);
 
     if (rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: "Device not found"
+        message: "Device not found",
       });
     }
 
     return res.status(200).json({
       success: true,
       message: "Device updated successfully",
-      data: rows[0]
+      data: rows[0],
     });
   } catch (error) {
     console.error("Error updating device:", error);
     return res.status(500).json({
       success: false,
       message: "Something went wrong while updating device",
-      error: error.message
+      error: error.message,
     });
   }
 });
-
 
 // API: Delete Device
 router.delete("/devices/:id", checkValidClient, auth, async (req, res) => {
@@ -499,21 +529,21 @@ router.delete("/devices/:id", checkValidClient, auth, async (req, res) => {
     if (rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: "Device not found or already deleted"
+        message: "Device not found or already deleted",
       });
     }
 
     return res.status(200).json({
       success: true,
       message: "Device deleted successfully",
-      data: rows[0]
+      data: rows[0],
     });
   } catch (error) {
     console.error("Error deleting device:", error);
     return res.status(500).json({
       success: false,
       message: "Something went wrong while deleting device",
-      error: error.message
+      error: error.message,
     });
   }
 });
@@ -535,7 +565,7 @@ router.get("/devices/:id/ads", checkValidClient, auth, async (req, res) => {
     if (deviceCheck.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: "Device not found"
+        message: "Device not found",
       });
     }
 
@@ -568,18 +598,17 @@ router.get("/devices/:id/ads", checkValidClient, auth, async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Ads fetched successfully",
-      data: rows
+      data: rows,
     });
   } catch (error) {
     console.error("Error fetching ads by device:", error);
     return res.status(500).json({
       success: false,
       message: "Something went wrong while fetching ads",
-      error: error.message
+      error: error.message,
     });
   }
 });
-
 
 // API: Get Ad Details
 router.get("/ads/:id", checkValidClient, auth, async (req, res) => {
@@ -601,25 +630,25 @@ router.get("/ads/:id", checkValidClient, auth, async (req, res) => {
     if (rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: "Ad not found"
+        message: "Ad not found",
       });
     }
 
     return res.status(200).json({
       success: true,
       message: "Ad details fetched successfully",
-      data: rows[0]
+      data: rows[0],
     });
   } catch (error) {
     console.error("Error fetching ad details:", error);
     return res.status(500).json({
       success: false,
       message: "Something went wrong while fetching ad details",
-      error: error.message
+      error: error.message,
     });
   }
 });
-router.post("/ads",checkValidClient, auth, async (req, res) => {
+router.post("/ads", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
     const { device_id, status, location, page = 1, limit = 10 } = req.body;
@@ -715,7 +744,9 @@ router.get("/users/:id/profile", checkValidClient, auth, async (req, res) => {
     const { rows: userRows } = await db.query(userQuery, [id, clientId]);
 
     if (userRows.length === 0) {
-      return res.status(404).json({ success: false, message: "User not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
 
     const user = userRows[0];
@@ -761,43 +792,50 @@ router.get("/users/:id/profile", checkValidClient, auth, async (req, res) => {
   }
 });
 // ✅ Toggle user active status
-router.patch("/users/:id/toggle-status", checkValidClient, auth, async (req, res) => {
-  try {
-    const clientId = req.client_id;
-    const { id } = req.params;
+router.patch(
+  "/users/:id/toggle-status",
+  checkValidClient,
+  auth,
+  async (req, res) => {
+    try {
+      const clientId = req.client_id;
+      const { id } = req.params;
 
-    // Fetch current status
-    const userCheck = await db.query(
-      `SELECT id, isactive FROM users WHERE id = $1 AND client_id = $2 LIMIT 1`,
-      [id, clientId]
-    );
-    if (userCheck.rows.length === 0)
-      return res.status(404).json({ success: false, message: "User not found" });
+      // Fetch current status
+      const userCheck = await db.query(
+        `SELECT id, isactive FROM users WHERE id = $1 AND client_id = $2 LIMIT 1`,
+        [id, clientId]
+      );
+      if (userCheck.rows.length === 0)
+        return res
+          .status(404)
+          .json({ success: false, message: "User not found" });
 
-    const isActive = userCheck.rows[0].isactive;
+      const isActive = userCheck.rows[0].isactive;
 
-    // Toggle it
-    const updated = await db.query(
-      `UPDATE users SET isactive = ${!isActive} WHERE id = $1 RETURNING id, name, email, isactive`,
-      [id]
-    );
+      // Toggle it
+      const updated = await db.query(
+        `UPDATE users SET isactive = ${!isActive} WHERE id = $1 RETURNING id, name, email, isactive`,
+        [id]
+      );
 
-    const newStatus = updated.rows[0].isactive ? "activated" : "deactivated";
+      const newStatus = updated.rows[0].isactive ? "activated" : "deactivated";
 
-    return res.status(200).json({
-      success: true,
-      message: `User ${newStatus} successfully`,
-      data: updated.rows[0],
-    });
-  } catch (error) {
-    console.error("Error toggling user status:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Something went wrong while toggling user status",
-      error: error.message,
-    });
+      return res.status(200).json({
+        success: true,
+        message: `User ${newStatus} successfully`,
+        data: updated.rows[0],
+      });
+    } catch (error) {
+      console.error("Error toggling user status:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Something went wrong while toggling user status",
+        error: error.message,
+      });
+    }
   }
-});
+);
 
 router.post("/users", checkValidClient, auth, async (req, res) => {
   try {
@@ -824,7 +862,12 @@ router.post("/users", checkValidClient, auth, async (req, res) => {
       ORDER BY created_at DESC
       LIMIT $3 OFFSET $4
     `;
-    const { rows } = await db.query(query, [clientId, searchPattern, limit, offset]);
+    const { rows } = await db.query(query, [
+      clientId,
+      searchPattern,
+      limit,
+      offset,
+    ]);
 
     const countQuery = `
       SELECT COUNT(*) AS total
@@ -833,7 +876,10 @@ router.post("/users", checkValidClient, auth, async (req, res) => {
         AND role = 'advertiser'
         AND ($2 = '%%' OR name ILIKE $2 OR email ILIKE $2 OR mobile_number ILIKE $2)
     `;
-    const { rows: countRows } = await db.query(countQuery, [clientId, searchPattern]);
+    const { rows: countRows } = await db.query(countQuery, [
+      clientId,
+      searchPattern,
+    ]);
 
     return res.status(200).json({
       success: true,
@@ -845,20 +891,18 @@ router.post("/users", checkValidClient, auth, async (req, res) => {
         limit: Number(limit),
         totalPages: Math.ceil(Number(countRows[0].total) / limit),
         hasNext: page * limit < Number(countRows[0].total),
-        hasPrev: page > 1
-      }
+        hasPrev: page > 1,
+      },
     });
   } catch (error) {
     console.error("Error fetching users:", error);
     return res.status(500).json({
       success: false,
       message: "Something went wrong while fetching users",
-      error: error.message
+      error: error.message,
     });
   }
 });
-
-
 
 // make sure you have a helper function to delete files from Firebase
 router.delete("/ads/:id", checkValidClient, auth, async (req, res) => {
@@ -878,10 +922,10 @@ router.delete("/ads/:id", checkValidClient, auth, async (req, res) => {
     if (adRows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: "Ad not found"
+        message: "Ad not found",
       });
     }
-      
+
     const ad = adRows[0];
 
     // Step 2: Delete ad from DB
@@ -903,7 +947,10 @@ router.delete("/ads/:id", checkValidClient, auth, async (req, res) => {
       try {
         await deleteFileFromStorage(ad.filename);
       } catch (firebaseError) {
-        console.error("Error deleting file from Firebase:", firebaseError.message);
+        console.error(
+          "Error deleting file from Firebase:",
+          firebaseError.message
+        );
         // Don't fail the whole API, just log error
       }
     }
@@ -911,14 +958,14 @@ router.delete("/ads/:id", checkValidClient, auth, async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Ad deleted successfully",
-      data: rows[0]
+      data: rows[0],
     });
   } catch (error) {
     console.error("Error deleting ad:", error);
     return res.status(500).json({
       success: false,
       message: "Something went wrong while deleting ad",
-      error: error.message
+      error: error.message,
     });
   }
 });
@@ -969,24 +1016,28 @@ router.get("/review/pending", checkValidClient, auth, async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Pending review ads fetched successfully",
-      data: rows
+      data: rows,
     });
   } catch (error) {
     console.error("Error fetching pending review ads:", error);
     return res.status(500).json({
       success: false,
       message: "Something went wrong while fetching pending ads",
-      error: error.message
+      error: error.message,
     });
   }
 });
 // Approve Ad (per device)
-router.patch("/review/:adId/devices/:deviceId/approve", checkValidClient, auth, async (req, res) => {
-  try {
-    const clientId = req.client_id;
-    const { adId, deviceId } = req.params;
+router.patch(
+  "/review/:adId/devices/:deviceId/approve",
+  checkValidClient,
+  auth,
+  async (req, res) => {
+    try {
+      const clientId = req.client_id;
+      const { adId, deviceId } = req.params;
 
-    const query = `
+      const query = `
       UPDATE ad_devices ad
       SET status = 'Active',
           status_updated_at = NOW()
@@ -998,43 +1049,50 @@ router.patch("/review/:adId/devices/:deviceId/approve", checkValidClient, auth, 
         AND ad.status = 'in_review'
       RETURNING ad.ad_id, ad.device_id, ad.status, ad.status_updated_at
     `;
-    const { rows } = await db.query(query, [adId, deviceId, clientId]);
+      const { rows } = await db.query(query, [adId, deviceId, clientId]);
 
-    if (rows.length === 0) {
-      return res.status(400).json({
+      if (rows.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Ad not found for this device, not in review, or not authorized",
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: "Ad approved successfully",
+        data: rows[0],
+      });
+    } catch (error) {
+      console.error("Error approving ad:", error);
+      return res.status(500).json({
         success: false,
-        message: "Ad not found for this device, not in review, or not authorized"
+        message: "Something went wrong while approving ad",
+        error: error.message,
       });
     }
-
-    return res.status(200).json({
-      success: true,
-      message: "Ad approved successfully",
-      data: rows[0]
-    });
-  } catch (error) {
-    console.error("Error approving ad:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Something went wrong while approving ad",
-      error: error.message
-    });
   }
-});
-
+);
 
 // Reject Ad (per device)
-router.patch("/review/:adId/devices/:deviceId/reject", checkValidClient, auth, async (req, res) => {
-  try {
-    const clientId = req.client_id;
-    const { adId, deviceId } = req.params;
-    const { reason } = req.body;
+router.patch(
+  "/review/:adId/devices/:deviceId/reject",
+  checkValidClient,
+  auth,
+  async (req, res) => {
+    try {
+      const clientId = req.client_id;
+      const { adId, deviceId } = req.params;
+      const { reason } = req.body;
 
-    if (!reason) {
-      return res.status(400).json({ success: false, message: "Rejection reason is required" });
-    }
+      if (!reason) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Rejection reason is required" });
+      }
 
-    const query = `
+      const query = `
       UPDATE ad_devices ad
       SET status = 'Rejected',
           status_updated_at = NOW(),
@@ -1047,38 +1105,48 @@ router.patch("/review/:adId/devices/:deviceId/reject", checkValidClient, auth, a
         AND ad.status = 'in_review'
       RETURNING ad.ad_id, ad.device_id, ad.status, ad.rejection_reason, ad.status_updated_at
     `;
-    const { rows } = await db.query(query, [reason, adId, deviceId, clientId]);
+      const { rows } = await db.query(query, [
+        reason,
+        adId,
+        deviceId,
+        clientId,
+      ]);
 
-    if (rows.length === 0) {
-      return res.status(400).json({
+      if (rows.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Ad not found for this device, not in review, or not authorized",
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: "Ad rejected successfully",
+        data: rows[0],
+      });
+    } catch (error) {
+      console.error("Error rejecting ad:", error);
+      return res.status(500).json({
         success: false,
-        message: "Ad not found for this device, not in review, or not authorized"
+        message: "Something went wrong while rejecting ad",
+        error: error.message,
       });
     }
-
-    return res.status(200).json({
-      success: true,
-      message: "Ad rejected successfully",
-      data: rows[0]
-    });
-  } catch (error) {
-    console.error("Error rejecting ad:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Something went wrong while rejecting ad",
-      error: error.message
-    });
   }
-});
-
+);
 
 // Pause Ad (per device)
-router.patch("/review/:adId/devices/:deviceId/pause", checkValidClient, auth, async (req, res) => {
-  try {
-    const clientId = req.client_id;
-    const { adId, deviceId } = req.params;
+router.patch(
+  "/review/:adId/devices/:deviceId/pause",
+  checkValidClient,
+  auth,
+  async (req, res) => {
+    try {
+      const clientId = req.client_id;
+      const { adId, deviceId } = req.params;
 
-    const query = `
+      const query = `
       UPDATE ad_devices ad
       SET status = 'Paused',
           status_updated_at = NOW()
@@ -1089,38 +1157,42 @@ router.patch("/review/:adId/devices/:deviceId/pause", checkValidClient, auth, as
         AND a.client_id = $3
       RETURNING ad.ad_id, ad.device_id, ad.status, ad.status_updated_at
     `;
-    const { rows } = await db.query(query, [adId, deviceId, clientId]);
+      const { rows } = await db.query(query, [adId, deviceId, clientId]);
 
-    if (rows.length === 0) {
-      return res.status(404).json({
+      if (rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: "Ad not found or not authorized for this device",
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: "Ad paused successfully",
+        data: rows[0],
+      });
+    } catch (error) {
+      console.error("Error pausing ad:", error);
+      return res.status(500).json({
         success: false,
-        message: "Ad not found or not authorized for this device"
+        message: "Something went wrong while pausing ad",
+        error: error.message,
       });
     }
-
-    return res.status(200).json({
-      success: true,
-      message: "Ad paused successfully",
-      data: rows[0]
-    });
-  } catch (error) {
-    console.error("Error pausing ad:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Something went wrong while pausing ad",
-      error: error.message
-    });
   }
-});
-
+);
 
 // Resume Ad (per device)
-router.patch("/review/:adId/devices/:deviceId/resume", checkValidClient, auth, async (req, res) => {
-  try {
-    const clientId = req.client_id;
-    const { adId, deviceId } = req.params;
+router.patch(
+  "/review/:adId/devices/:deviceId/resume",
+  checkValidClient,
+  auth,
+  async (req, res) => {
+    try {
+      const clientId = req.client_id;
+      const { adId, deviceId } = req.params;
 
-    const query = `
+      const query = `
       UPDATE ad_devices ad
       SET status = 'Active',
           status_updated_at = NOW()
@@ -1130,29 +1202,29 @@ router.patch("/review/:adId/devices/:deviceId/resume", checkValidClient, auth, a
         AND ad.device_id = $2
         AND a.client_id = $3
       RETURNING ad.ad_id, ad.device_id, ad.status, ad.status_updated_at`;
-    const { rows } = await db.query(query, [adId, deviceId, clientId]);
+      const { rows } = await db.query(query, [adId, deviceId, clientId]);
 
-    if (rows.length === 0) {
-      return res.status(404).json({
+      if (rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: "Ad not found or not authorized for this device",
+        });
+      }
+      return res.status(200).json({
+        success: true,
+        message: "Ad resumed successfully",
+        data: rows[0],
+      });
+    } catch (error) {
+      console.error("Error resuming ad:", error);
+      return res.status(500).json({
         success: false,
-        message: "Ad not found or not authorized for this device"
+        message: "Something went wrong while resuming ad",
+        error: error.message,
       });
     }
-    return res.status(200).json({
-      success: true,
-      message: "Ad resumed successfully",
-      data: rows[0]
-    });
-  } catch (error) {
-    console.error("Error resuming ad:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Something went wrong while resuming ad",
-      error: error.message
-    });
   }
-});
-
+);
 
 // in adminApis.js / advertiserApis.js (wherever you have company-ads route)
 router.post(
@@ -1162,7 +1234,9 @@ router.post(
   (req, res, next) => {
     const ct = req.headers["content-type"] || "";
     if (!ct.includes("multipart/form-data")) {
-      return res.status(400).json({ error: "Content-Type must be multipart/form-data" });
+      return res
+        .status(400)
+        .json({ error: "Content-Type must be multipart/form-data" });
     }
     next();
   },
@@ -1210,7 +1284,10 @@ router.post(
               try {
                 return JSON.parse(v);
               } catch {
-                return v.split(",").map((s) => s.trim()).filter(Boolean);
+                return v
+                  .split(",")
+                  .map((s) => s.trim())
+                  .filter(Boolean);
               }
             }
             return [v];
@@ -1269,14 +1346,19 @@ router.post(
       const fileUpload = bucket.file(filename);
       const uuid = uuidv4();
       const blobStream = fileUpload.createWriteStream({
-        metadata: { contentType: file.mimetype, metadata: { firebaseStorageDownloadTokens: uuid } },
+        metadata: {
+          contentType: file.mimetype,
+          metadata: { firebaseStorageDownloadTokens: uuid },
+        },
         resumable: false,
       });
 
       const uploadPromise = new Promise((resolve, reject) => {
         blobStream.on("error", (err) => reject(err));
         blobStream.on("finish", () => {
-          const url = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileUpload.name)}?alt=media&token=${uuid}`;
+          const url = `https://firebasestorage.googleapis.com/v0/b/${
+            bucket.name
+          }/o/${encodeURIComponent(fileUpload.name)}?alt=media&token=${uuid}`;
           resolve({ url, filename });
         });
         blobStream.end(file.buffer);
@@ -1341,14 +1423,22 @@ router.post(
         });
       } catch (txErr) {
         console.error("DB tx error:", txErr);
-        try { await db.query("ROLLBACK"); } catch(_) {}
+        try {
+          await db.query("ROLLBACK");
+        } catch (_) {}
         // delete firebase file
-        try { await bucket.file(uploaded.filename).delete(); } catch(_) {}
-        return res.status(500).json({ error: "database_error", detail: txErr.message });
+        try {
+          await bucket.file(uploaded.filename).delete();
+        } catch (_) {}
+        return res
+          .status(500)
+          .json({ error: "database_error", detail: txErr.message });
       }
     } catch (err) {
       console.error("Unexpected error in /company-ads/create:", err);
-      return res.status(500).json({ error: "server_error", detail: err.message });
+      return res
+        .status(500)
+        .json({ error: "server_error", detail: err.message });
     }
   }
 );
@@ -1372,17 +1462,22 @@ router.delete("/company-ads/:id", checkValidClient, auth, async (req, res) => {
     if (adCheck.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: "Company ad not found or not authorized"
+        message: "Company ad not found or not authorized",
       });
     }
 
     const ad = adCheck.rows[0];
 
     // Step 2: Delete device mappings
-    await db.query(`DELETE FROM company_ad_devices WHERE company_ad_id = $1`, [id]);
+    await db.query(`DELETE FROM company_ad_devices WHERE company_ad_id = $1`, [
+      id,
+    ]);
 
     // Step 3: Delete company ad row
-    await db.query(`DELETE FROM company_ads WHERE id = $1 AND client_id = $2`, [id, clientId]);
+    await db.query(`DELETE FROM company_ads WHERE id = $1 AND client_id = $2`, [
+      id,
+      clientId,
+    ]);
 
     // Step 4: Delete file from Firebase (if exists)
     if (ad.filename) {
@@ -1402,14 +1497,32 @@ router.delete("/company-ads/:id", checkValidClient, auth, async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Company ad deleted successfully",
-      deleted_id: id
+      deleted_id: id,
     });
   } catch (error) {
     console.error("Error deleting company ad:", error);
     return res.status(500).json({
       success: false,
       message: "Something went wrong while deleting company ad",
-      error: error.message
+      error: error.message,
+    });
+  }
+});
+router.get("/my-status", checkValidClient, auth, async (req, res) => {
+  const query = `select subscription_status from clients where id=$1`;
+  try {
+    const { rows } = await db.query(query, [req.client_id]);
+
+    res.status(200).json({
+      success: true,
+      message: "Client status fetched successfully",
+      clientStatus: rows[0].subscription_status,
+    });
+  } catch (e) {
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong while fetching client status",
+      error: error.message,
     });
   }
 });
@@ -1417,11 +1530,20 @@ router.post("/use-wallet", checkValidClient, auth, async (req, res) => {
   try {
     const client_id = req.client_id;
     const { plan_id } = req.body;
-    if (!plan_id) return res.status(400).json({ success: false, message: "plan_id required" });
+    if (!plan_id)
+      return res
+        .status(400)
+        .json({ success: false, message: "plan_id required" });
 
     // fetch plan
-    const planRes = await db.query(`SELECT * FROM subscription_plans WHERE id=$1`, [plan_id]);
-    if (planRes.rows.length === 0) return res.status(404).json({ success: false, message: "Plan not found" });
+    const planRes = await db.query(
+      `SELECT * FROM subscription_plans WHERE id=$1`,
+      [plan_id]
+    );
+    if (planRes.rows.length === 0)
+      return res
+        .status(404)
+        .json({ success: false, message: "Plan not found" });
     const plan = planRes.rows[0];
     const newPlanPrice = Number(plan.amount || 0);
 
@@ -1439,17 +1561,31 @@ router.post("/use-wallet", checkValidClient, auth, async (req, res) => {
 
     // compute credit
     const now = new Date();
-    const MS_PER_DAY = 1000*60*60*24;
+    const MS_PER_DAY = 1000 * 60 * 60 * 24;
     let credit = 0;
-    if (existingSub && existingSub.current_period_end && new Date(existingSub.current_period_end) > now) {
+    if (
+      existingSub &&
+      existingSub.current_period_end &&
+      new Date(existingSub.current_period_end) > now
+    ) {
       const endDate = new Date(existingSub.current_period_end);
-      const startDate = existingSub.current_period_start ? new Date(existingSub.current_period_start) : null;
-      let totalPeriodDays = (existingSub.old_plan_period||'').toLowerCase().startsWith('month') ? 28 : Math.ceil((endDate.getTime()-startDate.getTime())/MS_PER_DAY) || 1;
+      const startDate = existingSub.current_period_start
+        ? new Date(existingSub.current_period_start)
+        : null;
+      let totalPeriodDays = (existingSub.old_plan_period || "")
+        .toLowerCase()
+        .startsWith("month")
+        ? 28
+        : Math.ceil((endDate.getTime() - startDate.getTime()) / MS_PER_DAY) ||
+          1;
       const remainingMs = endDate.getTime() - now.getTime();
-      const days_remaining = remainingMs>0 ? Math.ceil(remainingMs/MS_PER_DAY) : 0;
+      const days_remaining =
+        remainingMs > 0 ? Math.ceil(remainingMs / MS_PER_DAY) : 0;
       const oldPlanAmount = Number(existingSub.old_plan_amount || 0);
       const dailyRate = oldPlanAmount / totalPeriodDays;
-      credit = Number(Math.min(dailyRate * days_remaining, oldPlanAmount).toFixed(2));
+      credit = Number(
+        Math.min(dailyRate * days_remaining, oldPlanAmount).toFixed(2)
+      );
     }
 
     let payable = Number((newPlanPrice - credit).toFixed(2));
@@ -1460,23 +1596,32 @@ router.post("/use-wallet", checkValidClient, auth, async (req, res) => {
     const available = wallet.available || wallet.balance || 0;
 
     if (available < payable) {
-      return res.status(400).json({ success: false, message: "Insufficient wallet balance", payable, available });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Insufficient wallet balance",
+          payable,
+          available,
+        });
     }
 
     // Debit wallet and create subscription in same atomic flow
     try {
-      await db.query('BEGIN');
+      await db.query("BEGIN");
       // debit wallet
       const up = await upsertWallet(client_id, -Number(payable), {
-        reference_type: 'use_wallet',
+        reference_type: "use_wallet",
         reference_id: null,
         description: `Wallet debit for switching to plan ${plan.name}`,
-        idempotency_key: `use_wallet_${client_id}_${plan_id}_${Date.now()}`
+        idempotency_key: `use_wallet_${client_id}_${plan_id}_${Date.now()}`,
       });
 
       if (up.error) {
-        await db.query('ROLLBACK');
-        return res.status(400).json({ success: false, message: "Insufficient funds" });
+        await db.query("ROLLBACK");
+        return res
+          .status(400)
+          .json({ success: false, message: "Insufficient funds" });
       }
 
       // create subscription row
@@ -1484,38 +1629,56 @@ router.post("/use-wallet", checkValidClient, auth, async (req, res) => {
       const endDate = new Date();
       const period = (plan.period || "").toLowerCase();
       if (period.startsWith("week")) endDate.setDate(endDate.getDate() + 7);
-      else if (period.startsWith("month")) endDate.setDate(endDate.getDate() + 28);
-      else if (period.startsWith("quarter")) endDate.setMonth(endDate.getMonth() + 3);
-      else if (period.startsWith("year")) endDate.setFullYear(endDate.getFullYear() + 1);
+      else if (period.startsWith("month"))
+        endDate.setDate(endDate.getDate() + 28);
+      else if (period.startsWith("quarter"))
+        endDate.setMonth(endDate.getMonth() + 3);
+      else if (period.startsWith("year"))
+        endDate.setFullYear(endDate.getFullYear() + 1);
       else endDate.setDate(endDate.getDate() + 28);
 
-      const ins = await db.query(`INSERT INTO client_subscriptions (client_id, plan_id, status, current_period_start, current_period_end, created_at, updated_at)
-        VALUES ($1,$2,'active',$3,$4,NOW(),NOW()) RETURNING *`, [client_id, plan_id, startDate, endDate]);
+      const ins = await db.query(
+        `INSERT INTO client_subscriptions (client_id, plan_id, status, current_period_start, current_period_end, created_at, updated_at)
+        VALUES ($1,$2,'active',$3,$4,NOW(),NOW()) RETURNING *`,
+        [client_id, plan_id, startDate, endDate]
+      );
 
       // record a payments row marking wallet used
-      const payIns = await db.query(`INSERT INTO payments (client_id, plan_id, amount, total_amount, status, transaction_id, receipt, razorpay_order_id, wallet_applied, created_at)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,NOW()) RETURNING *`, [
+      const payIns = await db.query(
+        `INSERT INTO payments (client_id, plan_id, amount, total_amount, status, transaction_id, receipt, razorpay_order_id, wallet_applied, created_at)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,NOW()) RETURNING *`,
+        [
           client_id,
           plan_id,
           toPaise(payable),
           toPaise(payable),
-          'PAID',
+          "PAID",
           `WALLET-${uuidv4()}`,
           `rcpt_wallet_${Date.now()}`,
           `wallet_${Date.now()}`,
-          Number(payable)
-      ]);
+          Number(payable),
+        ]
+      );
 
-      await db.query('COMMIT');
-      return res.json({ success: true, subscription: ins.rows[0], wallet: { balance: up.balance_after } });
+      await db.query("COMMIT");
+      return res.json({
+        success: true,
+        subscription: ins.rows[0],
+        wallet: { balance: up.balance_after },
+      });
     } catch (err) {
-      await db.query('ROLLBACK');
+      await db.query("ROLLBACK");
       throw err;
-    }   
-
+    }
   } catch (err) {
     console.error("use-wallet error:", err);
-    return res.status(500).json({ success: false, message: "failed_use_wallet", detail: err.message });
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: "failed_use_wallet",
+        detail: err.message,
+      });
   }
 });
 function toPaise(amountRupee) {
@@ -1537,7 +1700,9 @@ async function createWalletTransaction(txClient, payload) {
   // If idempotency_key provided, try to return existing txn
   if (idempotency_key) {
     const checkQ = `SELECT * FROM wallet_transactions WHERE idempotency_key = $1 LIMIT 1`;
-    const check = txClient ? await txClient.query(checkQ, [idempotency_key]) : await db.query(checkQ, [idempotency_key]);
+    const check = txClient
+      ? await txClient.query(checkQ, [idempotency_key])
+      : await db.query(checkQ, [idempotency_key]);
     if (check.rows.length) return check.rows[0];
   }
 
@@ -1549,9 +1714,22 @@ async function createWalletTransaction(txClient, payload) {
     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW())
     RETURNING *
   `;
-  const vals = [id, client_id, amount, tr_type, balance_after, description, reference_type, reference_id, idempotency_key, created_by];
+  const vals = [
+    id,
+    client_id,
+    amount,
+    tr_type,
+    balance_after,
+    description,
+    reference_type,
+    reference_id,
+    idempotency_key,
+    created_by,
+  ];
 
-  const inserted = txClient ? await txClient.query(insertQ, vals) : await db.query(insertQ, vals);
+  const inserted = txClient
+    ? await txClient.query(insertQ, vals)
+    : await db.query(insertQ, vals);
   return inserted.rows[0];
 }
 async function getWalletBalance(client_id) {
@@ -1569,12 +1747,21 @@ async function upsertWallet(client_id, delta_amount, options = {}) {
     await db.query("BEGIN");
 
     // ensure a wallet row exists; lock it
-    let sel = await db.query(`SELECT id, balance FROM client_wallets WHERE client_id=$1 FOR UPDATE`, [client_id]);
+    let sel = await db.query(
+      `SELECT id, balance FROM client_wallets WHERE client_id=$1 FOR UPDATE`,
+      [client_id]
+    );
     if (sel.rows.length === 0) {
       // create
       const wid = uuidV4();
-      await db.query(`INSERT INTO client_wallets (id, client_id, balance, updated_at) VALUES ($1,$2,$3,NOW())`, [wid, client_id, 0.0]);
-      sel = await db.query(`SELECT id, balance FROM client_wallets WHERE client_id=$1 FOR UPDATE`, [client_id]);
+      await db.query(
+        `INSERT INTO client_wallets (id, client_id, balance, updated_at) VALUES ($1,$2,$3,NOW())`,
+        [wid, client_id, 0.0]
+      );
+      sel = await db.query(
+        `SELECT id, balance FROM client_wallets WHERE client_id=$1 FOR UPDATE`,
+        [client_id]
+      );
     }
 
     const current = sel.rows[0];
@@ -1595,16 +1782,24 @@ async function upsertWallet(client_id, delta_amount, options = {}) {
       );
       if (exist.rows.length) {
         await db.query("COMMIT");
-        return { balance_after: exist.rows[0].balance_after, txn: exist.rows[0] };
+        return {
+          balance_after: exist.rows[0].balance_after,
+          txn: exist.rows[0],
+        };
       }
     }
 
     // update wallet
-    await db.query(`UPDATE client_wallets SET balance=$1, updated_at=NOW() WHERE client_id=$2`, [newAmount, client_id]);
+    await db.query(
+      `UPDATE client_wallets SET balance=$1, updated_at=NOW() WHERE client_id=$2`,
+      [newAmount, client_id]
+    );
 
     // insert wallet transaction
     const tr_type = Number(delta_amount) >= 0 ? "credit" : "debit";
-    const desc = options.description || (tr_type === "credit" ? "Wallet credit" : "Wallet debit");
+    const desc =
+      options.description ||
+      (tr_type === "credit" ? "Wallet credit" : "Wallet debit");
 
     const txn = await createWalletTransaction(db, {
       client_id,
@@ -1623,12 +1818,8 @@ async function upsertWallet(client_id, delta_amount, options = {}) {
   } catch (err) {
     await db.query("ROLLBACK");
     throw err;
-  } 
+  }
 }
-
-
-
-
 
 // router.js
 router.get("/reports/ads", checkValidClient, auth, async (req, res) => {
@@ -1651,14 +1842,14 @@ router.get("/reports/ads", checkValidClient, auth, async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Ad analytics fetched successfully",
-      data: rows[0]
+      data: rows[0],
     });
   } catch (error) {
     console.error("Error fetching ad analytics:", error);
     return res.status(500).json({
       success: false,
       message: "Something went wrong while fetching ad analytics",
-      error: error.message
+      error: error.message,
     });
   }
 });
@@ -1724,39 +1915,43 @@ router.get("/recent-activity", checkValidClient, auth, async (req, res) => {
     return res.json({
       success: true,
       message: "Recent activity fetched successfully",
-      data: rows
+      data: rows,
     });
   } catch (error) {
     console.error("Error fetching recent activity:", error);
     return res.status(500).json({
       success: false,
       message: "Something went wrong while fetching recent activity",
-      error: error.message
+      error: error.message,
     });
   }
 });
 // ===============================
 // Get Company Ads by Device
 // ===============================
-router.get("/company-ads/devices/:deviceId", checkValidClient, auth, async (req, res) => {
-  try {
-    const clientId = req.client_id;
-    const { deviceId } = req.params;
+router.get(
+  "/company-ads/devices/:deviceId",
+  checkValidClient,
+  auth,
+  async (req, res) => {
+    try {
+      const clientId = req.client_id;
+      const { deviceId } = req.params;
 
-    // ✅ Step 1: Verify device belongs to this client
-    const deviceCheck = await db.query(
-      `SELECT id, name FROM devices WHERE id = $1 AND client_id = $2 LIMIT 1`,
-      [deviceId, clientId]
-    );
-    if (deviceCheck.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "Device not found or not authorized"
-      });
-    }
+      // ✅ Step 1: Verify device belongs to this client
+      const deviceCheck = await db.query(
+        `SELECT id, name FROM devices WHERE id = $1 AND client_id = $2 LIMIT 1`,
+        [deviceId, clientId]
+      );
+      if (deviceCheck.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: "Device not found or not authorized",
+        });
+      }
 
-    // ✅ Step 2: Fetch company ads linked to this device
-    const query = `
+      // ✅ Step 2: Fetch company ads linked to this device
+      const query = `
       SELECT 
         ca.id AS company_ad_id,
         ca.title,
@@ -1777,22 +1972,23 @@ router.get("/company-ads/devices/:deviceId", checkValidClient, auth, async (req,
       WHERE cad.device_id = $1 AND ca.client_id = $2
       ORDER BY ca.created_at DESC
     `;
-    const { rows } = await db.query(query, [deviceId, clientId]);
+      const { rows } = await db.query(query, [deviceId, clientId]);
 
-    return res.status(200).json({
-      success: true,
-      message: "Company ads for device fetched successfully",
-      data: rows
-    });
-  } catch (error) {
-    console.error("Error fetching company ads by device:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Something went wrong while fetching company ads",
-      error: error.message
-    });
+      return res.status(200).json({
+        success: true,
+        message: "Company ads for device fetched successfully",
+        data: rows,
+      });
+    } catch (error) {
+      console.error("Error fetching company ads by device:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Something went wrong while fetching company ads",
+        error: error.message,
+      });
+    }
   }
-});
+);
 
 // DELETE /admin/company-ads/:id
 router.delete("/company-ads/:id", checkValidClient, auth, async (req, res) => {
@@ -1819,7 +2015,9 @@ router.delete("/company-ads/:id", checkValidClient, auth, async (req, res) => {
     const ad = adRows[0];
 
     // Step 2: Delete mappings from company_ad_devices
-    await db.query(`DELETE FROM company_ad_devices WHERE company_ad_id = $1`, [id]);
+    await db.query(`DELETE FROM company_ad_devices WHERE company_ad_id = $1`, [
+      id,
+    ]);
 
     // Step 3: Delete from company_ads
     const deleteQuery = `
@@ -1854,9 +2052,6 @@ router.delete("/company-ads/:id", checkValidClient, auth, async (req, res) => {
   }
 });
 
-
-
-
 // API: Get Device Usage Report
 router.get("/analytics/devices", checkValidClient, auth, async (req, res) => {
   try {
@@ -1876,112 +2071,128 @@ router.get("/analytics/devices", checkValidClient, auth, async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Device usage report fetched successfully",
-      data: rows
+      data: rows,
     });
   } catch (error) {
     console.error("Error fetching device usage report:", error);
     return res.status(500).json({
       success: false,
       message: "Something went wrong while fetching device usage report",
-      error: error.message
+      error: error.message,
     });
   }
 });
 // ✅ Create Pricing Rule
-router.post("/create-pricing-rule", checkValidClient,auth, async (req, res) => {
-  try {
-    const { id, media_type, duration_seconds, base_price } = req.body;
-    const clientId = req.client_id;
+router.post(
+  "/create-pricing-rule",
+  checkValidClient,
+  auth,
+  async (req, res) => {
+    try {
+      const { id, media_type, duration_seconds, base_price } = req.body;
+      const clientId = req.client_id;
 
-    // Validation
-    if (!id || !media_type || !base_price) {
-      return res.status(400).json({
-        success: false,
-        message: "id, media_type, and price_per_day are required"
-      });
-    }
-    let finalDuration;
-    if(media_type=="image"){
-      finalDuration = (duration_seconds==undefined||duration_seconds==null)?5:duration_seconds
-    }else{
-      finalDuration = (duration_seconds==undefined||duration_seconds==null)?10:duration_seconds
-    }
-    const select =`select * from pricing_rules where client_id=$1 and media_type=$2`;
-    const {rows} = await db.query(select,[clientId,media_type])
-    if(rows.length>0){
-     return res.status(200).json({
-      success: false,
-      message: "Pricing rule already exists for selected media type ",
-    })
-    }
-    // Insert into DB
-    const result = await db.query(
-      `INSERT INTO pricing_rules (client_id, device_id, media_type, duration, price_per_day)
+      // Validation
+      if (!id || !media_type || !base_price) {
+        return res.status(400).json({
+          success: false,
+          message: "id, media_type, and price_per_day are required",
+        });
+      }
+      let finalDuration;
+      if (media_type == "image") {
+        finalDuration =
+          duration_seconds == undefined || duration_seconds == null
+            ? 5
+            : duration_seconds;
+      } else {
+        finalDuration =
+          duration_seconds == undefined || duration_seconds == null
+            ? 10
+            : duration_seconds;
+      }
+      const select = `select * from pricing_rules where client_id=$1 and media_type=$2`;
+      const { rows } = await db.query(select, [clientId, media_type]);
+      if (rows.length > 0) {
+        return res.status(200).json({
+          success: false,
+          message: "Pricing rule already exists for selected media type ",
+        });
+      }
+      // Insert into DB
+      const result = await db.query(
+        `INSERT INTO pricing_rules (client_id, device_id, media_type, duration, price_per_day)
        VALUES ($1, $2, $3, $4, $5)
        RETURNING id, device_id, media_type, duration, price_per_day, created_at`,
-      [clientId, id, media_type, duration_seconds || null, base_price]
-    );
+        [clientId, id, media_type, duration_seconds || null, base_price]
+      );
 
-    return res.status(201).json({
-      success: true,
-      message: "Pricing rule created successfully",
-      pricing_rule: result.rows[0]
-    });
-  } catch (error) {
-    console.error("Error creating pricing rule:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to create pricing rule",
-      error: error.message
-    });
-  }
-});
-
-// API 2: Update Pricing Rule
-router.put("/update-pricing-rule:id", checkValidClient,auth, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { base_price, media_type, duration_seconds, device_id } = req.body;
-    const clientId = req.client_id;
-
-    // Check if exists
-    const checkRes = await db.query(
-      `SELECT * FROM pricing_rules WHERE id = $1 AND client_id = $2`,
-      [id, clientId]
-    );
-    if (checkRes.rows.length === 0) {
-      return res.status(404).json({
+      return res.status(201).json({
+        success: true,
+        message: "Pricing rule created successfully",
+        pricing_rule: result.rows[0],
+      });
+    } catch (error) {
+      console.error("Error creating pricing rule:", error);
+      return res.status(500).json({
         success: false,
-        message: "pricing rule not found"
+        message: "Failed to create pricing rule",
+        error: error.message,
       });
     }
+  }
+);
 
-    // Update
-    const result = await db.query(
-      `UPDATE pricing_rules
+// API 2: Update Pricing Rule
+router.put(
+  "/update-pricing-rule:id",
+  checkValidClient,
+  auth,
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { base_price, media_type, duration_seconds, device_id } = req.body;
+      const clientId = req.client_id;
+
+      // Check if exists
+      const checkRes = await db.query(
+        `SELECT * FROM pricing_rules WHERE id = $1 AND client_id = $2`,
+        [id, clientId]
+      );
+      if (checkRes.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: "pricing rule not found",
+        });
+      }
+
+      // Update
+      const result = await db.query(
+        `UPDATE pricing_rules
        SET price_per_day = COALESCE($1, price_per_day),
            media_type = COALESCE($2, media_type),
            duration = COALESCE($3, duration),
            device_id = COALESCE($4, device_id),updated_at = NOW()
        WHERE id = $5 AND client_id = $6
        RETURNING id, device_id, media_type, duration, price_per_day, created_at,updated_at`,
-      [base_price, media_type, duration_seconds, device_id, id, clientId]
-    );
+        [base_price, media_type, duration_seconds, device_id, id, clientId]
+      );
 
-    return res.json({
-      success: true,
-      message: "Pricing rule updated successfully",
-      pricing_rule: result.rows[0]
-    });
-  } catch (error) {
-    console.error("Error updating pricing rule:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to update pricing rule",
-      error: error.message
-    });
+      return res.json({
+        success: true,
+        message: "Pricing rule updated successfully",
+        pricing_rule: result.rows[0],
+      });
+    } catch (error) {
+      console.error("Error updating pricing rule:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to update pricing rule",
+        error: error.message,
+      });
+    }
   }
-});
+);
 // API 3: Delete Pricing Rule
 router.delete("/delete-pricing-rule:id", checkValidClient, async (req, res) => {
   try {
@@ -1996,26 +2207,26 @@ router.delete("/delete-pricing-rule:id", checkValidClient, async (req, res) => {
     if (checkRes.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: "pricing rule not found"
+        message: "pricing rule not found",
       });
     }
 
     // Delete
-    await db.query(`DELETE FROM pricing_rules WHERE id = $1 AND client_id = $2`, [
-      id,
-      clientId
-    ]);
+    await db.query(
+      `DELETE FROM pricing_rules WHERE id = $1 AND client_id = $2`,
+      [id, clientId]
+    );
 
     return res.json({
       success: true,
-      message: "Pricing rule deleted successfully"
+      message: "Pricing rule deleted successfully",
     });
   } catch (error) {
     console.error("Error deleting pricing rule:", error);
     return res.status(500).json({
       success: false,
       message: "Failed to delete pricing rule",
-      error: error.message
+      error: error.message,
     });
   }
 });
@@ -2044,18 +2255,16 @@ router.get("/get-pricing-rules", checkValidClient, async (req, res) => {
 
     return res.json({
       success: true,
-      data: result.rows
+      data: result.rows,
     });
   } catch (error) {
     console.error("Error fetching pricing rules:", error);
     return res.status(500).json({
       success: false,
       message: "Failed to fetch pricing rules",
-      error: error.message
+      error: error.message,
     });
   }
 });
 
-
-
-module.exports=router
+module.exports = router;

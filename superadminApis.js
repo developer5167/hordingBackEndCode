@@ -216,7 +216,7 @@ router.post("/clients/:id/unblock", async (req, res) => {
 
   try {
     const result = await db.query(
-      `UPDATE clients SET subscription_status = 'active' WHERE id = $1`,
+      `UPDATE clients SET subscription_status = 'active' WHERE id = $1 RETURNING *`,
       [id]
     );
     res.json(result.rows[0]);
