@@ -434,8 +434,8 @@ router.post("/devices", checkValidClient, auth, async (req, res) => {
 
     // 4. Insert device
     const insertQ = `
-      INSERT INTO devices (client_id, name, location, width, height, status)
-      VALUES ($1,$2,$3,$4,$5,$6)
+      INSERT INTO devices (client_id, name, location, width, height, status,activation_code)
+      VALUES ($1,$2,$3,$4,$5,$6,$7)
       RETURNING *
     `;
     const values = [
@@ -444,7 +444,7 @@ router.post("/devices", checkValidClient, auth, async (req, res) => {
       location,
       width,
       height,
-      status || "active",
+      status || "active",generateActivationCode()
     ];
     const { rows } = await db.query(insertQ, values);
 
@@ -2268,3 +2268,12 @@ router.get("/get-pricing-rules", checkValidClient, async (req, res) => {
 });
 
 module.exports = router;
+function generateActivationCode() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  const bytes = crypto.randomBytes(6);
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += chars[bytes[i] % chars.length];
+  }
+  return code;
+}
