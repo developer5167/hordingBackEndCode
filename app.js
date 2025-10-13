@@ -4,7 +4,6 @@ const http = require("http");
 require('dotenv').config();
 const client = require("./db");
 const app = express();
-
 const cors = require("cors");
 const port = process.env.PORT || 4000;
 const webhook = require("./weebhook");
@@ -38,33 +37,55 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
   },
 });
-
-client.on("notification", async (msg) => {
-  if (msg.channel === "device_status_channel") {
-     console.log(msg.payload);
-    if (msg.payload.change_type === "status") {
-      io.to(msg.payload.device_id).emit("device_status_updated", msg.payload);
-    } else if (msg.payload.change_type === "emergency") {
-      io.to(msg.payload.device_id).emit("emergency_mode_updated", msg.payload);
-    }
-  } else if (msg.channel === "client_subscription_channel") {
-    console.log(msg.channel);
-    
-    
-    const { client_id, subscription_status } =msg. payload;
-    console.log(msg. payload);
-
-    // fetch all devices under this client
-    const devicesRes = await client.query(
-      `SELECT id FROM devices WHERE client_id = $1`,
-      [client_id]
-    );
-    // broadcast to all devices in that client's group
-    for (const row of devicesRes.rows) {
-      io.to(row.id).emit("subscription_status_updated", payload);
-    }
+io.use((socket, next) => {
+  try {
+    const token = socket.handshake.query.token;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    socket.device_id = decoded.device_id;
+    socket.client_id = decoded.client_id;
+    return next();
+  } catch (err) {
+    console.log("❌ Invalid device token");
+    return next(new Error("Unauthorized"));
   }
 });
+
+ client.on("notification", async (msg) => {
+    const channel = msg.channel;
+    const payload = JSON.parse(msg.payload);
+
+    switch (channel) {
+      // 🔔 DEVICE STATUS CHANGE (direct device update)
+      case "device_status_channel":
+        console.log("📡 Device status change:", payload);
+        io.to(payload.device_id).emit("device_status", payload);
+        break;
+
+      // 🔔 CLIENT SUBSCRIPTION CHANGE (affects all devices under client)
+      case "client_subscription_channel":
+        console.log("📦 Subscription changed:", payload);
+
+        const { client_id, subscription_status } = payload;
+
+        // Decide new status for devices
+        // const newDeviceStatus = subscription_status === "blocked" ? "paused" : "active";
+
+        // Update all device statuses — triggers will automatically notify device_status_channel
+        const updateQuery = `
+          UPDATE devices
+          SET status = $1
+          WHERE client_id = $2
+        `;
+        await client.query(updateQuery, [subscription_status, client_id]);
+
+        console.log(
+          `✅ Updated all devices for client ${client_id} to '${subscription_status}'`
+        );
+        // ⚠️ DO NOT emit manually here — triggers will handle per-device emits
+        break;
+    }
+  });
+
 
 client.query("LISTEN device_status_channel");
 client.query("LISTEN client_subscription_channel");

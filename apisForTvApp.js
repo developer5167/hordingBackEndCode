@@ -3,8 +3,9 @@ const {
   jsonwebtoken,
   db} = require("./deps");
 const checkValidClient = require("./middleware/checkValidClient");
+const deviceAuth = require("./middleware/deviceAuth");
 const router = express.Router();
-router.post("/ad-statistics", checkValidClient,async (req, res) => {
+router.post("/ad-statistics", deviceAuth,async (req, res) => {
   try {
     const { ad_id, device_id, duration_played, location } = req.body;
 
@@ -62,21 +63,35 @@ router.post("/activate", async (req, res) => {
 
     // Generate token
     const token = jsonwebtoken.sign(
-      { device_id: device.rows[0].id, staff_id: staff.rows[0].id },
+      { device_id: device.rows[0].id, client_id: device.rows[0].client_id },
       process.env.JWT_SECRET,
-  
     );
+    const baseUrl = `${req.protocol}://${req.get("host")}`;
 
     return res.json({
       success: true,
       message: "Device activated successfully",
       token,
+      device_id:device.rows[0].id,
+      baseUrl
     });
   } catch (err) {
     console.error("Activation error:", err);
     return res.status(500).json({ success: false, message: "Server error" });
   }
 });
+router.get("/ads", deviceAuth, async (req, res) => {
+  const { device_id } = req.query;
+  const ads = await db.query(
+    `SELECT a.id, a.title, a.media_url, a.media_type, ad.duration
+     FROM ad_devices ad
+     JOIN ads a ON a.id = ad.ad_id
+     WHERE ad.device_id = $1 AND ad.status='active'`,
+    [device_id]
+  );
+  res.json({ success: true, ads: ads.rows });
+});
+
 module.exports = router;
 
 
