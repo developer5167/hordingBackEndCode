@@ -125,13 +125,11 @@ router.get("/getWalletBalance", checkValidClient, auth, async (req, res) => {
   } catch (e) {
     console.log(e);
 
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Failed to fetch wallet balance",
-        detail: err.message,
-      });
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch wallet balance",
+      detail: err.message,
+    });
   }
 });
 // router.js
@@ -287,7 +285,6 @@ router.patch("/change-password", checkValidClient, auth, async (req, res) => {
   }
 });
 
-// router.js
 router.post("/logout", checkValidClient, auth, async (req, res) => {
   try {
     const adminId = req.user_id;
@@ -394,12 +391,10 @@ router.post("/devices", checkValidClient, auth, async (req, res) => {
     const { name, location, width, height, status } = req.body;
 
     if (!name || !location || !width || !height) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "name, location, width, height required",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "name, location, width, height required",
+      });
     }
 
     // 1. Get client's active subscription
@@ -444,7 +439,8 @@ router.post("/devices", checkValidClient, auth, async (req, res) => {
       location,
       width,
       height,
-      status || "active",generateActivationCode()
+      status || "active",
+      generateActivationCode(),
     ];
     const { rows } = await db.query(insertQ, values);
 
@@ -1596,14 +1592,12 @@ router.post("/use-wallet", checkValidClient, auth, async (req, res) => {
     const available = wallet.available || wallet.balance || 0;
 
     if (available < payable) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Insufficient wallet balance",
-          payable,
-          available,
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Insufficient wallet balance",
+        payable,
+        available,
+      });
     }
 
     // Debit wallet and create subscription in same atomic flow
@@ -1672,13 +1666,11 @@ router.post("/use-wallet", checkValidClient, auth, async (req, res) => {
     }
   } catch (err) {
     console.error("use-wallet error:", err);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: "failed_use_wallet",
-        detail: err.message,
-      });
+    return res.status(500).json({
+      success: false,
+      message: "failed_use_wallet",
+      detail: err.message,
+    });
   }
 });
 function toPaise(amountRupee) {
@@ -2269,9 +2261,9 @@ router.get("/get-pricing-rules", checkValidClient, async (req, res) => {
 
 module.exports = router;
 function generateActivationCode() {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   const bytes = crypto.randomBytes(6);
-  let code = '';
+  let code = "";
   for (let i = 0; i < 6; i++) {
     code += chars[bytes[i] % chars.length];
   }

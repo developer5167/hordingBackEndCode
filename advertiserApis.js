@@ -7,10 +7,12 @@ const {
   db,
   auth,
 } = require("./deps");
+const nodemailer = require("nodemailer");
 
 const { admin, fcm } = require("./firebaseAdmin");
 const bucket = admin.storage().bucket();
 const router = express.Router();
+const timers = {};
 
 const checkValidClient = require("./middleware/checkValidClient");
 // ----------------------
@@ -19,6 +21,121 @@ const checkValidClient = require("./middleware/checkValidClient");
 router.get("/", async (req, res) => {
   res.send("Welcome");
 });
+router.post("/send-otp", checkValidClient, async (req, res) => {
+  const { email } = req.body;
+  try {
+    if (!email)
+      return res.status(401).send({ message: "email id is required" });
+    const query = `select * from users where email = $1 and client_id=$2`;
+    const { rows } = await db.query(query, [email, req.client_id]);
+    if (rows.length == 0)
+      return res.status(401).send({ message: "invalid email" });
+    const fetchedEmailId = rows[0].email;
+    const isSent = await sendEmail(fetchedEmailId, req.client_id);
+    if (isSent) {
+      res
+        .status(200)
+        .send({ message: "OTP sent successfully to the registered email valid for 3 min" });
+    } else {
+      res.status(500).send({ message: "Failed to send OTP" });
+    }
+  } catch (e) {
+    res.status(500).send({ message: "Something went wrong" });
+  }
+});
+async function sendEmail(email, client_id) {
+  const OTP = Math.floor(100000 + Math.random() * 900000).toString();
+  const mailRequest = nodemailer.createTransport({
+    host: "smtpout.secureserver.net",
+    port: 465,
+    auth: {
+      user: "info@listnow.in",
+      pass: "Sam@#)*&&$$5167",
+    },
+  });
+  const mailingOptions = {
+    from: "info@listnow.in",
+    to: email,
+    subject: "Your OTP Code",
+    html: `<body style='background:#f2f2f2;text-align:center;border-top:5px solid #2D317D;width:100%;'><div style='padding:35px 50px;'><p style='font-weight:bold;'>Dear Customer, Your OTP to Login  is</p><h1 style='letter-spacing: 1.1rem;'> ${OTP} </h1><p style='font-weight:bold;'>OTP is valid for 3 minutes.</p><p style='font-weight:bold;'> Thank you</p></div><div style='background:#1b1f6d;padding:20px;'></div></body>`,
+  };
+  try {
+    const data = await mailRequest.sendMail(mailingOptions);
+    console.log(data);
+    const query = `insert into otp (email,otp,client_id) values($1,$2,$3)`;
+    await db.query(query, [email, OTP, client_id]);
+    countdown(3 * 60, email, client_id);
+    return true;
+  } catch (excemption) {
+    return false;
+  }
+}
+const countdown = (duration, email, client_id) => {
+  let remainingTime = duration; // Time in seconds
+  const timerInterval = setInterval(() => {
+    const minutes = Math.floor(remainingTime / 60);
+    const seconds = remainingTime % 60;
+
+    // Format time as MM:SS
+    const formattedTime = `${String(minutes).padStart(2, "0")}:${String(
+      seconds
+    ).padStart(2, "0")}`;
+    console.log(formattedTime);
+    remainingTime--;
+    // Stop the timer when it reaches 0
+    if (remainingTime < 0) {
+      deleteOtpFromDB(email, client_id);
+      clearInterval(timerInterval);
+      delete timers[timerInterval];
+      console.log("Time is up!");
+    }
+  }, 1000);
+  timers[email] = timerInterval;
+};
+const deleteOtpFromDB = async (email, client_id) => {
+  const query = "delete from otp where email =$1 and client_id = $2";
+  await client.query(query, [email, client_id]);
+  console.log("OTP DELETED");
+};
+router.post("/verify-otp", checkValidClient,async (req, res) => {
+  const { email, otp } = req.body;
+  if(!email||!otp)return res.status(400).send({"message":"email or otp is required"})
+  const query = `select otp from otp where email='${email}' and client_id ='${req.client_id}' order by created_at desc limit 1`;
+  console.log(email, otp);
+  try {
+    const result = await db.query(query);
+    console.log(result);
+    if (result.rows.length > 0) {
+      const DbOtp = result.rows[0]["otp"];
+      console.log(DbOtp, otp);
+      if (DbOtp === otp) {
+        const query = "delete from otp where email =$1 and client_id =$2";
+        await db.query(query, [email, req.client_id]);
+       clearInterval(timers[email]); // Cancel the timer
+      delete timers[email];
+        res.status(200).json({
+          message: "OTP Verified successfully",
+          email: email,
+          status: 201,
+        });
+      } else {
+        clearInterval(timers[email]); // Cancel the timer
+      delete timers[email];
+        res.status(500).json({ message: "Invalid OTP", status: 202 });
+      }
+    } else {
+      clearInterval(timers[email]); // Cancel the timer
+      delete timers[email]; 
+      res.status(500).json({ message: "Invalid OTP", status: 203 });
+    }
+  } catch (err) {
+    clearInterval(timers[email]); // Cancel the timer
+    delete timers[email];
+    console.log(err);
+    res.status(500).send({"message":"Something went wrong"});
+  }
+});
+
 // router.get("/ads/my", checkValidClient, auth, async (req, res) => {
 //   try {
 //     const userId = req.user_id; // set in auth middleware
@@ -984,7 +1101,6 @@ router.put("/profile", checkValidClient, auth, async (req, res) => {
 router.patch(
   "/profile/change-password",
   checkValidClient,
-  auth,
   async (req, res) => {
     try {
       const userId = req.user_id;
@@ -1684,6 +1800,7 @@ router.post(
         start_date,
         end_date,
         adId,
+        duration
       } = req.body || {};
 
       // selected_devices might come as JSON string or as repeated fields (array)
@@ -1772,14 +1889,15 @@ router.post(
         console.error("Upload failed:", err);
         return res.status(500).json({ error: "file_upload_failed" });
       }
+    duration=  duration==undefined?10:duration
       try {
         await db.query("BEGIN");
 
         const insertAdQuery = `
         INSERT INTO ads (
           id, client_id, user_id, title, description,
-          media_type, media_url, filename
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          media_type, media_url, filename,duration
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8,$9)
         ON CONFLICT (id) DO NOTHING
         RETURNING id
       `;
@@ -1792,6 +1910,7 @@ router.post(
           meme_type,
           uploaded.url,
           uploaded.filename,
+          duration
         ]);
         const finalAdId = adResult.rows.length > 0 ? adResult.rows[0].id : adId;
         const insertDeviceQuery = `

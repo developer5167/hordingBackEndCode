@@ -2,7 +2,6 @@ const {
   express,
   jsonwebtoken,
   db} = require("./deps");
-const checkValidClient = require("./middleware/checkValidClient");
 const deviceAuth = require("./middleware/deviceAuth");
 const router = express.Router();
 router.post("/ad-statistics", deviceAuth,async (req, res) => {

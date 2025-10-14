@@ -3599,3 +3599,10 @@
 2025-10-06 18:36:50.333 IST [2876] LOG:  background worker "logical replication launcher" (PID 2883) exited with exit code 1
 2025-10-06 18:36:50.334 IST [2878] LOG:  shutting down
 2025-10-06 18:36:50.349 IST [2876] LOG:  database system is shut down
+2025-10-14 14:29:54.760 IST [33082] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-10-14 14:29:54.763 IST [33082] LOG:  listening on IPv6 address "::1", port 5432
+2025-10-14 14:29:54.764 IST [33082] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-10-14 14:29:54.764 IST [33082] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-10-14 14:29:54.781 IST [33083] LOG:  database system was shut down at 2025-10-12 00:18:58 IST
+2025-10-14 14:29:54.788 IST [33082] LOG:  database system is ready to accept connections
+2025-10-14 14:30:00.168 IST [33136] FATAL:  role "postgres" does not exist
