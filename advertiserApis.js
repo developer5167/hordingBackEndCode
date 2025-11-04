@@ -1025,14 +1025,12 @@ router.get("/profile", checkValidClient, auth, async (req, res) => {
     `;
 
     const { rows } = await db.query(query, [userId, clientId]);
-
     if (rows.length === 0) {
       return res.status(404).json({
         success: false,
         message: "Profile not found",
       });
     }
-
     return res.status(200).json({
       success: true,
       message: "Profile fetched successfully",
@@ -1101,10 +1099,11 @@ router.put("/profile", checkValidClient, auth, async (req, res) => {
 router.patch(
   "/profile/change-password",
   checkValidClient,
+  auth,
   async (req, res) => {
     try {
-      const userId = req.user_id;
       const clientId = req.client_id;
+      const userId = req.user_id;
       const { old_password, new_password } = req.body;
 
       if (!old_password || !new_password) {
@@ -1155,6 +1154,80 @@ router.patch(
       RETURNING id, name, email, role, client_id
     `;
       const updatedUser = await db.query(updateQuery, [hashedPassword, userId]);
+
+      return res.status(200).json({
+        success: true,
+        message: "Password changed successfully",
+        data: updatedUser.rows[0],
+      });
+    } catch (error) {
+      console.error("Error changing password:", error);
+
+      return res.status(500).json({
+        success: false,
+        message: "Something went wrong while changing password.",
+        error: error.message,
+      });
+    }
+  }
+);
+
+router.patch(
+  "/profile/change-pass-without-auth",
+  checkValidClient,
+  async (req, res) => {
+    try {
+      const clientId = req.client_id;
+      const { old_password, new_password,email } = req.body;
+
+      if (!old_password || !new_password) {
+        return res.status(400).json({
+          success: false,
+          message: "Both old_password and new_password are required",
+        });
+      }
+
+      // Step 1: Get user
+      const userQuery = `
+      SELECT id, password_hash 
+      FROM users
+      WHERE email = $1 AND client_id = $2
+      LIMIT 1
+    `;
+      const { rows } = await db.query(userQuery, [email, clientId]);
+
+      if (rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: "User not found or you don't have access",
+        });
+      }
+
+      // const user = rows[0];
+
+      // Step 2: Check old password
+      // const validPassword = await bcrypt.compare(
+      //   old_password,
+      //   user.password_hash
+      // );
+      // if (!validPassword) {
+      //   return res.status(401).json({
+      //     success: false,
+      //     message: "Old password is incorrect",
+      //   });
+      // }
+
+      // Step 3: Hash new password
+      const hashedPassword = await bcrypt.hash(new_password, 8);
+
+      // Step 4: Update password
+      const updateQuery = `
+      UPDATE users
+      SET password_hash = $1
+      WHERE email = $2
+      RETURNING id, name, email, role, client_id
+    `;
+      const updatedUser = await db.query(updateQuery, [hashedPassword, email]);
 
       return res.status(200).json({
         success: true,
@@ -1800,7 +1873,7 @@ router.post(
         start_date,
         end_date,
         adId,
-        duration
+        duration = 10
       } = req.body || {};
 
       // selected_devices might come as JSON string or as repeated fields (array)
@@ -1889,15 +1962,15 @@ router.post(
         console.error("Upload failed:", err);
         return res.status(500).json({ error: "file_upload_failed" });
       }
-    duration=  duration==undefined?10:duration
+    // duration=  duration==undefined?10:duration
       try {
         await db.query("BEGIN");
 
         const insertAdQuery = `
         INSERT INTO ads (
           id, client_id, user_id, title, description,
-          media_type, media_url, filename,duration
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8,$9)
+          media_type, media_url, filename
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         ON CONFLICT (id) DO NOTHING
         RETURNING id
       `;
@@ -1910,7 +1983,6 @@ router.post(
           meme_type,
           uploaded.url,
           uploaded.filename,
-          duration
         ]);
         const finalAdId = adResult.rows.length > 0 ? adResult.rows[0].id : adId;
         const insertDeviceQuery = `
@@ -1943,6 +2015,7 @@ router.post(
           .json({ error: "database_error", detail: txErr.message });
       }
     } catch (err) {
+       
       console.error("Unexpected error in /ads/create:", err);
       return res
         .status(500)
@@ -2045,6 +2118,38 @@ router.get("/ads/:id/statistics",checkValidClient, auth, async (req, res) => {
     return res.status(500).json({ error: "Failed to fetch ad statistics" });
   }
 });
+
+router.get(
+  "/check-account-status",
+  checkValidClient,
+  auth,
+  async (req, res) => {
+    const clientId = req.client_id;
+
+    const checkClientStatus = `select id from clients where id = $1`;
+    const result = await db.query(checkClientStatus, [clientId]);
+    if (result.rowCount > 0) {
+      const subscriptionQuery = `select subscription_status from clients where id = $1`;
+      const subscriptionResult = await db.query(subscriptionQuery, [clientId]);
+      if (subscriptionResult.rows[0]["subscription_status"] === "blocked"||subscriptionResult.rows[0]["subscription_status"] === "suspended") {
+        return res.status(500).json({ message: "Account is "+subscriptionResult.rows[0]["subscription_status"] });
+      }
+      console.log(subscriptionResult.rows[0]["subscription_status"]);
+    } else {
+      return res.status(500).json({ message: "client not found" });
+    }
+    const userBlocked =`select isactive from users where id = $1`;
+    const userResult = await db.query(userBlocked, [req.user_id]);
+    if(userResult.rows[0]["isactive"]===false){
+      return res.status(500).json({ message: "User account is inactive" });
+    }
+    return res.status(200).json({ message: "Account is active" });
+  }
+);
+
+
+
+
 router.post("/signup", checkValidClient, async (req, res) => {
   try {
     const clientId =

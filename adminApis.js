@@ -409,7 +409,7 @@ router.post("/devices", checkValidClient, auth, async (req, res) => {
     const subRes = await db.query(subQ, [clientId]);
     if (subRes.rows.length === 0) {
       return res
-        .status(403)
+        .status(400)
         .json({ success: false, message: "No active subscription" });
     }
     const maxDevices = subRes.rows[0].max_devices;
@@ -429,8 +429,8 @@ router.post("/devices", checkValidClient, auth, async (req, res) => {
 
     // 4. Insert device
     const insertQ = `
-      INSERT INTO devices (client_id, name, location, width, height, status,activation_code)
-      VALUES ($1,$2,$3,$4,$5,$6,$7)
+      INSERT INTO devices (client_id, name, location, width, height, status)
+      VALUES ($1,$2,$3,$4,$5,$6)
       RETURNING *
     `;
     const values = [
@@ -439,8 +439,7 @@ router.post("/devices", checkValidClient, auth, async (req, res) => {
       location,
       width,
       height,
-      status || "active",
-      generateActivationCode(),
+      status || "active"
     ];
     const { rows } = await db.query(insertQ, values);
 
@@ -515,25 +514,26 @@ router.delete("/devices/:id", checkValidClient, auth, async (req, res) => {
     const clientId = req.client_id;
     const { id } = req.params;
 
-    const query = `
+    const delete_ad_devices = `
+      DELETE FROM ad_devices
+      WHERE device_id = $1 AND client_id = $2
+      RETURNING id, name, location
+    `;
+     const query = `
       DELETE FROM devices
       WHERE id = $1 AND client_id = $2
       RETURNING id, name, location
     `;
-    const { rows } = await db.query(query, [id, clientId]);
+    const ads = `
+      DELETE FROM ads
+      WHERE device_id = $1 AND client_id = $2
+      RETURNING id, name, location
+    `;
+     await db.query(delete_ad_devices, [id, clientId]);
+     await db.query(query, [id, clientId]);
+     await db.query(ads, [id, clientId]);
 
-    if (rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "Device not found or already deleted",
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-      message: "Device deleted successfully",
-      data: rows[0],
-    });
+    
   } catch (error) {
     console.error("Error deleting device:", error);
     return res.status(500).json({
@@ -1438,6 +1438,30 @@ router.post(
     }
   }
 );
+
+router.get(
+  "/check-account-status",
+  checkValidClient,
+  auth,
+  async (req, res) => {
+    const clientId = req.client_id;
+
+    const checkClientStatus = `select id from clients where id = $1`;
+    const result = await db.query(checkClientStatus, [clientId]);
+    if (result.rowCount > 0) {
+      const subscriptionQuery = `select subscription_status from clients where id = $1`;
+      const subscriptionResult = await db.query(subscriptionQuery, [clientId]);
+      if (subscriptionResult.rows[0]["subscription_status"] === "blocked"||subscriptionResult.rows[0]["subscription_status"] === "suspended") {
+        return res.status(500).json({ message: "Account is "+subscriptionResult.rows[0]["subscription_status"] });
+      }
+      console.log(subscriptionResult.rows[0]["subscription_status"]);
+    } else {
+      return res.status(500).json({ message: "client not found" });
+    }
+    return res.status(200).json({ message: "Account is active" });
+  }
+);
+
 // ===============================
 // Delete Company Ad
 // ===============================
@@ -2103,8 +2127,8 @@ router.post(
             ? 10
             : duration_seconds;
       }
-      const select = `select * from pricing_rules where client_id=$1 and media_type=$2`;
-      const { rows } = await db.query(select, [clientId, media_type]);
+      const select = `select * from pricing_rules where client_id=$1 and media_type=$2 and device_id=$3`;
+      const { rows } = await db.query(select, [clientId, media_type, id]);
       if (rows.length > 0) {
         return res.status(200).json({
           success: false,

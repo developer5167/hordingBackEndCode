@@ -5,7 +5,7 @@ require('dotenv').config();
 const client = require("./db");
 const app = express();
 const cors = require("cors");
-const port = process.env.PORT || 4000;
+const port = process.env.PORT || 3000;
 const webhook = require("./weebhook");
 // Middleware
 app.use(cors());
@@ -20,6 +20,7 @@ const superadminAnalyticsApis = require("./superadminAnalyticsApis");
 const superadminPayments = require("./superadminPayments");
 const apisForTv = require("./apisForTvApp");
 const { log } = require("console");
+
 app.use("/superadmin", superAdminApis);
 app.use("/superadmin", superadminAnalyticsApis);
 app.use("/superadmin/payments", superadminPayments);
@@ -50,6 +51,7 @@ io.use((socket, next) => {
   }
 });
 
+
  client.on("notification", async (msg) => {
     const channel = msg.channel;
     const payload = JSON.parse(msg.payload);
@@ -77,7 +79,7 @@ io.use((socket, next) => {
           WHERE client_id = $2
         `;
         await client.query(updateQuery, [subscription_status, client_id]);
-
+       
         console.log(
           `✅ Updated all devices for client ${client_id} to '${subscription_status}'`
         );

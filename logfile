@@ -3606,3 +3606,102 @@
 2025-10-14 14:29:54.781 IST [33083] LOG:  database system was shut down at 2025-10-12 00:18:58 IST
 2025-10-14 14:29:54.788 IST [33082] LOG:  database system is ready to accept connections
 2025-10-14 14:30:00.168 IST [33136] FATAL:  role "postgres" does not exist
+2025-10-14 19:06:59.452 IST [33082] LOG:  received smart shutdown request
+2025-10-14 19:06:59.455 IST [33082] LOG:  background worker "logical replication launcher" (PID 33089) exited with exit code 1
+2025-10-14 19:06:59.455 IST [33084] LOG:  shutting down
+2025-10-14 19:06:59.469 IST [33082] LOG:  database system is shut down
+2025-10-26 18:54:27.330 IST [3218] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-10-26 18:54:27.333 IST [3218] LOG:  listening on IPv6 address "::1", port 5432
+2025-10-26 18:54:27.333 IST [3218] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-10-26 18:54:27.334 IST [3218] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-10-26 18:54:27.354 IST [3220] LOG:  database system was shut down at 2025-10-14 19:06:59 IST
+2025-10-26 18:54:27.363 IST [3218] LOG:  database system is ready to accept connections
+2025-10-27 19:19:22.733 IST [58444] ERROR:  column "duration" of relation "ads" does not exist at character 124
+2025-10-27 19:19:22.733 IST [58444] STATEMENT:  
+	        INSERT INTO ads (
+	          id, client_id, user_id, title, description,
+	          media_type, media_url, filename,duration
+	        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8,$9)
+	        ON CONFLICT (id) DO NOTHING
+	        RETURNING id
+	      
+2025-10-27 19:20:02.631 IST [58444] LOG:  could not receive data from client: Connection reset by peer
+2025-10-27 22:05:04.657 IST [59071] ERROR:  column "duration" of relation "ads" does not exist at character 124
+2025-10-27 22:05:04.657 IST [59071] STATEMENT:  
+	        INSERT INTO ads (
+	          id, client_id, user_id, title, description,
+	          media_type, media_url, filename,duration
+	        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+	        ON CONFLICT (id) DO NOTHING
+	        RETURNING id
+	      
+2025-10-27 22:07:42.886 IST [60386] ERROR:  column "duration" of relation "ad_devices" does not exist at character 81
+2025-10-27 22:07:42.886 IST [60386] STATEMENT:  
+	        INSERT INTO ad_devices (ad_id, device_id, start_date, end_date, status,duration)
+	        VALUES ($1, $2, $3, $4, 'in_review', $5)
+	      
+2025-10-28 11:01:45.731 IST [64822] ERROR:  relation "emergency_ads" does not exist at character 13
+2025-10-28 11:01:45.731 IST [64822] STATEMENT:  DELETE FROM emergency_ads WHERE client_id = $1
+2025-10-28 11:02:02.278 IST [64822] ERROR:  relation "emergency_ads" does not exist at character 13
+2025-10-28 11:02:02.278 IST [64822] STATEMENT:  DELETE FROM emergency_ads WHERE client_id = $1
+2025-10-28 11:03:31.046 IST [66874] ERROR:  relation "emergency_ads" does not exist at character 13
+2025-10-28 11:03:31.046 IST [66874] STATEMENT:  DELETE FROM emergency_ads WHERE client_id = $1
+2025-10-28 11:14:46.499 IST [66935] ERROR:  invalid input syntax for type uuid: "1761630257589"
+2025-10-28 11:14:46.499 IST [66935] CONTEXT:  unnamed portal parameter $1 = '...'
+2025-10-28 11:14:46.499 IST [66935] STATEMENT:  
+	      DELETE FROM devices
+	      WHERE id = $1 AND client_id = $2
+	      RETURNING id, name, location
+	    
+2025-10-28 12:00:51.212 IST [67797] ERROR:  column "activation_code" of relation "devices" does not exist at character 78
+2025-10-28 12:00:51.212 IST [67797] STATEMENT:  
+	      INSERT INTO devices (client_id, name, location, width, height, status,activation_code)
+	      VALUES ($1,$2,$3,$4,$5,$6,$7)
+	      RETURNING *
+	    
+2025-10-28 12:03:43.560 IST [70132] ERROR:  INSERT has more expressions than target columns at character 111
+2025-10-28 12:03:43.560 IST [70132] STATEMENT:  
+	      INSERT INTO devices (client_id, name, location, width, height, status)
+	      VALUES ($1,$2,$3,$4,$5,$6,$7)
+	      RETURNING *
+	    
+2025-10-29 14:16:38.444 IST [10953] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-10-29 14:16:38.446 IST [10953] LOG:  listening on IPv6 address "::1", port 5432
+2025-10-29 14:16:38.446 IST [10953] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-10-29 14:16:38.447 IST [10953] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-10-29 14:16:38.461 IST [10954] LOG:  database system was interrupted; last known up at 2025-10-28 17:08:26 IST
+2025-10-29 14:16:38.682 IST [10954] LOG:  database system was not properly shut down; automatic recovery in progress
+2025-10-29 14:16:38.688 IST [10954] LOG:  redo starts at 0/4495C60
+2025-10-29 14:16:38.688 IST [10954] LOG:  invalid record length at 0/4495D48: wanted 24, got 0
+2025-10-29 14:16:38.688 IST [10954] LOG:  redo done at 0/4495D10 system usage: CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s
+2025-10-29 14:16:38.702 IST [10953] LOG:  database system is ready to accept connections
+2025-10-29 14:35:18.931 IST [11163] ERROR:  syntax error at or near "clients" at character 10
+2025-10-29 14:35:18.931 IST [11163] STATEMENT:  select * clients
+2025-10-29 14:45:46.763 IST [13558] ERROR:  duplicate key value violates unique constraint "unique_device_rule"
+2025-10-29 14:45:46.763 IST [13558] DETAIL:  Key (device_id, media_type)=(fb951f9a-0ec5-46bb-8d16-a664a2fa03be, video) already exists.
+2025-10-29 14:45:46.763 IST [13558] STATEMENT:  UPDATE pricing_rules
+	       SET price_per_day = COALESCE($1, price_per_day),
+	           media_type = COALESCE($2, media_type),
+	           duration = COALESCE($3, duration),
+	           device_id = COALESCE($4, device_id),updated_at = NOW()
+	       WHERE id = $5 AND client_id = $6
+	       RETURNING id, device_id, media_type, duration, price_per_day, created_at,updated_at
+2025-10-29 15:26:23.235 IST [10953] LOG:  received smart shutdown request
+2025-10-29 15:26:23.236 IST [11163] FATAL:  terminating connection due to administrator command
+2025-10-29 15:26:23.238 IST [10953] LOG:  background worker "logical replication launcher" (PID 10960) exited with exit code 1
+2025-10-29 15:26:23.240 IST [10955] LOG:  shutting down
+2025-10-29 15:26:23.249 IST [10953] LOG:  database system is shut down
+2025-11-03 16:18:39.143 IST [17588] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-11-03 16:18:39.149 IST [17588] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-11-03 16:18:39.149 IST [17588] LOG:  listening on IPv6 address "::1", port 5432
+2025-11-03 16:18:39.150 IST [17588] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-11-03 16:18:39.167 IST [17589] LOG:  database system was shut down at 2025-11-01 21:30:23 IST
+2025-11-03 16:18:39.176 IST [17588] LOG:  database system is ready to accept connections
+2025-11-03 18:27:06.321 IST [19129] ERROR:  relation "staffs" does not exist at character 15
+2025-11-03 18:27:06.321 IST [19129] STATEMENT:  select * from staffs
+2025-11-03 18:27:09.271 IST [19129] ERROR:  relation "staff" does not exist at character 15
+2025-11-03 18:27:09.271 IST [19129] STATEMENT:  select * from staff
+2025-11-03 19:28:30.029 IST [17588] LOG:  received smart shutdown request
+2025-11-03 19:28:30.032 IST [17588] LOG:  background worker "logical replication launcher" (PID 17595) exited with exit code 1
+2025-11-03 19:28:30.032 IST [17590] LOG:  shutting down
+2025-11-03 19:28:30.042 IST [17588] LOG:  database system is shut down
