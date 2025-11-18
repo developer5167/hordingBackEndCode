@@ -1644,6 +1644,7 @@ router.get("/dashboard", checkValidClient, auth, async (req, res) => {
         COUNT(*) FILTER (WHERE true)                             AS total_ads,
         COUNT(*) FILTER (WHERE ad.status = 'active')             AS active_ads,
         COUNT(*) FILTER (WHERE ad.status = 'in_review')          AS in_review,
+        COUNT(*) FILTER (WHERE ad.status = 'Rejected')           AS rejected,
         COUNT(*) FILTER (WHERE ad.status = 'expired' OR ad.end_date < NOW()) AS expired
       FROM ad_devices ad
       JOIN ads a ON a.id = ad.ad_id
@@ -1695,6 +1696,7 @@ router.get("/dashboard", checkValidClient, auth, async (req, res) => {
       active_ads: Number(counts.active_ads) || 0,
       in_review: Number(counts.in_review) || 0,
       expired: Number(counts.expired) || 0,
+      rejected: Number(counts.rejected) || 0,
       total_plays: totalPlays,
       total_watch_time_seconds: totalWatchTime,
     };

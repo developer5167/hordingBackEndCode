@@ -507,8 +507,7 @@ router.put("/devices/:id", checkValidClient, auth, async (req, res) => {
     });
   }
 });
-
-// API: Delete Device
+  // API: Delete Device
 router.delete("/devices/:id", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
