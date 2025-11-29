@@ -1988,11 +1988,11 @@ router.post(
         ]);
         const finalAdId = adResult.rows.length > 0 ? adResult.rows[0].id : adId;
         const insertDeviceQuery = `
-        INSERT INTO ad_devices (ad_id, device_id, start_date, end_date, status)
-        VALUES ($1, $2, $3, $4, 'in_review')
+        INSERT INTO ad_devices (ad_id, device_id, start_date, end_date, status,client_id)
+        VALUES ($1, $2, $3, $4, 'in_review',$5)
       `;
         for (const device of selected_devices) {
-        await db.query(insertDeviceQuery, [finalAdId, device, start_date, end_date]);
+        await db.query(insertDeviceQuery, [finalAdId, device, start_date, end_date,clientId]);
       }
         await db.query("COMMIT");
         return res.status(201).json({
@@ -2154,8 +2154,7 @@ router.get(
 
 router.post("/signup", checkValidClient, async (req, res) => {
   try {
-    const clientId =
-      req.clientId || req.client_id || req.headers["x-client-id"];
+    const clientId =req.clientId || req.client_id || req.headers["x-client-id"];
     if (!clientId)
       return res.status(400).json({ error: "Client not identified" });
 

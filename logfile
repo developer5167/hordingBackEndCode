@@ -3707,3 +3707,942 @@
 2025-11-03 19:28:30.042 IST [17588] LOG:  database system is shut down
 2025-11-17 17:17:06.905 IST [11560] FATAL:  lock file "postmaster.pid" already exists
 2025-11-17 17:17:06.905 IST [11560] HINT:  Is another postmaster (PID 4193) running in data directory "/usr/local/var/postgres@14"?
+2025-11-28 21:48:53.296 IST [2440] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-11-28 21:48:53.299 IST [2440] LOG:  listening on IPv6 address "::1", port 5432
+2025-11-28 21:48:53.299 IST [2440] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-11-28 21:48:53.300 IST [2440] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-11-28 21:48:53.322 IST [2441] LOG:  database system was shut down at 2025-11-27 22:54:46 IST
+2025-11-28 21:48:53.330 IST [2440] LOG:  database system is ready to accept connections
+2025-11-28 23:03:43.049 IST [5092] ERROR:  unrecognized configuration parameter "transaction_timeout"
+2025-11-28 23:03:43.049 IST [5092] STATEMENT:  SET transaction_timeout = 0;
+	
+2025-11-28 23:03:43.122 IST [5092] ERROR:  role "postgres" does not exist
+2025-11-28 23:03:43.122 IST [5092] STATEMENT:  ALTER FUNCTION public.notify_client_subscription_change() OWNER TO postgres;
+	
+	
+2025-11-28 23:03:43.124 IST [5092] ERROR:  role "postgres" does not exist
+2025-11-28 23:03:43.124 IST [5092] STATEMENT:  ALTER FUNCTION public.notify_device_status_change() OWNER TO postgres;
+	
+	
+2025-11-28 23:03:43.127 IST [5092] ERROR:  relation "ad_devices" already exists
+2025-11-28 23:03:43.127 IST [5092] STATEMENT:  CREATE TABLE public.ad_devices (
+	    ad_id uuid NOT NULL,
+	    device_id uuid NOT NULL,
+	    start_date timestamp without time zone NOT NULL,
+	    end_date timestamp without time zone NOT NULL,
+	    status character varying(20) DEFAULT 'in_review'::character varying,
+	    status_updated_at timestamp without time zone DEFAULT now(),
+	    client_id character varying
+	);
+	
+	
+	
+2025-11-28 23:03:43.129 IST [5092] ERROR:  role "postgres" does not exist
+2025-11-28 23:03:43.129 IST [5092] STATEMENT:  ALTER TABLE public.ad_devices OWNER TO postgres;
+	
+	
+2025-11-28 23:03:43.129 IST [5092] ERROR:  relation "ad_reviews" already exists
+2025-11-28 23:03:43.129 IST [5092] STATEMENT:  CREATE TABLE public.ad_reviews (
+	    id uuid NOT NULL,
+	    ad_id uuid NOT NULL,
+	    reviewer_id uuid NOT NULL,
+	    review_status text NOT NULL,
+	    comments text,
+	    reviewed_at timestamp with time zone DEFAULT now(),
+	    client_id character varying,
+	    CONSTRAINT ad_reviews_review_status_check CHECK ((review_status = ANY (ARRAY['approved'::text, 'rejected'::text])))
+	);
+	
+	
+	
+2025-11-28 23:03:43.130 IST [5092] ERROR:  role "postgres" does not exist
+2025-11-28 23:03:43.130 IST [5092] STATEMENT:  ALTER TABLE public.ad_reviews OWNER TO postgres;
+	
+	
+2025-11-28 23:03:43.130 IST [5092] ERROR:  relation "ad_statistics" already exists
+2025-11-28 23:03:43.130 IST [5092] STATEMENT:  CREATE TABLE public.ad_statistics (
+	    id integer NOT NULL,
+	    ad_id uuid NOT NULL,
+	    device_id uuid NOT NULL,
+	    play_time timestamp without time zone DEFAULT now() NOT NULL,
+	    duration_played integer DEFAULT 0 NOT NULL,
+	    location text,
+	    client_id character varying
+	);
+	
+	
+	
+2025-11-28 23:03:43.131 IST [5092] ERROR:  role "postgres" does not exist
+2025-11-28 23:03:43.131 IST [5092] STATEMENT:  ALTER TABLE public.ad_statistics OWNER TO postgres;
+	
+	
+2025-11-28 23:03:43.131 IST [5092] ERROR:  relation "ad_statistics_id_seq" already exists
+2025-11-28 23:03:43.131 IST [5092] STATEMENT:  CREATE SEQUENCE public.ad_statistics_id_seq
+	    AS integer
+	    START WITH 1
+	    INCREMENT BY 1
+	    NO MINVALUE
+	    NO MAXVALUE
+	    CACHE 1;
+	
+	
+	
+2025-11-28 23:03:43.131 IST [5092] ERROR:  role "postgres" does not exist
+2025-11-28 23:03:43.131 IST [5092] STATEMENT:  ALTER SEQUENCE public.ad_statistics_id_seq OWNER TO postgres;
+	
+	
+2025-11-28 23:03:43.134 IST [5092] ERROR:  relation "ads" already exists
+2025-11-28 23:03:43.134 IST [5092] STATEMENT:  CREATE TABLE public.ads (
+	    id uuid NOT NULL,
+	    client_id uuid NOT NULL,
+	    user_id uuid NOT NULL,
+	    title text NOT NULL,
+	    description text,
+	    media_type text NOT NULL,
+	    filename text NOT NULL,
+	    media_url character varying,
+	    created_at timestamp with time zone DEFAULT now(),
+	    CONSTRAINT ads_media_type_check CHECK ((media_type = ANY (ARRAY['image'::text, 'video'::text])))
+	);
+	
+	
+	
+2025-11-28 23:03:43.135 IST [5092] ERROR:  role "postgres" does not exist
+2025-11-28 23:03:43.135 IST [5092] STATEMENT:  ALTER TABLE public.ads OWNER TO postgres;
+	
+	
+2025-11-28 23:03:43.135 IST [5092] ERROR:  relation "client_subscriptions" already exists
+2025-11-28 23:03:43.135 IST [5092] STATEMENT:  CREATE TABLE public.client_subscriptions (
+	    id uuid DEFAULT gen_random_uuid() NOT NULL,
+	    client_id uuid NOT NULL,
+	    plan_id uuid NOT NULL,
+	    razorpay_subscription_id text,
+	    status character varying(30) DEFAULT 'inactive'::character varying,
+	    current_period_start timestamp without time zone,
+	    current_period_end timestamp without time zone,
+	    next_billing_at timestamp without time zone,
+	    created_at timestamp without time zone DEFAULT now(),
+	    updated_at timestamp without time zone DEFAULT now()
+	);
+	
+	
+	
+2025-11-28 23:03:43.136 IST [5092] ERROR:  role "postgres" does not exist
+2025-11-28 23:03:43.136 IST [5092] STATEMENT:  ALTER TABLE public.client_subscriptions OWNER TO postgres;
+	
+	
+2025-11-28 23:03:43.136 IST [5092] ERROR:  relation "client_wallets" already exists
+2025-11-28 23:03:43.136 IST [5092] STATEMENT:  CREATE TABLE public.client_wallets (
+	    id uuid DEFAULT gen_random_uuid() NOT NULL,
+	    client_id uuid NOT NULL,
+	    balance numeric(12,2) DEFAULT 0 NOT NULL,
+	    updated_at timestamp without time zone DEFAULT now() NOT NULL
+	);
+	
+	
+	
+2025-11-28 23:03:43.138 IST [5092] ERROR:  role "postgres" does not exist
+2025-11-28 23:03:43.138 IST [5092] STATEMENT:  ALTER TABLE public.client_wallets OWNER TO postgres;
+	
+	
+2025-11-28 23:03:43.138 IST [5092] ERROR:  relation "clients" already exists
+2025-11-28 23:03:43.138 IST [5092] STATEMENT:  CREATE TABLE public.clients (
+	    id uuid DEFAULT gen_random_uuid() NOT NULL,
+	    name text NOT NULL,
+	    email text NOT NULL,
+	    subscription_status text DEFAULT 'active'::text NOT NULL,
+	    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+	    client_domains character varying
+	);
+	
+	
+	
+2025-11-28 23:03:43.139 IST [5092] ERROR:  role "postgres" does not exist
+2025-11-28 23:03:43.139 IST [5092] STATEMENT:  ALTER TABLE public.clients OWNER TO postgres;
+	
+	
+2025-11-28 23:03:43.139 IST [5092] ERROR:  relation "company_ad_devices" already exists
+2025-11-28 23:03:43.139 IST [5092] STATEMENT:  CREATE TABLE public.company_ad_devices (
+	    company_ad_id uuid NOT NULL,
+	    device_id uuid NOT NULL,
+	    start_date timestamp without time zone NOT NULL,
+	    end_date timestamp without time zone,
+	    status character varying(20) DEFAULT 'active'::character varying,
+	    status_updated_at timestamp without time zone DEFAULT now()
+	);
+	
+	
+	
+2025-11-28 23:03:43.140 IST [5092] ERROR:  role "postgres" does not exist
+2025-11-28 23:03:43.140 IST [5092] STATEMENT:  ALTER TABLE public.company_ad_devices OWNER TO postgres;
+	
+	
+2025-11-28 23:03:43.140 IST [5092] ERROR:  relation "company_ad_history" already exists
+2025-11-28 23:03:43.140 IST [5092] STATEMENT:  CREATE TABLE public.company_ad_history (
+	    id uuid DEFAULT gen_random_uuid() NOT NULL,
+	    company_ad_id uuid NOT NULL,
+	    device_id uuid,
+	    action character varying(50) NOT NULL,
+	    actor_user_id uuid,
+	    details jsonb,
+	    created_at timestamp without time zone DEFAULT now()
+	);
+	
+	
+	
+2025-11-28 23:03:43.140 IST [5092] ERROR:  role "postgres" does not exist
+2025-11-28 23:03:43.140 IST [5092] STATEMENT:  ALTER TABLE public.company_ad_history OWNER TO postgres;
+	
+	
+2025-11-28 23:03:43.140 IST [5092] ERROR:  relation "company_ads" already exists
+2025-11-28 23:03:43.140 IST [5092] STATEMENT:  CREATE TABLE public.company_ads (
+	    id uuid DEFAULT gen_random_uuid() NOT NULL,
+	    client_id uuid NOT NULL,
+	    title text NOT NULL,
+	    media_type character varying(20) NOT NULL,
+	    media_url text,
+	    filename text,
+	    start_date timestamp without time zone DEFAULT now() NOT NULL,
+	    end_date timestamp without time zone,
+	    status character varying(20) DEFAULT 'active'::character varying,
+	    status_updated_at timestamp without time zone DEFAULT now(),
+	    created_at timestamp without time zone DEFAULT now(),
+	    CONSTRAINT company_ads_media_type_check CHECK (((media_type)::text = ANY (ARRAY[('image'::character varying)::text, ('video'::character varying)::text])))
+	);
+	
+	
+	
+2025-11-28 23:03:43.141 IST [5092] ERROR:  role "postgres" does not exist
+2025-11-28 23:03:43.141 IST [5092] STATEMENT:  ALTER TABLE public.company_ads OWNER TO postgres;
+	
+	
+2025-11-28 23:03:43.141 IST [5092] ERROR:  relation "devices" already exists
+2025-11-28 23:03:43.141 IST [5092] STATEMENT:  CREATE TABLE public.devices (
+	    id uuid DEFAULT gen_random_uuid() NOT NULL,
+	    client_id uuid NOT NULL,
+	    name text,
+	    location text,
+	    width integer DEFAULT 1920 NOT NULL,
+	    height integer DEFAULT 1080 NOT NULL,
+	    status text DEFAULT 'active'::text,
+	    created_at timestamp with time zone DEFAULT now(),
+	    activation_code character varying,
+	    activated_by character varying,
+	    activated_at timestamp without time zone,
+	    emergency_mode boolean
+	);
+	
+	
+	
+2025-11-28 23:03:43.141 IST [5092] ERROR:  role "postgres" does not exist
+2025-11-28 23:03:43.141 IST [5092] STATEMENT:  ALTER TABLE public.devices OWNER TO postgres;
+	
+	
+2025-11-28 23:03:43.141 IST [5092] ERROR:  relation "otp" already exists
+2025-11-28 23:03:43.141 IST [5092] STATEMENT:  CREATE TABLE public.otp (
+	    email character varying,
+	    client_id character varying,
+	    otp character varying,
+	    created_at timestamp without time zone DEFAULT now()
+	);
+	
+	
+	
+2025-11-28 23:03:43.142 IST [5092] ERROR:  role "postgres" does not exist
+2025-11-28 23:03:43.142 IST [5092] STATEMENT:  ALTER TABLE public.otp OWNER TO postgres;
+	
+	
+2025-11-28 23:03:43.143 IST [5092] ERROR:  relation "payments" already exists
+2025-11-28 23:03:43.143 IST [5092] STATEMENT:  CREATE TABLE public.payments (
+	    id uuid DEFAULT gen_random_uuid() NOT NULL,
+	    ad_id uuid,
+	    advertiser_id uuid,
+	    client_id uuid,
+	    amount numeric(10,2) NOT NULL,
+	    gst numeric(10,2) DEFAULT 0,
+	    handling_fee numeric(10,2) DEFAULT 0,
+	    total_amount numeric(10,2) NOT NULL,
+	    status character varying(50) DEFAULT 'pending'::character varying,
+	    transaction_id character varying(255),
+	    created_at timestamp without time zone DEFAULT now(),
+	    receipt character varying,
+	    subscription_id uuid,
+	    razorpay_payment_id text,
+	    razorpay_order_id text,
+	    razorpay_signature text,
+	    notes jsonb,
+	    gateway text DEFAULT 'razorpay'::text,
+	    plan_id character varying,
+	    wallet_applied numeric(12,2) DEFAULT 0,
+	    updated_at timestamp without time zone DEFAULT now() NOT NULL
+	);
+	
+	
+	
+2025-11-28 23:03:43.143 IST [5092] ERROR:  role "postgres" does not exist
+2025-11-28 23:03:43.143 IST [5092] STATEMENT:  ALTER TABLE public.payments OWNER TO postgres;
+	
+	
+2025-11-28 23:03:43.144 IST [5092] ERROR:  relation "pricing" already exists
+2025-11-28 23:03:43.144 IST [5092] STATEMENT:  CREATE TABLE public.pricing (
+	    id uuid DEFAULT gen_random_uuid() NOT NULL,
+	    client_id uuid,
+	    device_id uuid,
+	    media_type character varying(50) NOT NULL,
+	    duration_seconds integer,
+	    base_price numeric(10,2) NOT NULL,
+	    created_at timestamp without time zone DEFAULT now()
+	);
+	
+	
+	
+2025-11-28 23:03:43.144 IST [5092] ERROR:  role "postgres" does not exist
+2025-11-28 23:03:43.144 IST [5092] STATEMENT:  ALTER TABLE public.pricing OWNER TO postgres;
+	
+	
+2025-11-28 23:03:43.144 IST [5092] ERROR:  relation "pricing_rules" already exists
+2025-11-28 23:03:43.144 IST [5092] STATEMENT:  CREATE TABLE public.pricing_rules (
+	    id uuid DEFAULT gen_random_uuid() NOT NULL,
+	    device_id uuid NOT NULL,
+	    media_type character varying(50) NOT NULL,
+	    price_per_day numeric(10,2) NOT NULL,
+	    location_factor numeric(5,2) DEFAULT 1.0,
+	    created_at timestamp without time zone DEFAULT now(),
+	    updated_at timestamp without time zone DEFAULT now(),
+	    client_id character varying,
+	    duration integer
+	);
+	
+	
+	
+2025-11-28 23:03:43.144 IST [5092] ERROR:  role "postgres" does not exist
+2025-11-28 23:03:43.144 IST [5092] STATEMENT:  ALTER TABLE public.pricing_rules OWNER TO postgres;
+	
+	
+2025-11-28 23:03:43.144 IST [5092] ERROR:  relation "roles" already exists
+2025-11-28 23:03:43.144 IST [5092] STATEMENT:  CREATE TABLE public.roles (
+	    id uuid DEFAULT gen_random_uuid() NOT NULL,
+	    role character varying
+	);
+	
+	
+	
+2025-11-28 23:03:43.145 IST [5092] ERROR:  role "postgres" does not exist
+2025-11-28 23:03:43.145 IST [5092] STATEMENT:  ALTER TABLE public.roles OWNER TO postgres;
+	
+	
+2025-11-28 23:03:43.145 IST [5092] ERROR:  relation "staffs" already exists
+2025-11-28 23:03:43.145 IST [5092] STATEMENT:  CREATE TABLE public.staffs (
+	    id uuid DEFAULT gen_random_uuid() NOT NULL,
+	    username character varying,
+	    password character varying
+	);
+	
+	
+	
+2025-11-28 23:03:43.145 IST [5092] ERROR:  role "postgres" does not exist
+2025-11-28 23:03:43.145 IST [5092] STATEMENT:  ALTER TABLE public.staffs OWNER TO postgres;
+	
+	
+2025-11-28 23:03:43.145 IST [5092] ERROR:  relation "subscription_plans" already exists
+2025-11-28 23:03:43.145 IST [5092] STATEMENT:  CREATE TABLE public.subscription_plans (
+	    id uuid DEFAULT gen_random_uuid() NOT NULL,
+	    name text NOT NULL,
+	    amount integer NOT NULL,
+	    period character varying(20) NOT NULL,
+	    description text,
+	    created_at timestamp without time zone DEFAULT now(),
+	    status boolean DEFAULT true,
+	    max_devices integer
+	);
+	
+	
+	
+2025-11-28 23:03:43.145 IST [5092] ERROR:  role "postgres" does not exist
+2025-11-28 23:03:43.145 IST [5092] STATEMENT:  ALTER TABLE public.subscription_plans OWNER TO postgres;
+	
+	
+2025-11-28 23:03:43.146 IST [5092] ERROR:  relation "subscriptions" already exists
+2025-11-28 23:03:43.146 IST [5092] STATEMENT:  CREATE TABLE public.subscriptions (
+	    id uuid DEFAULT gen_random_uuid() NOT NULL,
+	    client_id uuid,
+	    plan_name text NOT NULL,
+	    status text DEFAULT 'active'::text NOT NULL,
+	    current_period_end timestamp without time zone NOT NULL,
+	    last_payment_at timestamp without time zone,
+	    CONSTRAINT subscriptions_status_check CHECK ((status = ANY (ARRAY['active'::text, 'paused'::text, 'expired'::text])))
+	);
+	
+	
+	
+2025-11-28 23:03:43.146 IST [5092] ERROR:  role "postgres" does not exist
+2025-11-28 23:03:43.146 IST [5092] STATEMENT:  ALTER TABLE public.subscriptions OWNER TO postgres;
+	
+	
+2025-11-28 23:03:43.146 IST [5092] ERROR:  relation "users" already exists
+2025-11-28 23:03:43.146 IST [5092] STATEMENT:  CREATE TABLE public.users (
+	    id uuid DEFAULT gen_random_uuid() NOT NULL,
+	    client_id uuid NOT NULL,
+	    name text NOT NULL,
+	    email text NOT NULL,
+	    mobile_number text,
+	    password_hash text NOT NULL,
+	    role text DEFAULT 'advertiser'::text NOT NULL,
+	    tokens text,
+	    fcmtoken text,
+	    isactive boolean DEFAULT true NOT NULL,
+	    created_at timestamp with time zone DEFAULT now()
+	);
+	
+	
+	
+2025-11-28 23:03:43.147 IST [5092] ERROR:  role "postgres" does not exist
+2025-11-28 23:03:43.147 IST [5092] STATEMENT:  ALTER TABLE public.users OWNER TO postgres;
+	
+	
+2025-11-28 23:03:43.147 IST [5092] ERROR:  relation "wallet_transactions" already exists
+2025-11-28 23:03:43.147 IST [5092] STATEMENT:  CREATE TABLE public.wallet_transactions (
+	    id uuid DEFAULT gen_random_uuid() NOT NULL,
+	    client_id uuid NOT NULL,
+	    amount numeric(12,2) DEFAULT 0 NOT NULL,
+	    tr_type character varying(20),
+	    balance_after numeric(12,2) DEFAULT 0 NOT NULL,
+	    description text,
+	    reference_type character varying(60),
+	    reference_id uuid,
+	    idempotency_key text,
+	    created_by uuid,
+	    updated_at timestamp without time zone DEFAULT now() NOT NULL
+	);
+	
+	
+	
+2025-11-28 23:03:43.147 IST [5092] ERROR:  role "postgres" does not exist
+2025-11-28 23:03:43.147 IST [5092] STATEMENT:  ALTER TABLE public.wallet_transactions OWNER TO postgres;
+	
+	
+2025-11-28 23:03:43.218 IST [5092] ERROR:  insert or update on table "client_subscriptions" violates foreign key constraint "client_subscriptions_client_id_fkey"
+2025-11-28 23:03:43.218 IST [5092] DETAIL:  Key (client_id)=(17b79a61-ed56-4730-8fd3-788b3ae240c2) is not present in table "clients".
+2025-11-28 23:03:43.218 IST [5092] STATEMENT:  COPY public.client_subscriptions (id, client_id, plan_id, razorpay_subscription_id, status, current_period_start, current_period_end, next_billing_at, created_at, updated_at) FROM stdin;
+	
+2025-11-28 23:03:43.235 IST [5092] ERROR:  column "activated_by" of relation "devices" does not exist
+2025-11-28 23:03:43.235 IST [5092] STATEMENT:  COPY public.devices (id, client_id, name, location, width, height, status, created_at, activation_code, activated_by, activated_at, emergency_mode) FROM stdin;
+	
+2025-11-28 23:03:43.243 IST [5092] ERROR:  duplicate key value violates unique constraint "roles_pkey"
+2025-11-28 23:03:43.243 IST [5092] DETAIL:  Key (id)=(e01a172d-0ef3-48ab-a7a2-b5d63d85b09b) already exists.
+2025-11-28 23:03:43.243 IST [5092] CONTEXT:  COPY roles, line 1
+2025-11-28 23:03:43.243 IST [5092] STATEMENT:  COPY public.roles (id, role) FROM stdin;
+	
+2025-11-28 23:03:43.243 IST [5092] ERROR:  column "id" of relation "staffs" does not exist
+2025-11-28 23:03:43.243 IST [5092] STATEMENT:  COPY public.staffs (id, username, password) FROM stdin;
+	
+2025-11-28 23:03:43.245 IST [5092] ERROR:  duplicate key value violates unique constraint "subscription_plans_pkey"
+2025-11-28 23:03:43.245 IST [5092] DETAIL:  Key (id)=(28d4413d-a43a-4bc0-9d92-147fc822564f) already exists.
+2025-11-28 23:03:43.245 IST [5092] CONTEXT:  COPY subscription_plans, line 1
+2025-11-28 23:03:43.245 IST [5092] STATEMENT:  COPY public.subscription_plans (id, name, amount, period, description, created_at, status, max_devices) FROM stdin;
+	
+2025-11-28 23:03:43.251 IST [5092] ERROR:  multiple primary keys for table "ad_devices" are not allowed
+2025-11-28 23:03:43.251 IST [5092] STATEMENT:  ALTER TABLE ONLY public.ad_devices
+	    ADD CONSTRAINT ad_devices_pkey PRIMARY KEY (ad_id, device_id);
+	
+	
+	
+2025-11-28 23:03:43.252 IST [5092] ERROR:  multiple primary keys for table "ad_reviews" are not allowed
+2025-11-28 23:03:43.252 IST [5092] STATEMENT:  ALTER TABLE ONLY public.ad_reviews
+	    ADD CONSTRAINT ad_reviews_pkey PRIMARY KEY (id);
+	
+	
+	
+2025-11-28 23:03:43.252 IST [5092] ERROR:  multiple primary keys for table "ad_statistics" are not allowed
+2025-11-28 23:03:43.252 IST [5092] STATEMENT:  ALTER TABLE ONLY public.ad_statistics
+	    ADD CONSTRAINT ad_statistics_pkey PRIMARY KEY (id);
+	
+	
+	
+2025-11-28 23:03:43.252 IST [5092] ERROR:  multiple primary keys for table "ads" are not allowed
+2025-11-28 23:03:43.252 IST [5092] STATEMENT:  ALTER TABLE ONLY public.ads
+	    ADD CONSTRAINT ads_pkey PRIMARY KEY (id);
+	
+	
+	
+2025-11-28 23:03:43.253 IST [5092] ERROR:  multiple primary keys for table "client_subscriptions" are not allowed
+2025-11-28 23:03:43.253 IST [5092] STATEMENT:  ALTER TABLE ONLY public.client_subscriptions
+	    ADD CONSTRAINT client_subscriptions_pkey PRIMARY KEY (id);
+	
+	
+	
+2025-11-28 23:03:43.254 IST [5092] ERROR:  relation "client_wallets_client_id_key" already exists
+2025-11-28 23:03:43.254 IST [5092] STATEMENT:  ALTER TABLE ONLY public.client_wallets
+	    ADD CONSTRAINT client_wallets_client_id_key UNIQUE (client_id);
+	
+	
+	
+2025-11-28 23:03:43.254 IST [5092] ERROR:  multiple primary keys for table "client_wallets" are not allowed
+2025-11-28 23:03:43.254 IST [5092] STATEMENT:  ALTER TABLE ONLY public.client_wallets
+	    ADD CONSTRAINT client_wallets_pkey PRIMARY KEY (id);
+	
+	
+	
+2025-11-28 23:03:43.254 IST [5092] ERROR:  relation "clients_email_key" already exists
+2025-11-28 23:03:43.254 IST [5092] STATEMENT:  ALTER TABLE ONLY public.clients
+	    ADD CONSTRAINT clients_email_key UNIQUE (email);
+	
+	
+	
+2025-11-28 23:03:43.255 IST [5092] ERROR:  multiple primary keys for table "clients" are not allowed
+2025-11-28 23:03:43.255 IST [5092] STATEMENT:  ALTER TABLE ONLY public.clients
+	    ADD CONSTRAINT clients_pkey PRIMARY KEY (id);
+	
+	
+	
+2025-11-28 23:03:43.255 IST [5092] ERROR:  multiple primary keys for table "company_ad_devices" are not allowed
+2025-11-28 23:03:43.255 IST [5092] STATEMENT:  ALTER TABLE ONLY public.company_ad_devices
+	    ADD CONSTRAINT company_ad_devices_pkey PRIMARY KEY (company_ad_id, device_id);
+	
+	
+	
+2025-11-28 23:03:43.255 IST [5092] ERROR:  multiple primary keys for table "company_ad_history" are not allowed
+2025-11-28 23:03:43.255 IST [5092] STATEMENT:  ALTER TABLE ONLY public.company_ad_history
+	    ADD CONSTRAINT company_ad_history_pkey PRIMARY KEY (id);
+	
+	
+	
+2025-11-28 23:03:43.255 IST [5092] ERROR:  multiple primary keys for table "company_ads" are not allowed
+2025-11-28 23:03:43.255 IST [5092] STATEMENT:  ALTER TABLE ONLY public.company_ads
+	    ADD CONSTRAINT company_ads_pkey PRIMARY KEY (id);
+	
+	
+	
+2025-11-28 23:03:43.255 IST [5092] ERROR:  multiple primary keys for table "devices" are not allowed
+2025-11-28 23:03:43.255 IST [5092] STATEMENT:  ALTER TABLE ONLY public.devices
+	    ADD CONSTRAINT devices_pkey PRIMARY KEY (id);
+	
+	
+	
+2025-11-28 23:03:43.255 IST [5092] ERROR:  multiple primary keys for table "payments" are not allowed
+2025-11-28 23:03:43.255 IST [5092] STATEMENT:  ALTER TABLE ONLY public.payments
+	    ADD CONSTRAINT payments_pkey PRIMARY KEY (id);
+	
+	
+	
+2025-11-28 23:03:43.256 IST [5092] ERROR:  multiple primary keys for table "pricing" are not allowed
+2025-11-28 23:03:43.256 IST [5092] STATEMENT:  ALTER TABLE ONLY public.pricing
+	    ADD CONSTRAINT pricing_pkey PRIMARY KEY (id);
+	
+	
+	
+2025-11-28 23:03:43.256 IST [5092] ERROR:  multiple primary keys for table "pricing_rules" are not allowed
+2025-11-28 23:03:43.256 IST [5092] STATEMENT:  ALTER TABLE ONLY public.pricing_rules
+	    ADD CONSTRAINT pricing_rules_pkey PRIMARY KEY (id);
+	
+	
+	
+2025-11-28 23:03:43.256 IST [5092] ERROR:  multiple primary keys for table "roles" are not allowed
+2025-11-28 23:03:43.256 IST [5092] STATEMENT:  ALTER TABLE ONLY public.roles
+	    ADD CONSTRAINT roles_pkey PRIMARY KEY (id);
+	
+	
+	
+2025-11-28 23:03:43.256 IST [5092] ERROR:  column "id" of relation "staffs" does not exist
+2025-11-28 23:03:43.256 IST [5092] STATEMENT:  ALTER TABLE ONLY public.staffs
+	    ADD CONSTRAINT staffs_pkey PRIMARY KEY (id);
+	
+	
+	
+2025-11-28 23:03:43.257 IST [5092] ERROR:  multiple primary keys for table "subscription_plans" are not allowed
+2025-11-28 23:03:43.257 IST [5092] STATEMENT:  ALTER TABLE ONLY public.subscription_plans
+	    ADD CONSTRAINT subscription_plans_pkey PRIMARY KEY (id);
+	
+	
+	
+2025-11-28 23:03:43.257 IST [5092] ERROR:  multiple primary keys for table "subscriptions" are not allowed
+2025-11-28 23:03:43.257 IST [5092] STATEMENT:  ALTER TABLE ONLY public.subscriptions
+	    ADD CONSTRAINT subscriptions_pkey PRIMARY KEY (id);
+	
+	
+	
+2025-11-28 23:03:43.257 IST [5092] ERROR:  relation "unique_device_rule" already exists
+2025-11-28 23:03:43.257 IST [5092] STATEMENT:  ALTER TABLE ONLY public.pricing_rules
+	    ADD CONSTRAINT unique_device_rule UNIQUE (device_id, media_type);
+	
+	
+	
+2025-11-28 23:03:43.257 IST [5092] ERROR:  multiple primary keys for table "users" are not allowed
+2025-11-28 23:03:43.257 IST [5092] STATEMENT:  ALTER TABLE ONLY public.users
+	    ADD CONSTRAINT users_pkey PRIMARY KEY (id);
+	
+	
+	
+2025-11-28 23:03:43.258 IST [5092] ERROR:  multiple primary keys for table "wallet_transactions" are not allowed
+2025-11-28 23:03:43.258 IST [5092] STATEMENT:  ALTER TABLE ONLY public.wallet_transactions
+	    ADD CONSTRAINT wallet_transactions_pkey PRIMARY KEY (id);
+	
+	
+	
+2025-11-28 23:03:43.259 IST [5092] ERROR:  relation "users_client_email_uq" already exists
+2025-11-28 23:03:43.259 IST [5092] STATEMENT:  CREATE UNIQUE INDEX users_client_email_uq ON public.users USING btree (client_id, lower(email));
+	
+	
+	
+2025-11-28 23:03:43.263 IST [5092] ERROR:  constraint "ad_devices_ad_id_fkey" for relation "ad_devices" already exists
+2025-11-28 23:03:43.263 IST [5092] STATEMENT:  ALTER TABLE ONLY public.ad_devices
+	    ADD CONSTRAINT ad_devices_ad_id_fkey FOREIGN KEY (ad_id) REFERENCES public.ads(id) ON DELETE CASCADE;
+	
+	
+	
+2025-11-28 23:03:43.263 IST [5092] ERROR:  constraint "ad_devices_device_id_fkey" for relation "ad_devices" already exists
+2025-11-28 23:03:43.263 IST [5092] STATEMENT:  ALTER TABLE ONLY public.ad_devices
+	    ADD CONSTRAINT ad_devices_device_id_fkey FOREIGN KEY (device_id) REFERENCES public.devices(id);
+	
+	
+	
+2025-11-28 23:03:43.263 IST [5092] ERROR:  constraint "ad_reviews_ad_id_fkey" for relation "ad_reviews" already exists
+2025-11-28 23:03:43.263 IST [5092] STATEMENT:  ALTER TABLE ONLY public.ad_reviews
+	    ADD CONSTRAINT ad_reviews_ad_id_fkey FOREIGN KEY (ad_id) REFERENCES public.ads(id) ON DELETE CASCADE;
+	
+	
+	
+2025-11-28 23:03:43.263 IST [5092] ERROR:  constraint "ad_reviews_reviewer_id_fkey" for relation "ad_reviews" already exists
+2025-11-28 23:03:43.263 IST [5092] STATEMENT:  ALTER TABLE ONLY public.ad_reviews
+	    ADD CONSTRAINT ad_reviews_reviewer_id_fkey FOREIGN KEY (reviewer_id) REFERENCES public.users(id) ON DELETE CASCADE;
+	
+	
+	
+2025-11-28 23:03:43.263 IST [5092] ERROR:  constraint "ad_statistics_ad_id_fkey" for relation "ad_statistics" already exists
+2025-11-28 23:03:43.263 IST [5092] STATEMENT:  ALTER TABLE ONLY public.ad_statistics
+	    ADD CONSTRAINT ad_statistics_ad_id_fkey FOREIGN KEY (ad_id) REFERENCES public.ads(id) ON DELETE CASCADE;
+	
+	
+	
+2025-11-28 23:03:43.264 IST [5092] ERROR:  constraint "ad_statistics_device_id_fkey" for relation "ad_statistics" already exists
+2025-11-28 23:03:43.264 IST [5092] STATEMENT:  ALTER TABLE ONLY public.ad_statistics
+	    ADD CONSTRAINT ad_statistics_device_id_fkey FOREIGN KEY (device_id) REFERENCES public.devices(id) ON DELETE CASCADE;
+	
+	
+	
+2025-11-28 23:03:43.264 IST [5092] ERROR:  constraint "ads_client_id_fkey" for relation "ads" already exists
+2025-11-28 23:03:43.264 IST [5092] STATEMENT:  ALTER TABLE ONLY public.ads
+	    ADD CONSTRAINT ads_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id) ON DELETE CASCADE;
+	
+	
+	
+2025-11-28 23:03:43.264 IST [5092] ERROR:  constraint "ads_user_id_fkey" for relation "ads" already exists
+2025-11-28 23:03:43.264 IST [5092] STATEMENT:  ALTER TABLE ONLY public.ads
+	    ADD CONSTRAINT ads_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+	
+	
+	
+2025-11-28 23:03:43.264 IST [5092] ERROR:  constraint "client_subscriptions_client_id_fkey" for relation "client_subscriptions" already exists
+2025-11-28 23:03:43.264 IST [5092] STATEMENT:  ALTER TABLE ONLY public.client_subscriptions
+	    ADD CONSTRAINT client_subscriptions_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id) ON DELETE CASCADE;
+	
+	
+	
+2025-11-28 23:03:43.264 IST [5092] ERROR:  constraint "client_subscriptions_plan_id_fkey" for relation "client_subscriptions" already exists
+2025-11-28 23:03:43.264 IST [5092] STATEMENT:  ALTER TABLE ONLY public.client_subscriptions
+	    ADD CONSTRAINT client_subscriptions_plan_id_fkey FOREIGN KEY (plan_id) REFERENCES public.subscription_plans(id) ON DELETE SET NULL;
+	
+	
+	
+2025-11-28 23:03:43.265 IST [5092] ERROR:  constraint "client_wallets_client_id_fkey" for relation "client_wallets" already exists
+2025-11-28 23:03:43.265 IST [5092] STATEMENT:  ALTER TABLE ONLY public.client_wallets
+	    ADD CONSTRAINT client_wallets_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id) ON DELETE CASCADE;
+	
+	
+	
+2025-11-28 23:03:43.265 IST [5092] ERROR:  constraint "company_ad_devices_company_ad_id_fkey" for relation "company_ad_devices" already exists
+2025-11-28 23:03:43.265 IST [5092] STATEMENT:  ALTER TABLE ONLY public.company_ad_devices
+	    ADD CONSTRAINT company_ad_devices_company_ad_id_fkey FOREIGN KEY (company_ad_id) REFERENCES public.company_ads(id) ON DELETE CASCADE;
+	
+	
+	
+2025-11-28 23:03:43.265 IST [5092] ERROR:  constraint "company_ad_devices_device_id_fkey" for relation "company_ad_devices" already exists
+2025-11-28 23:03:43.265 IST [5092] STATEMENT:  ALTER TABLE ONLY public.company_ad_devices
+	    ADD CONSTRAINT company_ad_devices_device_id_fkey FOREIGN KEY (device_id) REFERENCES public.devices(id) ON DELETE CASCADE;
+	
+	
+	
+2025-11-28 23:03:43.265 IST [5092] ERROR:  constraint "company_ad_history_actor_user_id_fkey" for relation "company_ad_history" already exists
+2025-11-28 23:03:43.265 IST [5092] STATEMENT:  ALTER TABLE ONLY public.company_ad_history
+	    ADD CONSTRAINT company_ad_history_actor_user_id_fkey FOREIGN KEY (actor_user_id) REFERENCES public.users(id);
+	
+	
+	
+2025-11-28 23:03:43.265 IST [5092] ERROR:  constraint "company_ad_history_company_ad_id_fkey" for relation "company_ad_history" already exists
+2025-11-28 23:03:43.265 IST [5092] STATEMENT:  ALTER TABLE ONLY public.company_ad_history
+	    ADD CONSTRAINT company_ad_history_company_ad_id_fkey FOREIGN KEY (company_ad_id) REFERENCES public.company_ads(id) ON DELETE CASCADE;
+	
+	
+	
+2025-11-28 23:03:43.265 IST [5092] ERROR:  constraint "company_ad_history_device_id_fkey" for relation "company_ad_history" already exists
+2025-11-28 23:03:43.265 IST [5092] STATEMENT:  ALTER TABLE ONLY public.company_ad_history
+	    ADD CONSTRAINT company_ad_history_device_id_fkey FOREIGN KEY (device_id) REFERENCES public.devices(id);
+	
+	
+	
+2025-11-28 23:03:43.265 IST [5092] ERROR:  constraint "company_ads_client_id_fkey" for relation "company_ads" already exists
+2025-11-28 23:03:43.265 IST [5092] STATEMENT:  ALTER TABLE ONLY public.company_ads
+	    ADD CONSTRAINT company_ads_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id) ON DELETE CASCADE;
+	
+	
+	
+2025-11-28 23:03:43.265 IST [5092] ERROR:  constraint "devices_client_id_fkey" for relation "devices" already exists
+2025-11-28 23:03:43.265 IST [5092] STATEMENT:  ALTER TABLE ONLY public.devices
+	    ADD CONSTRAINT devices_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id) ON DELETE CASCADE;
+	
+	
+	
+2025-11-28 23:03:43.265 IST [5092] ERROR:  constraint "fk_client_subscriptions_plan" for relation "client_subscriptions" already exists
+2025-11-28 23:03:43.265 IST [5092] STATEMENT:  ALTER TABLE ONLY public.client_subscriptions
+	    ADD CONSTRAINT fk_client_subscriptions_plan FOREIGN KEY (plan_id) REFERENCES public.subscription_plans(id);
+	
+	
+	
+2025-11-28 23:03:43.266 IST [5092] ERROR:  constraint "payments_advertiser_id_fkey" for relation "payments" already exists
+2025-11-28 23:03:43.266 IST [5092] STATEMENT:  ALTER TABLE ONLY public.payments
+	    ADD CONSTRAINT payments_advertiser_id_fkey FOREIGN KEY (advertiser_id) REFERENCES public.users(id) ON DELETE CASCADE;
+	
+	
+	
+2025-11-28 23:03:43.266 IST [5092] ERROR:  constraint "payments_client_id_fkey" for relation "payments" already exists
+2025-11-28 23:03:43.266 IST [5092] STATEMENT:  ALTER TABLE ONLY public.payments
+	    ADD CONSTRAINT payments_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id) ON DELETE CASCADE;
+	
+	
+	
+2025-11-28 23:03:43.266 IST [5092] ERROR:  constraint "payments_subscription_id_fkey" for relation "payments" already exists
+2025-11-28 23:03:43.266 IST [5092] STATEMENT:  ALTER TABLE ONLY public.payments
+	    ADD CONSTRAINT payments_subscription_id_fkey FOREIGN KEY (subscription_id) REFERENCES public.client_subscriptions(id);
+	
+	
+	
+2025-11-28 23:03:43.266 IST [5092] ERROR:  constraint "pricing_client_id_fkey" for relation "pricing" already exists
+2025-11-28 23:03:43.266 IST [5092] STATEMENT:  ALTER TABLE ONLY public.pricing
+	    ADD CONSTRAINT pricing_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id) ON DELETE CASCADE;
+	
+	
+	
+2025-11-28 23:03:43.266 IST [5092] ERROR:  constraint "pricing_device_id_fkey" for relation "pricing" already exists
+2025-11-28 23:03:43.266 IST [5092] STATEMENT:  ALTER TABLE ONLY public.pricing
+	    ADD CONSTRAINT pricing_device_id_fkey FOREIGN KEY (device_id) REFERENCES public.devices(id) ON DELETE CASCADE;
+	
+	
+	
+2025-11-28 23:03:43.266 IST [5092] ERROR:  constraint "pricing_rules_device_id_fkey" for relation "pricing_rules" already exists
+2025-11-28 23:03:43.266 IST [5092] STATEMENT:  ALTER TABLE ONLY public.pricing_rules
+	    ADD CONSTRAINT pricing_rules_device_id_fkey FOREIGN KEY (device_id) REFERENCES public.devices(id) ON DELETE CASCADE;
+	
+	
+	
+2025-11-28 23:03:43.266 IST [5092] ERROR:  constraint "subscriptions_client_id_fkey" for relation "subscriptions" already exists
+2025-11-28 23:03:43.266 IST [5092] STATEMENT:  ALTER TABLE ONLY public.subscriptions
+	    ADD CONSTRAINT subscriptions_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id) ON DELETE CASCADE;
+	
+	
+	
+2025-11-28 23:03:43.266 IST [5092] ERROR:  constraint "users_client_id_fkey" for relation "users" already exists
+2025-11-28 23:03:43.266 IST [5092] STATEMENT:  ALTER TABLE ONLY public.users
+	    ADD CONSTRAINT users_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id) ON DELETE CASCADE;
+	
+	
+	
+2025-11-28 23:03:43.266 IST [5092] ERROR:  constraint "wallet_transactions_client_id_fkey" for relation "wallet_transactions" already exists
+2025-11-28 23:03:43.266 IST [5092] STATEMENT:  ALTER TABLE ONLY public.wallet_transactions
+	    ADD CONSTRAINT wallet_transactions_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id) ON DELETE CASCADE;
+	
+	
+	
+2025-11-28 23:29:58.003 IST [4915] ERROR:  syntax error at or near "select" at character 28
+2025-11-28 23:29:58.003 IST [4915] STATEMENT:  delete from subscriptions
+	
+	select * from staffs
+2025-11-29 01:12:42.279 IST [11795] ERROR:  syntax error at or near "AS" at character 203
+2025-11-29 01:12:42.279 IST [11795] STATEMENT:  
+	      SELECT
+	        COUNT(*) FILTER (WHERE true)                             AS total_ads,
+	        COUNT(*) FILTER (WHERE ad.status = 'active'||COUNT(*) FILTER (WHERE ad.status ='Active')             AS active_ads,
+	        COUNT(*) FILTER (WHERE ad.status = 'in_review')          AS in_review,
+	        COUNT(*) FILTER (WHERE ad.status = 'Rejected')           AS rejected,
+	        COUNT(*) FILTER (WHERE ad.status = 'expired' OR ad.end_date < NOW()) AS expired
+	      FROM ad_devices ad
+	      JOIN ads a ON a.id = ad.ad_id
+	      WHERE a.user_id = $1 AND a.client_id = $2
+	    
+2025-11-29 10:53:50.428 IST [14491] ERROR:  column "status" does not exist at character 41
+2025-11-29 10:53:50.428 IST [14491] STATEMENT:   SELECT 
+	        COUNT(*) FILTER (WHERE status = 'active') AS active_ads
+2025-11-29 11:00:51.047 IST [14491] ERROR:  foreign key constraint "fk_client_id" cannot be implemented
+2025-11-29 11:00:51.047 IST [14491] DETAIL:  Key columns "client_id" and "id" are of incompatible types: character varying and uuid.
+2025-11-29 11:00:51.047 IST [14491] STATEMENT:  ALTER TABLE ad_devices
+	ADD CONSTRAINT FK_client_id
+	FOREIGN KEY (client_id)
+	REFERENCES clients (id);
+2025-11-29 11:14:53.429 IST [14491] ERROR:  syntax error at or near "uuid" at character 50
+2025-11-29 11:14:53.429 IST [14491] STATEMENT:  ALTER TABLE ad_devices
+	ADD COLUMN client_id TYPE uuid
+2025-11-29 11:15:10.557 IST [14491] ERROR:  syntax error at or near "uuid" at character 50
+2025-11-29 11:15:10.557 IST [14491] STATEMENT:  ALTER TABLE ad_devices
+	ADD COLUMN client_id TYPE uuid USING client_id::uuid;
+2025-11-29 11:17:25.159 IST [14491] ERROR:  syntax error at or near "uuid" at character 50
+2025-11-29 11:17:25.159 IST [14491] STATEMENT:  ALTER TABLE ad_devices
+	ADD COLUMN client_id TYPE uuid
+2025-11-29 11:17:54.393 IST [14491] ERROR:  column "client_id" of relation "ad_devices" already exists
+2025-11-29 11:17:54.393 IST [14491] STATEMENT:  
+	ALTER TABLE ad_devices
+	ADD COLUMN client_id  uuid 
+2025-11-29 11:18:31.047 IST [14491] ERROR:  syntax error at or near "client_id" at character 8
+2025-11-29 11:18:31.047 IST [14491] STATEMENT:  delete client_id from ad_devices
+	
+2025-11-29 12:40:54.715 IST [14491] ERROR:  syntax error at or near "company_ads" at character 36
+2025-11-29 12:40:54.715 IST [14491] STATEMENT:  select * from company_ads
+	
+	update  company_ads set status = 'pause'
+2025-11-29 12:41:01.094 IST [14491] ERROR:  syntax error at or near "table" at character 35
+2025-11-29 12:41:01.094 IST [14491] STATEMENT:  select * from company_ads
+	
+	update table company_ads set status = 'pause'
+2025-11-29 12:44:45.550 IST [14491] ERROR:  column "your_column" does not exist at character 83
+2025-11-29 12:44:45.550 IST [14491] STATEMENT:  ALTER TABLE company_ads
+	ALTER COLUMN status
+	TYPE boolean
+	USING (
+	  CASE 
+	    WHEN your_column = 'active' THEN true
+	    ELSE false
+	  END
+	);
+2025-11-29 12:45:02.699 IST [14491] ERROR:  default for column "status" cannot be cast automatically to type boolean
+2025-11-29 12:45:02.699 IST [14491] STATEMENT:  ALTER TABLE company_ads
+	ALTER COLUMN status
+	TYPE boolean
+	USING (
+	  CASE 
+	    WHEN status = 'active' THEN true
+	    ELSE false
+	  END
+	);
+2025-11-29 15:20:34.352 IST [14491] ERROR:  syntax error at or near "company_ads" at character 1
+2025-11-29 15:20:34.352 IST [14491] STATEMENT:  company_ads
+2025-11-29 15:20:49.412 IST [14491] ERROR:  syntax error at or near "company_ads" at character 1
+2025-11-29 15:20:49.412 IST [14491] STATEMENT:  company_ads
+2025-11-29 15:27:55.946 IST [14491] ERROR:  syntax error at or near "DEFAULT" at character 47
+2025-11-29 15:27:55.946 IST [14491] STATEMENT:  alter table company_ads add column created_at DEFAULT TIMESTAMP
+	
+2025-11-29 15:28:26.605 IST [14491] ERROR:  syntax error at or near "DEFAULT" at character 47
+2025-11-29 15:28:26.605 IST [14491] STATEMENT:  alter table company_ads add column created_at DEFAULT TIMESTAMP NOW()
+	
+2025-11-29 15:28:31.602 IST [14491] ERROR:  syntax error at or near "DEFAULT" at character 47
+2025-11-29 15:28:31.602 IST [14491] STATEMENT:  alter table company_ads add column created_at DEFAULT NOW()
+	
+2025-11-29 15:28:45.317 IST [14491] ERROR:  syntax error at or near "NOW" at character 55
+2025-11-29 15:28:45.317 IST [14491] STATEMENT:  alter table company_ads add column created_at current NOW()
+	
+2025-11-29 15:29:23.869 IST [14491] ERROR:  column "created_at" of relation "company_ads" already exists
+2025-11-29 15:29:23.869 IST [14491] STATEMENT:  alter table company_ads add column created_at TIMESTAMP DEFAULT NOW()
+	
+2025-11-29 15:49:35.582 IST [14491] ERROR:  syntax error at or near "*" at character 8
+2025-11-29 15:49:35.582 IST [14491] STATEMENT:  delete * from company_ads
+	
+2025-11-29 16:03:08.839 IST [30093] ERROR:  function array_remove(text, unknown) does not exist at character 40
+2025-11-29 16:03:08.839 IST [30093] HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+2025-11-29 16:03:08.839 IST [30093] STATEMENT:  
+	      UPDATE users
+	      SET tokens = array_remove(tokens, $1)
+	      WHERE id = $2 AND client_id = $3 AND role = 'admin'
+	      RETURNING id, email
+	    
+2025-11-29 16:44:09.571 IST [32834] ERROR:  relation "staff" does not exist at character 36
+2025-11-29 16:44:09.571 IST [32834] STATEMENT:  SELECT COUNT(*)::int AS total FROM staff WHERE client_id = $1
+2025-11-29 16:44:15.247 IST [32834] ERROR:  relation "staff" does not exist at character 36
+2025-11-29 16:44:15.247 IST [32834] STATEMENT:  SELECT COUNT(*)::int AS total FROM staff WHERE client_id = $1 AND status = $2
+2025-11-29 16:44:34.146 IST [32834] ERROR:  relation "staff" does not exist at character 13
+2025-11-29 16:44:34.146 IST [32834] STATEMENT:  INSERT INTO staff (id, client_id, name, password, status, created_at, email) VALUES ($1,$2,$3,$4,$5,NOW(),$6) RETURNING *
+2025-11-29 16:45:01.046 IST [33644] ERROR:  relation "staff" does not exist at character 13
+2025-11-29 16:45:01.046 IST [33644] STATEMENT:  INSERT INTO staff (id, client_id, name, password, status, created_at, email) VALUES ($1,$2,$3,$4,$5,NOW(),$6) RETURNING *
+2025-11-29 16:45:09.582 IST [33644] ERROR:  relation "staff" does not exist at character 13
+2025-11-29 16:45:09.582 IST [33644] STATEMENT:  INSERT INTO staff (id, client_id, name, password, status, created_at, email) VALUES ($1,$2,$3,$4,$5,NOW(),$6) RETURNING *
+2025-11-29 16:47:44.248 IST [34020] ERROR:  column "id" of relation "staffs" does not exist at character 21
+2025-11-29 16:47:44.248 IST [34020] STATEMENT:  INSERT INTO staffs (id, client_id, name, password, status, created_at, email) VALUES ($1,$2,$3,$4,$5,NOW(),$6) RETURNING *
+2025-11-29 16:49:15.174 IST [34020] ERROR:  column "client_id" of relation "staffs" does not exist at character 25
+2025-11-29 16:49:15.174 IST [34020] STATEMENT:  INSERT INTO staffs (id, client_id, name, password, status, created_at, email) VALUES ($1,$2,$3,$4,$5,NOW(),$6) RETURNING *
+2025-11-29 16:51:00.495 IST [34234] ERROR:  column "name" does not exist at character 12
+2025-11-29 16:51:00.495 IST [34234] STATEMENT:  SELECT id, name, email, status, created_at FROM staffs WHERE client_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3
+2025-11-29 16:53:32.535 IST [34417] ERROR:  column "name" of relation "staffs" does not exist at character 36
+2025-11-29 16:53:32.535 IST [34417] STATEMENT:  INSERT INTO staffs (id, client_id, name, password, status, created_at, email) VALUES ($1,$2,$3,$4,$5,NOW(),$6) RETURNING *
+2025-11-29 16:53:37.435 IST [34417] ERROR:  column "name" of relation "staffs" does not exist at character 36
+2025-11-29 16:53:37.435 IST [34417] STATEMENT:  INSERT INTO staffs (id, client_id, name, password, status, created_at, email) VALUES ($1,$2,$3,$4,$5,NOW(),$6) RETURNING *
+2025-11-29 16:54:32.430 IST [34588] ERROR:  invalid input syntax for type boolean: "active"
+2025-11-29 16:54:32.430 IST [34588] CONTEXT:  unnamed portal parameter $5 = '...'
+2025-11-29 16:54:32.430 IST [34588] STATEMENT:  INSERT INTO staffs (id, client_id, username, password, status, created_at, email) VALUES ($1,$2,$3,$4,$5,NOW(),$6) RETURNING *
+2025-11-29 17:01:33.585 IST [34896] ERROR:  bind message supplies 2 parameters, but prepared statement "" requires 3
+2025-11-29 17:01:33.585 IST [34896] STATEMENT:  UPDATE staffs SET status=$3 WHERE id = $1 AND client_id = $2 RETURNING id, username, email, status
+2025-11-29 17:04:19.300 IST [34896] ERROR:  bind message supplies 2 parameters, but prepared statement "" requires 3
+2025-11-29 17:04:19.300 IST [34896] STATEMENT:  UPDATE staffs SET status=$3 WHERE id = $1 AND client_id = $2 RETURNING id, username, email, status
+2025-11-29 17:05:54.628 IST [34896] ERROR:  bind message supplies 2 parameters, but prepared statement "" requires 3
+2025-11-29 17:05:54.628 IST [34896] STATEMENT:  UPDATE staffs SET status=$3 WHERE id = $1 AND client_id = $2 RETURNING id, username, email, status
+2025-11-29 17:36:53.970 IST [36942] ERROR:  column "id" does not exist at character 93
+2025-11-29 17:36:53.970 IST [36942] STATEMENT:  
+	      DELETE FROM ad_devices
+	      WHERE device_id = $1 AND client_id = $2
+	      RETURNING id, name, location
+	    
+2025-11-29 17:37:54.068 IST [36942] ERROR:  column "id" does not exist at character 93
+2025-11-29 17:37:54.068 IST [36942] STATEMENT:  
+	      DELETE FROM ad_devices
+	      WHERE device_id = $1 AND client_id = $2
+	      RETURNING id, name, location
+	    
+2025-11-29 17:40:35.113 IST [37205] ERROR:  column "id" does not exist at character 93
+2025-11-29 17:40:35.113 IST [37205] STATEMENT:  
+	      DELETE FROM ad_devices
+	      WHERE device_id = $1 AND client_id = $2
+	      RETURNING id, name, location
+	    
+2025-11-29 17:40:47.608 IST [37205] ERROR:  column "id" does not exist at character 93
+2025-11-29 17:40:47.608 IST [37205] STATEMENT:  
+	      DELETE FROM ad_devices
+	      WHERE device_id = $1 AND client_id = $2
+	      RETURNING id, name, location
+	    
+2025-11-29 17:42:52.617 IST [37329] ERROR:  column "id" does not exist at character 93
+2025-11-29 17:42:52.617 IST [37329] STATEMENT:  
+	      DELETE FROM ad_devices
+	      WHERE device_id = $1 AND client_id = $2
+	      RETURNING id, name, location
+	    
+2025-11-29 17:44:16.400 IST [14491] ERROR:  column "id" does not exist at character 158
+2025-11-29 17:44:16.400 IST [14491] STATEMENT:  DELETE FROM ad_devices
+	      WHERE device_id = '27602a13-5028-492c-9542-2474cb852aaf' AND client_id = '6494001a-6fc5-4964-b146-2f0af4a175c2'
+	      RETURNING id, name, location
+2025-11-29 17:45:16.731 IST [37476] LOG:  could not receive data from client: Connection reset by peer
+2025-11-29 17:48:29.241 IST [38137] ERROR:  function array_remove(text, unknown) does not exist at character 40
+2025-11-29 17:48:29.241 IST [38137] HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+2025-11-29 17:48:29.241 IST [38137] STATEMENT:  
+	      UPDATE users
+	      SET tokens = array_remove(tokens, $1)
+	      WHERE id = $2 AND client_id = $3 AND role = 'admin'
+	      RETURNING id, email
+	    
+2025-11-29 17:56:33.447 IST [38644] ERROR:  function array_remove(text, unknown) does not exist at character 40
+2025-11-29 17:56:33.447 IST [38644] HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+2025-11-29 17:56:33.447 IST [38644] STATEMENT:  
+	      UPDATE users
+	      SET tokens = array_remove(tokens, $1)
+	      WHERE id = $2 AND client_id = $3 AND role = 'admin'
+	      RETURNING id, email
+	    
+2025-11-29 17:57:00.774 IST [38644] ERROR:  invalid input syntax for type boolean: "active"
+2025-11-29 17:57:00.774 IST [38644] CONTEXT:  unnamed portal parameter $2 = '...'
+2025-11-29 17:57:00.774 IST [38644] STATEMENT:  SELECT COUNT(*)::int AS total FROM staffs WHERE client_id = $1 AND status = $2
+2025-11-29 17:57:02.797 IST [38644] ERROR:  invalid input syntax for type boolean: "disabled"
+2025-11-29 17:57:02.797 IST [38644] CONTEXT:  unnamed portal parameter $2 = '...'
+2025-11-29 17:57:02.797 IST [38644] STATEMENT:  SELECT COUNT(*)::int AS total FROM staffs WHERE client_id = $1 AND status = $2
+2025-11-29 17:57:10.847 IST [38644] ERROR:  invalid input syntax for type boolean: "active"
+2025-11-29 17:57:10.847 IST [38644] CONTEXT:  unnamed portal parameter $2 = '...'
+2025-11-29 17:57:10.847 IST [38644] STATEMENT:  SELECT COUNT(*)::int AS total FROM staffs WHERE client_id = $1 AND status = $2
+2025-11-29 18:08:29.016 IST [38644] ERROR:  invalid input syntax for type boolean: "disabled"
+2025-11-29 18:08:29.016 IST [38644] CONTEXT:  unnamed portal parameter $2 = '...'
+2025-11-29 18:08:29.016 IST [38644] STATEMENT:  SELECT COUNT(*)::int AS total FROM staffs WHERE client_id = $1 AND status = $2
+2025-11-29 18:09:27.609 IST [38644] ERROR:  invalid input syntax for type boolean: "active"
+2025-11-29 18:09:27.609 IST [38644] CONTEXT:  unnamed portal parameter $2 = '...'
+2025-11-29 18:09:27.609 IST [38644] STATEMENT:  SELECT COUNT(*)::int AS total FROM staffs WHERE client_id = $1 AND status = $2

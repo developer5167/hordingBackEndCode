@@ -1,6 +1,7 @@
 const {
   express,
   jsonwebtoken,
+   bcrypt,
   db} = require("./deps");
 const deviceAuth = require("./middleware/deviceAuth");
 const router = express.Router();
@@ -43,8 +44,8 @@ router.post("/activate", async (req, res) => {
     if (staff.rows.length === 0)
       return res.status(401).json({ success: false, message: "Invalid user" });
 
-    // const validPass = await bcrypt.compare(password, staff.rows[0].password);
-    if (password!=staff.rows[0].password)
+    const validPass = await bcrypt.compare(password, staff.rows[0].password);
+    if (!validPass)
       return res.status(401).json({ success: false, message: "Incorrect password" });
 
     const device = await db.query(

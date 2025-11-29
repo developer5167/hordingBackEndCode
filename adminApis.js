@@ -20,6 +20,36 @@ const router = express.Router();
 
 const checkValidClient = require("./middleware/checkValidClient");
 
+// ----------------------
+// Staff Management Helpers
+// ----------------------
+function generateStaffPassword() {
+  return Math.random().toString(36).slice(-8);
+}
+
+async function sendStaffEmail(to, email, password) {
+  // re-use project's SMTP settings (same as superadminApis)
+  const mailRequest = nodemailer.createTransport({
+    host: "smtpout.secureserver.net",
+    port: 465,
+    auth: {
+      user: "info@listnow.in",
+      pass: "Sam@#)*&&$$5167",
+    },
+  });
+  const mailingOptions = {
+    from: "info@listnow.in",
+    to: to,
+    subject: "Your Staff Account Created",
+    html: `Hello ${email},\n\nA staffs account has been created for you.\nEmail: ${email}\nPassword: ${password}\n\nPlease use to login during screen set up`,
+  };
+  try {
+    await mailRequest.sendMail(mailingOptions);
+  } catch (ex) {
+    console.error("sendStaffEmail error:", ex);
+  }
+}
+
 // Admin Login
 router.post("/login", checkValidClient, async (req, res) => {
   console.log("DASDASD");
@@ -429,8 +459,8 @@ router.post("/devices", checkValidClient, auth, async (req, res) => {
 
     // 4. Insert device
     const insertQ = `
-      INSERT INTO devices (client_id, name, location, width, height, status)
-      VALUES ($1,$2,$3,$4,$5,$6)
+      INSERT INTO devices (client_id, name, location, width, height, status,activation_code)
+      VALUES ($1,$2,$3,$4,$5,$6,$7)
       RETURNING *
     `;
     const values = [
@@ -439,7 +469,8 @@ router.post("/devices", checkValidClient, auth, async (req, res) => {
       location,
       width,
       height,
-      status || "active"
+      status || "active",
+      generateActivationCode()
     ];
     const { rows } = await db.query(insertQ, values);
 
@@ -516,22 +547,23 @@ router.delete("/devices/:id", checkValidClient, auth, async (req, res) => {
     const delete_ad_devices = `
       DELETE FROM ad_devices
       WHERE device_id = $1 AND client_id = $2
-      RETURNING id, name, location
     `;
      const query = `
       DELETE FROM devices
       WHERE id = $1 AND client_id = $2
-      RETURNING id, name, location
     `;
-    const ads = `
-      DELETE FROM ads
-      WHERE device_id = $1 AND client_id = $2
-      RETURNING id, name, location
-    `;
+    // const ads = `
+    //   DELETE FROM ads
+    //   WHERE device_id = $1 AND client_id = $2
+    //   RETURNING id, name, location
+    // `;
      await db.query(delete_ad_devices, [id, clientId]);
      await db.query(query, [id, clientId]);
-     await db.query(ads, [id, clientId]);
-
+    //  await db.query(ads, [id, clientId]);
+    return res.status(200).json({
+      success: true,
+      message: "Device Deleted Successfully",
+    });
     
   } catch (error) {
     console.error("Error deleting device:", error);
@@ -1034,7 +1066,7 @@ router.patch(
 
       const query = `
       UPDATE ad_devices ad
-      SET status = 'Active',
+      SET status = 'active',
           status_updated_at = NOW()
       FROM ads a
       WHERE ad.ad_id = a.id
@@ -1189,7 +1221,7 @@ router.patch(
 
       const query = `
       UPDATE ad_devices ad
-      SET status = 'Active',
+      SET status = 'active',
           status_updated_at = NOW()
       FROM ads a
       WHERE ad.ad_id = a.id
@@ -1221,9 +1253,9 @@ router.patch(
   }
 );
 
-// in adminApis.js / advertiserApis.js (wherever you have company-ads route)
+// in adminApis.js / advertiserApis.js (wherever you have emergency-ads route)
 router.post(
-  "/company-ads/create",
+  "/emergency-ads/create",
 
   // 1) require multipart/form-data
   (req, res, next) => {
@@ -1247,7 +1279,7 @@ router.post(
   async (req, res) => {
     try {
       // helpful debug logs (remove later)
-      console.log("=== /company-ads/create incoming ===");
+      console.log("=== /emergency-ads/create incoming ===");
       console.log("content-type:", req.headers["content-type"]);
       console.log("req.files keys:", req.files ? Object.keys(req.files) : null);
       console.log("req.body keys:", Object.keys(req.body || {}));
@@ -1336,7 +1368,7 @@ router.post(
       // ---------- upload to firebase (same as your logic) ----------
       const timestamp = Date.now();
       const safeOriginal = file.originalname.replace(/\s+/g, "_");
-      const filename = `company_ads/${req.client_id}/${timestamp}_${safeOriginal}`;
+      const filename = `emergency_ads/${req.client_id}/${timestamp}_${safeOriginal}`;
 
       const fileUpload = bucket.file(filename);
       const uuid = uuidv4();
@@ -1367,17 +1399,16 @@ router.post(
         return res.status(500).json({ error: "file_upload_failed" });
       }
 
-      // ---------- insert into company_ads + company_ad_devices in a transaction ----------
+      // ---------- insert into emergency_ads + emergency_ad_devices in a transaction ----------
       try {
         await db.query("BEGIN");
-
         const compAdId = companyAdId || uuidv4();
         const insertCompanyAd = `
-          INSERT INTO company_ads (
+          INSERT INTO emergency_ads (
             id, client_id, title, media_type, media_url, filename,
             start_date, end_date, status, status_updated_at, created_at
           )
-          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'active',NOW(), NOW())
+          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'pause',NOW(), NOW())
           ON CONFLICT (id) DO NOTHING
           RETURNING id
         `;
@@ -1394,7 +1425,7 @@ router.post(
         const finalCompanyAdId = adRows.length ? adRows[0].id : compAdId;
 
         const insertDeviceMapping = `
-          INSERT INTO company_ad_devices
+          INSERT INTO emergency_ad_devices
             (company_ad_id, device_id, start_date, end_date, status, status_updated_at)
           VALUES ($1,$2,$3,$4,'active',NOW())
         `;
@@ -1430,13 +1461,235 @@ router.post(
           .json({ error: "database_error", detail: txErr.message });
       }
     } catch (err) {
-      console.error("Unexpected error in /company-ads/create:", err);
+      console.error("Unexpected error in /emergency-ads/create:", err);
       return res
         .status(500)
         .json({ error: "server_error", detail: err.message });
     }
   }
 );
+
+// ----------------------
+// POST /company-ads/upload
+// Admin upload: insert simple record into company_ads table with client-scoped folder in Firebase
+// Fields in DB: id, client_id, media_type, filename, media_url
+// Accepts multipart/form-data with file + media_type and optional client_id (if admin passes a specific client)
+// Requires checkValidClient + auth middleware
+// ----------------------
+router.post(
+  "/company-ads/upload",
+
+  // require multipart/form-data
+  (req, res, next) => {
+    const ct = req.headers["content-type"] || "";
+    if (!ct.includes("multipart/form-data")) {
+      return res.status(400).json({ error: "Content-Type must be multipart/form-data" });
+    }
+    next();
+  },
+
+  upload.fields([{ name: "file", maxCount: 1 }]),
+  checkValidClient,
+  auth,
+  async (req, res) => {
+    try {
+      // pick uploaded file
+      const file = (req.files && req.files.file && req.files.file[0]) || null;
+      if (!file) return res.status(400).json({ error: "file_required" });
+
+      // body parsing
+      const body = req.body || {};
+      const media_type = (body.media_type || "").toLowerCase().trim();
+
+      if (!media_type || !["image", "video"].includes(media_type)) {
+        return res.status(400).json({ error: "invalid_media_type", allowed: ["image", "video"] });
+      }
+
+      // client to upload for - allow client_id in body (admin can pass) otherwise use req.client_id
+      const targetClientId = body.client_id || req.client_id;
+
+      // validate target client exists
+      const clientCheck = await db.query(`SELECT id FROM clients WHERE id = $1 LIMIT 1`, [targetClientId]);
+      if (clientCheck.rows.length === 0) {
+        return res.status(404).json({ error: "client_not_found" });
+      }
+
+      // upload to firebase under company_ads/<client_id>/
+      const timestamp = Date.now();
+      const safeOriginal = file.originalname.replace(/\s+/g, "_");
+      const filename = `company_ads/${targetClientId}/${timestamp}_${safeOriginal}`;
+
+      const fileUpload = bucket.file(filename);
+      const uuid = uuidv4();
+      const blobStream = fileUpload.createWriteStream({
+        metadata: {
+          contentType: file.mimetype,
+          metadata: { firebaseStorageDownloadTokens: uuid },
+        },
+        resumable: false,
+      });
+
+      const uploadPromise = new Promise((resolve, reject) => {
+        blobStream.on("error", (err) => reject(err));
+        blobStream.on("finish", () => {
+          const url = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileUpload.name)}?alt=media&token=${uuid}`;
+          resolve({ url, filename });
+        });
+        blobStream.end(file.buffer);
+      });
+
+      let uploaded;
+      try {
+        uploaded = await uploadPromise;
+      } catch (err) {
+        console.error("Firebase upload error:", err);
+        return res.status(500).json({ error: "file_upload_failed", detail: err.message });
+      }
+
+      // insert into company_ads
+      // generate id here for clarity, though DB may have default gen_random_uuid()
+      const newId = uuidv4();
+
+      const insQ = `INSERT INTO company_ads (id, client_id, media_type, filename, media_url,file) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`;
+      const insVals = [newId, targetClientId, media_type, uploaded.filename, uploaded.url,safeOriginal];
+      const { rows: inserted } = await db.query(insQ, insVals);
+
+      return res.status(201).json({ success: true, message: "company_ad_uploaded", company_ad: inserted[0] });
+    } catch (err) {
+      console.error("Error in /company-ads/upload:", err);
+      return res.status(500).json({ error: "server_error", detail: err.message });
+    }
+  }
+);
+
+// ----------------------
+// POST /staffs
+// Create a staffs record, auto-generate an 8-char password, email the password
+// ----------------------
+router.post("/staff", checkValidClient, auth, async (req, res) => {
+  try {
+    const { name, email } = req.body;
+    if (!name || !email) return res.status(400).json({ error: "name_and_email_required" });
+
+    // generate password and hash
+    const plainPassword = generateStaffPassword();
+    const hashed = await bcrypt.hash(plainPassword, 10);
+
+    // default status active
+    const status = true;
+
+    // include client scoping: prefer to store per client
+    const newId = uuidv4();
+    const insertQ = `INSERT INTO staffs (id, client_id, username, password, status, created_at, email) VALUES ($1,$2,$3,$4,$5,NOW(),$6) RETURNING *`;
+    const { rows } = await db.query(insertQ, [newId, req.client_id, name, hashed, status, email]);
+
+    // send email with plain password
+    try { await sendStaffEmail(email, email, plainPassword); } catch (e) { console.error('Failed to send staffs email', e); }
+
+    const staffsRow = rows[0] || null;
+    if (staffsRow) delete staffsRow.password; // do not expose password hash
+    return res.status(201).json({ success: true, message: 'staffs_created', staff: staffsRow });
+  } catch (err) {
+    console.error('Error creating staffs:', err);
+    return res.status(500).json({ error: 'create_failed', detail: err.message });
+  }
+});
+
+// ----------------------
+// DELETE /staffs/:id
+// Delete a staffs record
+// ----------------------
+router.delete("/staff/:id", checkValidClient, auth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const delQ = `DELETE FROM staffs WHERE id = $1 AND client_id = $2 RETURNING id, username, email`;
+    const { rows } = await db.query(delQ, [id, req.client_id]);
+    if (rows.length === 0) return res.status(404).json({ error: 'staffs_not_found' });
+    return res.status(200).json({ success: true, message: 'staffs_deleted', staffs: rows[0] });
+  } catch (err) {
+    console.error('Error deleting staffs:', err);
+    return res.status(500).json({ error: 'delete_failed', detail: err.message });
+  }
+});
+
+// ----------------------
+// PATCH /staffs/:id/enable
+// PATCH /staffs/:id/disable
+// Enable / Disable staffs by updating status
+// ----------------------
+router.patch("/staff/:id/enable", checkValidClient, auth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const upd = `UPDATE staffs SET status=$3 WHERE id = $1 AND client_id = $2 RETURNING id, username, email, status`;
+    const { rows } = await db.query(upd, [id, req.client_id,true]);
+    if (rows.length === 0) return res.status(404).json({ error: 'staffs_not_found' });
+    return res.json({ success: true, message: 'staffs_enabled', staffs: rows[0] });
+  } catch (err) {
+    console.error('Error enabling staffs:', err);
+    return res.status(500).json({ error: 'enable_failed', detail: err.message });
+  }
+});
+
+router.patch("/staff/:id/disable", checkValidClient, auth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const upd = `UPDATE staffs SET status=$3 WHERE id = $1 AND client_id = $2 RETURNING id, username, email, status`;
+    const { rows } = await db.query(upd, [id, req.client_id,false]);
+    if (rows.length === 0) return res.status(404).json({ error: 'staffs_not_found' });
+    return res.json({ success: true, message: 'staffs_disabled', staffs: rows[0] });
+  } catch (err) {
+    console.error('Error disabling staffs:', err);
+    return res.status(500).json({ error: 'disable_failed', detail: err.message });
+  }
+});
+
+// ----------------------
+// GET /staffs
+// Returns paginated, searchable staffs list for the client
+// Query params: page, limit, search, status
+// ----------------------
+router.get("/staff", checkValidClient, auth, async (req, res) => {
+  try {
+    const clientId = req.client_id;
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(Number(req.query.limit) || 20, 200);
+    const offset = (page - 1) * limit;
+    const search = req.query.search ? String(req.query.search).trim() : null;
+    const status = req.query.status ? String(req.query.status).trim() : null;
+
+    // Build dynamic where clause
+    const params = [clientId];
+    let where = `WHERE client_id = $1`;
+    if (status) {
+      params.push(status);
+      where += ` AND status = $${params.length}`;
+    }
+    if (search) {
+      params.push(`%${search}%`);
+      where += ` AND (username ILIKE $${params.length} OR email ILIKE $${params.length})`;
+    }
+
+    // count
+    const countQ = `SELECT COUNT(*)::int AS total FROM staffs ${where}`;
+    const { rows: countRows } = await db.query(countQ, params);
+    const total = countRows[0] ? Number(countRows[0].total) : 0;
+
+    // fetch page
+    const pageParams = params.concat([limit, offset]);
+    const q = `SELECT id, username, email, status, created_at FROM staffs ${where} ORDER BY created_at DESC LIMIT $${pageParams.length-1} OFFSET $${pageParams.length}`;
+    const { rows } = await db.query(q, pageParams);
+
+    return res.status(200).json({
+      success: true,
+      message: 'staffs_list_fetched',
+      pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
+      data: rows,
+    });
+  } catch (err) {
+    console.error('Error fetching staffs list:', err);
+    return res.status(500).json({ success: false, error: 'fetch_failed', detail: err.message });
+  }
+});
 
 router.get(
   "/check-account-status",
@@ -1464,7 +1717,7 @@ router.get(
 // ===============================
 // Delete Company Ad
 // ===============================
-router.delete("/company-ads/:id", checkValidClient, auth, async (req, res) => {
+router.delete("/emergency-ads/:id", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
     const { id } = req.params; // company_ad_id
@@ -1472,7 +1725,7 @@ router.delete("/company-ads/:id", checkValidClient, auth, async (req, res) => {
     // Step 1: Check if the company ad exists
     const adCheck = await db.query(
       `SELECT id, filename 
-       FROM company_ads 
+       FROM emergency_ads 
        WHERE id = $1 AND client_id = $2 
        LIMIT 1`,
       [id, clientId]
@@ -1488,12 +1741,12 @@ router.delete("/company-ads/:id", checkValidClient, auth, async (req, res) => {
     const ad = adCheck.rows[0];
 
     // Step 2: Delete device mappings
-    await db.query(`DELETE FROM company_ad_devices WHERE company_ad_id = $1`, [
+    await db.query(`DELETE FROM emergency_ad_devices WHERE company_ad_id = $1`, [
       id,
     ]);
 
     // Step 3: Delete company ad row
-    await db.query(`DELETE FROM company_ads WHERE id = $1 AND client_id = $2`, [
+    await db.query(`DELETE FROM emergency_ads WHERE id = $1 AND client_id = $2`, [
       id,
       clientId,
     ]);
@@ -1525,6 +1778,192 @@ router.delete("/company-ads/:id", checkValidClient, auth, async (req, res) => {
       message: "Something went wrong while deleting company ad",
       error: error.message,
     });
+  }
+});
+
+// ----------------------
+// POST /emergency-ads/:id/status
+// Change status for a company ad (by owner) — allowed values: active, pause|paused
+// Updates both emergency_ads.status and emergency_ad_devices.status in a transaction
+// Uses same middleware as other company-ad operations
+// ----------------------
+router.post(
+  "/emergency-ads/:id/status",
+  checkValidClient,
+  auth,
+  async (req, res) => {
+    try {
+      const clientId = req.client_id;
+      const userId = req.user_id;
+      const { id } = req.params; // company_ad_id
+      let { status } = req.body;
+
+      if (!status) return res.status(400).json({ error: "status_required" });
+
+      // normalize some common inputs
+      status = String(status).toLowerCase().trim();
+      if (status === "pause") status = "paused"; // allow 'pause' for backward compatibility
+
+      if (!["active", "paused"].includes(status))
+        return res.status(400).json({ error: "invalid_status", allowed: ["active", "paused"] });
+
+      // Start transaction
+      await db.query("BEGIN");
+
+      // verify ownership and existence
+      const adQ = `SELECT id, client_id, filename, start_date, end_date, status FROM emergency_ads WHERE id = $1 AND client_id = $2 LIMIT 1`;
+      const adRes = await db.query(adQ, [id, clientId]);
+      if (adRes.rows.length === 0) {
+        await db.query("ROLLBACK");
+        return res.status(404).json({ error: "company_ad_not_found_or_unauthorized" });
+      }
+
+      const ad = adRes.rows[0];
+
+      // if trying to activate a company ad that's already expired
+      if (status === "active" && new Date(ad.end_date) <= new Date()) {
+        await db.query("ROLLBACK");
+        return res.status(400).json({ error: "cannot_activate_expired" });
+      }
+
+      if (ad.status === status) {
+        await db.query("ROLLBACK");
+        return res.status(200).json({ success: true, message: "no_change", company_ad: ad });
+      }
+
+      // update emergency_ads row
+      const updCompanyQ = `UPDATE emergency_ads SET status = $1, status_updated_at = NOW() WHERE id = $2 AND client_id = $3 RETURNING *`;
+      const updCompany = await db.query(updCompanyQ, [status, id, clientId]);
+
+      // update device mappings for this company ad
+      // - if activating -> mark active for non-expired mappings
+      // - if paused -> mark paused regardless of end_date
+      let updDevicesQ;
+      if (status === "active") {
+        updDevicesQ = `UPDATE emergency_ad_devices SET status = 'active', status_updated_at = NOW() WHERE company_ad_id = $1 AND (end_date IS NULL OR end_date > NOW()) RETURNING *`;
+      } else {
+        updDevicesQ = `UPDATE emergency_ad_devices SET status = 'paused', status_updated_at = NOW() WHERE company_ad_id = $1 RETURNING *`;
+      }
+
+      const updDevicesRes = await db.query(updDevicesQ, [id]);
+
+      await db.query("COMMIT");
+
+      return res.status(200).json({
+        success: true,
+        message: "company_ad_status_updated",
+        company_ad: updCompany.rows[0],
+        devices: updDevicesRes.rows,
+      });
+    } catch (err) {
+      try {
+        await db.query("ROLLBACK");
+      } catch (e) {}
+      console.error("Error updating company ad status:", err);
+      return res.status(500).json({ error: "update_failed", detail: err.message });
+    }
+  }
+);
+
+// ----------------------
+// DELETE /company-ads/:id/file
+// Remove the stored file reference from company_ads and delete the file from Firebase storage.
+// Note: company_ads.filename/media_url are required fields in the schema; this endpoint clears them to empty strings.
+// ----------------------
+router.delete("/company-ads/:id/file", checkValidClient, auth, async (req, res) => {
+  try {
+    const clientId = req.client_id;
+    const { id } = req.params;
+
+    // fetch company ad
+    const q = `SELECT id, filename, media_url FROM company_ads WHERE id = $1 AND client_id = $2 LIMIT 1`;
+    const r = await db.query(q, [id, clientId]);
+    if (r.rows.length === 0) return res.status(404).json({ error: 'company_ad_not_found_or_unauthorized' });
+
+    const ad = r.rows[0];
+    if (!ad.filename) return res.status(400).json({ error: 'no_file_attached' });
+
+    // clear file references in DB (use empty strings since columns are expected not-null)
+    await db.query('BEGIN');
+    const updQ = `UPDATE company_ads SET filename = '', media_url = '' WHERE id = $1 AND client_id = $2 RETURNING *`;
+    const upd = await db.query(updQ, [id, clientId]);
+    await db.query('COMMIT');
+
+    // attempt to delete file from Firebase storage — best-effort
+    let storageDeleted = false;
+    try {
+      const file = bucket.file(ad.filename);
+      await file.delete();
+      await db.query('BEGIN');
+      const updQ = `delete from company_ads WHERE id = $1 AND client_id = $2`;
+      const upd = await db.query(updQ, [id, clientId]);
+      await db.query('COMMIT');
+      storageDeleted = true;
+    } catch (e) {
+      // if file not found, warn but still succeed
+      if (e && e.code === 404) {
+        console.warn('Firebase file not found:', ad.filename);
+      } else {
+        console.error('Error deleting file from firebase:', e && e.message ? e.message : e);
+      }
+    }
+    return res.status(200).json({ success: true, message: 'company_ad_file_removed', company_ad: upd.rows[0], storageDeleted });
+  } catch (err) {
+    try { await db.query('ROLLBACK'); } catch (_) {}
+    console.error('Error removing company ad file:', err);
+    return res.status(500).json({ error: 'remove_failed', detail: err.message });
+  }
+});
+
+// ----------------------
+// GET /company-ads
+// Fetch list of company ads uploaded for this client (paginated + filters)
+// Query params: page, limit, status, media_type
+// ----------------------
+router.get("/company-ads", checkValidClient, auth, async (req, res) => {
+  try {
+    const clientId = req.client_id;
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(Number(req.query.limit) || 20, 200);
+    const offset = (page - 1) * limit;
+    const status = req.query.status || null;
+    const media_type = req.query.media_type || null;
+
+    // build where clause with parameterized queries
+    const baseParams = [clientId];
+    let where = `WHERE client_id = $1`;
+    if (status) {
+      baseParams.push(status);
+      where += ` AND status = $${baseParams.length}`;
+    }
+    if (media_type) {
+      baseParams.push(media_type);
+      where += ` AND media_type = $${baseParams.length}`;
+    }
+
+    // total count
+    const countQ = `SELECT COUNT(*)::int AS total FROM company_ads ${where}`;
+    const { rows: countRows } = await db.query(countQ, baseParams);
+    const total = countRows[0] ? Number(countRows[0].total) : 0;
+
+    // page query
+    const pageParams = baseParams.concat([limit, offset]);
+    // select only columns present in company_ads table
+    const q = `SELECT id, client_id, media_type, filename, media_url,created_at,file
+           FROM company_ads ${where} ORDER BY id DESC LIMIT $${pageParams.length - 1} OFFSET $${pageParams.length}`;
+
+    // Note: $${pageParams.length -1} is limit and $${pageParams.length} is offset
+    const { rows } = await db.query(q, pageParams);
+
+    return res.status(200).json({
+      success: true,
+      message: "company_ads_fetched",
+      pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
+      data: rows,
+    });
+  } catch (err) {
+    console.error("Error fetching company ads:", err);
+    return res.status(500).json({ success: false, error: "fetch_failed", detail: err.message });
   }
 });
 router.get("/my-status", checkValidClient, auth, async (req, res) => {
@@ -1945,7 +2384,7 @@ router.get("/recent-activity", checkValidClient, auth, async (req, res) => {
 // Get Company Ads by Device
 // ===============================
 router.get(
-  "/company-ads/devices/:deviceId",
+  "/emergency-ads/devices/:deviceId",
   checkValidClient,
   auth,
   async (req, res) => {
@@ -1981,8 +2420,8 @@ router.get(
         d.name AS device_name,
         d.location AS device_location,
         cad.status AS device_status
-      FROM company_ads ca
-      JOIN company_ad_devices cad ON cad.company_ad_id = ca.id
+      FROM emergency_ads ca
+      JOIN emergency_ad_devices cad ON cad.company_ad_id = ca.id
       JOIN devices d ON d.id = cad.device_id
       WHERE cad.device_id = $1 AND ca.client_id = $2
       ORDER BY ca.created_at DESC
@@ -2005,8 +2444,8 @@ router.get(
   }
 );
 
-// DELETE /admin/company-ads/:id
-router.delete("/company-ads/:id", checkValidClient, auth, async (req, res) => {
+// DELETE /admin/emergency-ads/:id
+router.delete("/emergency-ads/:id", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
     const { id } = req.params;
@@ -2014,7 +2453,7 @@ router.delete("/company-ads/:id", checkValidClient, auth, async (req, res) => {
     // Step 1: Find the ad (for file cleanup)
     const findQuery = `
       SELECT id, filename
-      FROM company_ads
+      FROM emergency_ads
       WHERE id = $1 AND client_id = $2
       LIMIT 1
     `;
@@ -2029,14 +2468,14 @@ router.delete("/company-ads/:id", checkValidClient, auth, async (req, res) => {
 
     const ad = adRows[0];
 
-    // Step 2: Delete mappings from company_ad_devices
-    await db.query(`DELETE FROM company_ad_devices WHERE company_ad_id = $1`, [
+    // Step 2: Delete mappings from emergency_ad_devices
+    await db.query(`DELETE FROM emergency_ad_devices WHERE company_ad_id = $1`, [
       id,
     ]);
 
-    // Step 3: Delete from company_ads
+    // Step 3: Delete from emergency_ads
     const deleteQuery = `
-      DELETE FROM company_ads
+      DELETE FROM emergency_ads
       WHERE id = $1 AND client_id = $2
       RETURNING id, title
     `;
@@ -2073,14 +2512,20 @@ router.get("/analytics/devices", checkValidClient, auth, async (req, res) => {
     const clientId = req.client_id;
 
     const query = `
-      SELECT d.id, d.name, d.location, d.status,
-             COUNT(a.id) AS total_ads
-      FROM devices d
-      LEFT JOIN ads a ON d.id = a.id AND a.client_id = $1
-      WHERE d.client_id = $1
-      GROUP BY d.id, d.name, d.location, d.status
-      ORDER BY d.created_at DESC
-    `;
+  SELECT 
+      d.id,
+      d.name,
+      d.location,
+      d.status,
+      COUNT(ad.id) AS total_ads
+  FROM devices d
+  LEFT JOIN ad_devices adv ON adv.device_id = d.id
+  LEFT JOIN ads ad ON ad.id = adv.ad_id AND ad.client_id = $1
+  WHERE d.client_id = $1
+  GROUP BY d.id, d.name, d.location, d.status
+  ORDER BY d.created_at DESC;
+`;
+
     const { rows } = await db.query(query, [clientId]);
 
     return res.status(200).json({
