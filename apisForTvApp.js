@@ -3,6 +3,8 @@ const {
   jsonwebtoken,
    bcrypt,
   db} = require("./deps");
+
+  require("dotenv").config();
 const deviceAuth = require("./middleware/deviceAuth");
 const router = express.Router();
 router.post("/ad-statistics", deviceAuth,async (req, res) => {
@@ -31,15 +33,15 @@ router.post("/ad-statistics", deviceAuth,async (req, res) => {
   }
 });
 router.post("/activate", async (req, res) => {
-  const { activationCode, staffUsername, password } = req.body;
+  const { activationCode, email, password } = req.body;
 
-  if (!activationCode || !staffUsername || !password)
+  if (!activationCode || !email || !password)
     return res.status(400).json({ success: false, message: "Missing fields" });
 
   try {
     const staff = await db.query(
-      "SELECT * FROM staffs WHERE username=$1",
-      [staffUsername]
+      "SELECT * FROM staffs WHERE email=$1",
+      [email]
     );
     if (staff.rows.length === 0)
       return res.status(401).json({ success: false, message: "Invalid user" });

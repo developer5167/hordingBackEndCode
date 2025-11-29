@@ -469,7 +469,7 @@ router.post("/devices", checkValidClient, auth, async (req, res) => {
       location,
       width,
       height,
-      status || "active",
+      "not-allocated",
       generateActivationCode()
     ];
     const { rows } = await db.query(insertQ, values);

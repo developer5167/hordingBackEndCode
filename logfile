@@ -4646,3 +4646,60 @@
 2025-11-29 18:09:27.609 IST [38644] ERROR:  invalid input syntax for type boolean: "active"
 2025-11-29 18:09:27.609 IST [38644] CONTEXT:  unnamed portal parameter $2 = '...'
 2025-11-29 18:09:27.609 IST [38644] STATEMENT:  SELECT COUNT(*)::int AS total FROM staffs WHERE client_id = $1 AND status = $2
+2025-11-29 18:25:53.221 IST [40965] ERROR:  column "activated_by" of relation "devices" does not exist at character 37
+2025-11-29 18:25:53.221 IST [40965] STATEMENT:  UPDATE devices SET status='active', activated_by=$1, activated_at=NOW() WHERE activation_code=$2
+2025-11-29 18:29:31.649 IST [14491] ERROR:  there is no unique constraint matching given keys for referenced table "staffs"
+2025-11-29 18:29:31.649 IST [14491] STATEMENT:  alter table devices add CONSTRAINT fk_staff_username
+	        FOREIGN KEY (activated_by)
+	        REFERENCES staffs(username)
+	        ON DELETE CASCADE
+2025-11-29 18:30:53.161 IST [14491] ERROR:  there is no unique constraint matching given keys for referenced table "staffs"
+2025-11-29 18:30:53.161 IST [14491] STATEMENT:  alter table devices add CONSTRAINT fk_staff_activated_by
+	        FOREIGN KEY (activated_by)
+	        REFERENCES staffs(username)
+	        ON DELETE CASCADE
+2025-11-29 18:32:25.578 IST [14491] ERROR:  there is no unique constraint matching given keys for referenced table "staffs"
+2025-11-29 18:32:25.578 IST [14491] STATEMENT:  alter table devices add CONSTRAINT fk_staff_activated_by
+	        FOREIGN KEY (activated_by)
+	        REFERENCES staffs(username)
+	        ON DELETE CASCADE
+2025-11-29 18:33:46.560 IST [40965] ERROR:  column "activated_at" of relation "devices" does not exist at character 54
+2025-11-29 18:33:46.560 IST [40965] STATEMENT:  UPDATE devices SET status='active', activated_by=$1, activated_at=NOW() WHERE activation_code=$2
+2025-11-29 18:34:16.780 IST [41370] ERROR:  column "activated_at" of relation "devices" does not exist at character 54
+2025-11-29 18:34:16.780 IST [41370] STATEMENT:  UPDATE devices SET status='active', activated_by=$1, activated_at=NOW() WHERE activation_code=$2
+2025-11-29 18:37:50.890 IST [41564] ERROR:  column ad.duration does not exist at character 50
+2025-11-29 18:37:50.890 IST [41564] STATEMENT:  SELECT a.id, a.title, a.media_url, a.media_type, ad.duration
+	     FROM ad_devices ad
+	     JOIN ads a ON a.id = ad.ad_id
+	     WHERE ad.device_id = $1 AND ad.status='active'
+2025-11-29 18:39:40.733 IST [41694] ERROR:  function array_remove(text, unknown) does not exist at character 40
+2025-11-29 18:39:40.733 IST [41694] HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+2025-11-29 18:39:40.733 IST [41694] STATEMENT:  
+	      UPDATE users
+	      SET tokens = array_remove(tokens, $1)
+	      WHERE id = $2 AND client_id = $3 AND role = 'admin'
+	      RETURNING id, email
+	    
+2025-11-29 18:39:50.107 IST [41694] ERROR:  function array_remove(text, unknown) does not exist at character 40
+2025-11-29 18:39:50.107 IST [41694] HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+2025-11-29 18:39:50.107 IST [41694] STATEMENT:  
+	      UPDATE users
+	      SET tokens = array_remove(tokens, $1)
+	      WHERE id = $2 AND client_id = $3 AND role = 'admin'
+	      RETURNING id, email
+	    
+2025-11-29 18:40:04.124 IST [41694] ERROR:  function array_remove(text, unknown) does not exist at character 40
+2025-11-29 18:40:04.124 IST [41694] HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+2025-11-29 18:40:04.124 IST [41694] STATEMENT:  
+	      UPDATE users
+	      SET tokens = array_remove(tokens, $1)
+	      WHERE id = $2 AND client_id = $3 AND role = 'admin'
+	      RETURNING id, email
+	    
+2025-11-29 18:48:55.545 IST [14491] ERROR:  relation "staff" does not exist at character 16
+2025-11-29 18:48:55.545 IST [14491] STATEMENT:  		select *from staff
+2025-11-29 18:56:50.137 IST [42767] ERROR:  column ad.duration does not exist at character 50
+2025-11-29 18:56:50.137 IST [42767] STATEMENT:  SELECT a.id, a.title, a.media_url, a.media_type, ad.duration
+	     FROM ad_devices ad
+	     JOIN ads a ON a.id = ad.ad_id
+	     WHERE ad.device_id = $1 AND ad.status='active'
