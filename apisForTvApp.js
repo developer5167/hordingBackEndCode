@@ -85,12 +85,24 @@ router.post("/activate", async (req, res) => {
 router.get("/ads", deviceAuth, async (req, res) => {
   const { device_id } = req.query;
   const ads = await db.query(
-    `SELECT a.id, a.title, a.media_url, a.media_type, ad.duration
-     FROM ad_devices ad
-     JOIN ads a ON a.id = ad.ad_id
-     WHERE ad.device_id = $1 AND ad.status='active'`,
+    `SELECT 
+    ads.id,
+    ads.title,
+    ads.media_url,
+    ads.media_type,
+    ad_devices.start_date,
+    ad_devices.end_date
+FROM ad_devices
+JOIN ads ON ads.id = ad_devices.ad_id
+WHERE ad_devices.device_id = $1
+  AND ad_devices.status = 'active'
+  AND ad_devices.start_date <= NOW()
+  AND ad_devices.end_date >= NOW();
+`,
     [device_id]
   );
+  console.log(ads.rows);
+  
   res.json({ success: true, ads: ads.rows });
 });
 

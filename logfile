@@ -4703,3 +4703,107 @@
 	     FROM ad_devices ad
 	     JOIN ads a ON a.id = ad.ad_id
 	     WHERE ad.device_id = $1 AND ad.status='active'
+2025-11-29 19:00:53.156 IST [2440] LOG:  received smart shutdown request
+2025-11-29 19:00:53.158 IST [2440] LOG:  background worker "logical replication launcher" (PID 2447) exited with exit code 1
+2025-11-29 19:00:53.159 IST [2442] LOG:  shutting down
+2025-11-29 19:00:53.170 IST [2440] LOG:  database system is shut down
+2025-11-29 21:38:29.835 IST [3884] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-11-29 21:38:29.859 IST [3884] LOG:  listening on IPv6 address "::1", port 5432
+2025-11-29 21:38:29.859 IST [3884] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-11-29 21:38:29.860 IST [3884] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-11-29 21:38:29.886 IST [3885] LOG:  database system was shut down at 2025-11-29 19:00:53 IST
+2025-11-29 21:38:29.896 IST [3884] LOG:  database system is ready to accept connections
+2025-11-29 21:47:13.601 IST [4000] ERROR:  column ad.duration does not exist at character 50
+2025-11-29 21:47:13.601 IST [4000] STATEMENT:  SELECT a.id, a.title, a.media_url, a.media_type, ad.duration
+	     FROM ad_devices ad
+	     JOIN ads a ON a.id = ad.ad_id
+	     WHERE ad.device_id = $1 AND ad.status='active'
+2025-11-29 21:47:13.635 IST [4000] LOG:  could not receive data from client: Connection reset by peer
+2025-11-29 21:48:02.201 IST [4551] ERROR:  column ad.duration does not exist at character 50
+2025-11-29 21:48:02.201 IST [4551] STATEMENT:  SELECT a.id, a.title, a.media_url, a.media_type, ad.duration
+	     FROM ad_devices ad
+	     JOIN ads a ON a.id = ad.ad_id
+	     WHERE ad.device_id = $1 AND ad.status='active'
+2025-11-29 21:52:40.049 IST [4709] ERROR:  column ad.duration does not exist at character 50
+2025-11-29 21:52:40.049 IST [4709] STATEMENT:  SELECT a.id, a.title, a.media_url, a.media_type, ad.duration
+	     FROM ad_devices ad
+	     JOIN ads a ON a.id = ad.ad_id
+	     WHERE ad.device_id = $1 AND ad.status='active'
+2025-11-29 21:52:40.062 IST [4709] LOG:  could not receive data from client: Connection reset by peer
+2025-11-29 22:40:51.127 IST [3884] LOG:  received smart shutdown request
+2025-11-29 22:40:51.129 IST [3884] LOG:  background worker "logical replication launcher" (PID 3891) exited with exit code 1
+2025-11-29 22:40:51.129 IST [3886] LOG:  shutting down
+2025-11-29 22:40:51.138 IST [3884] LOG:  database system is shut down
+2025-12-01 14:14:29.262 IST [11432] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-12-01 14:14:29.266 IST [11432] LOG:  listening on IPv6 address "::1", port 5432
+2025-12-01 14:14:29.266 IST [11432] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-12-01 14:14:29.266 IST [11432] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-12-01 14:14:29.285 IST [11433] LOG:  database system was shut down at 2025-11-29 22:40:51 IST
+2025-12-01 14:14:29.292 IST [11432] LOG:  database system is ready to accept connections
+2025-12-01 14:39:41.034 IST [14072] ERROR:  column a.id does not exist at character 8
+2025-12-01 14:39:41.034 IST [14072] HINT:  Perhaps you meant to reference the column "ad.id".
+2025-12-01 14:39:41.034 IST [14072] STATEMENT:  SELECT a.id, a.title, a.media_url, a.media_type
+	     FROM ads ad
+	     JOIN ad_devices a ON ad.id = a.ad_id
+	     WHERE a.device_id = $1 AND a.status='active'
+2025-12-01 14:39:41.094 IST [14072] LOG:  could not receive data from client: Connection reset by peer
+2025-12-01 15:22:47.480 IST [13584] ERROR:  column "id" does not exist at character 32
+2025-12-01 15:22:47.480 IST [13584] STATEMENT:  select * from ad_devices where id ='e0ee30a5-57b6-4cb9-86d9-e9b1b8258d41'
+2025-12-01 16:08:30.352 IST [13584] ERROR:  syntax error at or near "," at character 47
+2025-12-01 16:08:30.352 IST [13584] STATEMENT:  create table staffs_devices(
+	id uuid,
+	staff_id,
+	device_id
+	)
+2025-12-01 16:12:25.611 IST [13584] ERROR:  there is no unique constraint matching given keys for referenced table "staffs"
+2025-12-01 16:12:25.611 IST [13584] STATEMENT:  create table staffs_devices(
+	id uuid,
+	staff_id uuid REFERENCES staffs(id),
+	device_id uuid REFERENCES devices(id)
+	)
+2025-12-01 16:13:01.657 IST [13584] ERROR:  there is no unique constraint matching given keys for referenced table "staffs"
+2025-12-01 16:13:01.657 IST [13584] STATEMENT:  create table staffs_devices(
+	id uuid,
+	staff_id uuid REFERENCES staffs(id),
+	device_id uuid REFERENCES devices(id)
+	)
+2025-12-01 16:14:39.599 IST [13584] ERROR:  type "bigserial" does not exist
+2025-12-01 16:14:39.599 IST [13584] STATEMENT:  alter table staffs alter column id type BIGSERIAL
+	
+2025-12-01 16:15:01.368 IST [13584] ERROR:  type "bigserial" does not exist
+2025-12-01 16:15:01.368 IST [13584] STATEMENT:  alter table staffs alter column id type bigserial
+	
+2025-12-01 16:18:31.453 IST [13584] ERROR:  column "id" of relation "staffs" contains null values
+2025-12-01 16:18:31.453 IST [13584] STATEMENT:  ALTER TABLE staffs
+	ADD CONSTRAINT staffs_pkey PRIMARY KEY (id);
+2025-12-01 17:06:18.682 IST [13584] ERROR:  column "assigned_to" cannot be cast automatically to type uuid
+2025-12-01 17:06:18.682 IST [13584] HINT:  You might need to specify "USING assigned_to::uuid".
+2025-12-01 17:06:18.682 IST [13584] STATEMENT:  alter table devices alter column assigned_to type uuid
+	
+2025-12-01 17:06:37.091 IST [13584] ERROR:  syntax error at or near "USING" at character 34
+2025-12-01 17:06:37.091 IST [13584] STATEMENT:  alter table devices alter column USING assigned_to::uuid
+	
+2025-12-01 17:06:43.027 IST [13584] ERROR:  syntax error at or near "::" at character 46
+2025-12-01 17:06:43.027 IST [13584] STATEMENT:  alter table devices alter column  assigned_to::uuid
+	
+2025-12-01 17:07:53.665 IST [13584] ERROR:  syntax error at or near "::" at character 45
+2025-12-01 17:07:53.665 IST [13584] STATEMENT:  alter table devices alter column assigned_to::uuid
+	
+2025-12-01 17:43:28.584 IST [21334] ERROR:  relation "staff" does not exist at character 16
+2025-12-01 17:43:28.584 IST [21334] STATEMENT:  SELECT id FROM staff WHERE id = $1 AND client_id = $2 LIMIT 1
+2025-12-01 17:44:04.413 IST [21334] ERROR:  relation "staff" does not exist at character 16
+2025-12-01 17:44:04.413 IST [21334] STATEMENT:  SELECT id FROM staff WHERE id = $1 AND client_id = $2 LIMIT 1
+2025-12-01 17:44:11.711 IST [21334] ERROR:  relation "staff" does not exist at character 16
+2025-12-01 17:44:11.711 IST [21334] STATEMENT:  SELECT id FROM staff WHERE id = $1 AND client_id = $2 LIMIT 1
+2025-12-01 17:46:35.728 IST [23730] ERROR:  there is no unique or exclusion constraint matching the ON CONFLICT specification
+2025-12-01 17:46:35.728 IST [23730] STATEMENT:  INSERT INTO staffs_devices (id, staff_id, device_id, created_at) VALUES ($1,$2,$3,NOW()) ON CONFLICT (staff_id, device_id) DO NOTHING RETURNING *
+2025-12-01 17:46:41.608 IST [23730] ERROR:  there is no unique or exclusion constraint matching the ON CONFLICT specification
+2025-12-01 17:46:41.608 IST [23730] STATEMENT:  INSERT INTO staffs_devices (id, staff_id, device_id, created_at) VALUES ($1,$2,$3,NOW()) ON CONFLICT (staff_id, device_id) DO NOTHING RETURNING *
+2025-12-01 17:46:44.660 IST [23730] ERROR:  there is no unique or exclusion constraint matching the ON CONFLICT specification
+2025-12-01 17:46:44.660 IST [23730] STATEMENT:  INSERT INTO staffs_devices (id, staff_id, device_id, created_at) VALUES ($1,$2,$3,NOW()) ON CONFLICT (staff_id, device_id) DO NOTHING RETURNING *
+2025-12-01 17:52:43.154 IST [24006] ERROR:  there is no unique or exclusion constraint matching the ON CONFLICT specification
+2025-12-01 17:52:43.154 IST [24006] STATEMENT:  INSERT INTO staffs_devices (id, staff_id, device_id, created_at) VALUES ($1,$2,$3,NOW()) ON CONFLICT (staff_id, device_id) DO NOTHING RETURNING *
+2025-12-01 17:55:06.721 IST [13584] ERROR:  relation "staff_devices" does not exist at character 13
+2025-12-01 17:55:06.721 IST [13584] STATEMENT:  delete from staff_devices
+2025-12-01 17:58:47.959 IST [24006] ERROR:  there is no unique or exclusion constraint matching the ON CONFLICT specification
+2025-12-01 17:58:47.959 IST [24006] STATEMENT:  INSERT INTO staffs_devices (id, staff_id, device_id, created_at) VALUES ($1,$2,$3,NOW()) ON CONFLICT (staff_id, device_id) DO NOTHING RETURNING *

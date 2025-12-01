@@ -170,5 +170,72 @@ Response example:
 	"data": [ /* id, name, email, status, created_at */ ]
 }
 ```
+
+---
+
+## Assign devices to a staff (admin)
+
+Endpoint: POST /admin/staff/:id/devices
+
+- Middleware: checkValidClient, auth
+- Path param: id = staff id
+- Body: { "device_ids": ["device-uuid-1","device-uuid-2", ...] }
+
+- Behavior: assigns listed devices to the given staff (scoped to client). The API checks that devices belong to the client and will return 404 for missing devices and 409 if devices are assigned to a different staff.
+
+Example curl:
+
+```bash
+curl -X POST "$BASE_URL/admin/staff/STAFF_ID/devices" \
+	-H "Authorization: Bearer ADMIN_TOKEN" \
+	-H "clientAuthorisationKey: CLIENT_ID" \
+	-H "Content-Type: application/json" \
+	-d '{ "device_ids": ["DEVICE_ID_1", "DEVICE_ID_2"] }'
+```
+
+Response:
+
+```json
+{ "success": true, "message": "devices_assigned", "assigned": [ /* inserted mapping rows */ ] }
+```
+
+### Get devices assigned to a staff
+
+Endpoint: GET /admin/staff/:id/devices
+
+- Query params: page, limit. Returns paginated list of devices assigned to the staff (client-scoped).
+
+Example curl:
+
+```bash
+curl "$BASE_URL/admin/staff/STAFF_ID/devices?page=1&limit=20" \
+	-H "Authorization: Bearer ADMIN_TOKEN" \
+	-H "clientAuthorisationKey: CLIENT_ID"
+```
+
+### Search devices
+
+The GET /admin/devices endpoint supports an optional `search` query parameter which matches device `name`, `location` or `id` (case-insensitive). Use it like:
+
+```bash
+curl "$BASE_URL/admin/devices?search=main" \
+	-H "Authorization: Bearer ADMIN_TOKEN" \
+	-H "clientAuthorisationKey: CLIENT_ID"
+```
+
+### Remove (unassign) device from staff
+
+Endpoint: DELETE /admin/staff/:id/devices/:device_id
+
+- Behavior: deletes the staff-device mapping and clears the device's is_assigned and assigned_to fields. Scoped to client.
+
+Example curl:
+
+```bash
+curl -X DELETE "$BASE_URL/admin/staff/STAFF_ID/devices/DEVICE_ID" \
+	-H "Authorization: Bearer ADMIN_TOKEN" \
+	-H "clientAuthorisationKey: CLIENT_ID"
+```
+
 # hordingBackEndCode
 # hordingBackEndCode

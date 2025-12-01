@@ -3,6 +3,8 @@ const {
   jsonwebtoken,
   db} = require("../deps")
 
+  require("dotenv").config()
+
   const  deviceAuth = async (req, res, next) => {
   const header = req.headers.authorization || "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : null;
@@ -10,6 +12,7 @@ const {
 
   try {
     const decoded = jsonwebtoken.verify(token, process.env.JWT_SECRET);
+
     req.device_id = decoded.device_id;
     req.client_id = decoded.client_id;
     next();

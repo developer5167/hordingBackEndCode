@@ -355,14 +355,23 @@ router.post("/logout", checkValidClient, auth, async (req, res) => {
 router.get("/devices", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
+    const search = req.query.search ? String(req.query.search).trim() : null;
+
+    // build optional search filtering
+    let where = `WHERE client_id = $1`;
+    const params = [clientId];
+    if (search) {
+      params.push(`%${search}%`);
+      where += ` AND (name ILIKE $${params.length} OR location ILIKE $${params.length} OR id::text ILIKE $${params.length})`;
+    }
 
     const query = `
-      SELECT id, name, location, width, height, status, created_at
+      SELECT id, name, location, width, height, status, is_assigned, assigned_to, created_at
       FROM devices
-      WHERE client_id = $1
+      ${where}
       ORDER BY created_at DESC
     `;
-    const { rows } = await db.query(query, [clientId]);
+    const { rows } = await db.query(query, params);
 
     return res.status(200).json({
       success: true,
@@ -1688,6 +1697,133 @@ router.get("/staff", checkValidClient, auth, async (req, res) => {
   } catch (err) {
     console.error('Error fetching staffs list:', err);
     return res.status(500).json({ success: false, error: 'fetch_failed', detail: err.message });
+  }
+});
+router.post("/staff/:id/devices", checkValidClient, auth, async (req, res) => {
+    try {
+      const staffId = req.params.id;
+      const clientId = req.client_id;
+      const { device_ids } = req.body;
+
+      if (!Array.isArray(device_ids) || device_ids.length === 0) {
+        return res.status(400).json({ error: "device_ids_required" });
+      }
+
+      // validate staff belongs to client
+      const staffQ = `SELECT id FROM staffs WHERE id = $1 AND client_id = $2 LIMIT 1`;
+      const staffRes = await db.query(staffQ, [staffId, clientId]);
+      if (staffRes.rows.length === 0) return res.status(404).json({ error: 'staff_not_found' });
+
+      // fetch devices and verify they belong to client
+      const devicesQ = `SELECT id, is_assigned, assigned_to FROM devices WHERE id = ANY($1::uuid[]) AND client_id = $2`;
+      const { rows: foundDevices } = await db.query(devicesQ, [device_ids, clientId]);
+
+      const foundIds = new Set(foundDevices.map((d) => d.id));
+      const missing = device_ids.filter((id) => !foundIds.has(id));
+      if (missing.length > 0) return res.status(404).json({ error: 'devices_not_found', missing });
+
+      // check for conflicting assignments
+      const conflicts = foundDevices.filter((d) => d.assigned_to && d.assigned_to !== staffId);
+      if (conflicts.length > 0) {
+        return res.status(409).json({ error: 'device_assigned_elsewhere', devices: conflicts.map(c => c.id) });
+      }
+
+      // everything OK — perform inserts and updates in a transaction
+      await db.query('BEGIN');
+      try {
+        const createdMappings = [];
+        for (const deviceId of device_ids) {
+          const mapId = uuidv4();
+          // safe insert: avoid duplicate mappings if already exists
+          const ins = `INSERT INTO staffs_devices (id, staff_id, device_id, created_at) VALUES ($1,$2,$3,NOW()) ON CONFLICT (device_id) DO NOTHING RETURNING *`;
+          const { rows } = await db.query(ins, [mapId, staffId, deviceId]);
+          if (rows && rows[0]) createdMappings.push(rows[0]);
+
+          // update device flags (idempotent)
+          await db.query(`UPDATE devices SET is_assigned = true, assigned_to = $1 WHERE id = $2 AND client_id = $3`, [staffId, deviceId, clientId]);
+        }
+
+        await db.query('COMMIT');
+        return res.status(201).json({ success: true, message: 'devices_assigned', assigned: createdMappings });
+      } catch (err) {
+        await db.query('ROLLBACK');
+        console.error('Error assigning devices to staff:', err);
+        return res.status(500).json({ error: 'assign_failed', detail: err.message });
+      }
+    } catch (err) {
+      console.error('Error in /staff/:id/devices POST:', err);
+      return res.status(500).json({ error: 'server_error', detail: err.message });
+    }
+  });
+// ----------------------
+// GET /staff/:id/devices
+// List devices assigned to a staff (paginated) — grouped near staff endpoints
+// ----------------------
+router.get("/staff/:id/devices", checkValidClient, auth, async (req, res) => {
+  try {
+    const staffId = req.params.id;
+    const clientId = req.client_id;
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(Number(req.query.limit) || 50, 500);
+    const offset = (page - 1) * limit;
+
+    // ensure staff belongs to client
+    const staffQ = `SELECT id FROM staffs WHERE id = $1 AND client_id = $2 LIMIT 1`;
+    const staffRes = await db.query(staffQ, [staffId, clientId]);
+    if (staffRes.rows.length === 0) return res.status(404).json({ error: 'staff_not_found' });
+
+    // total count
+    const countQ = `SELECT COUNT(*)::int as total FROM staffs_devices sd JOIN devices d ON sd.device_id = d.id WHERE sd.staff_id = $1 AND d.client_id = $2`;
+    const { rows: countRows } = await db.query(countQ, [staffId, clientId]);
+    const total = countRows[0] ? Number(countRows[0].total) : 0;
+
+    // fetch page
+    const q = `SELECT d.id, d.name, d.location, d.width, d.height, d.status, d.is_assigned, d.assigned_to, sd.created_at AS assigned_at
+               FROM staffs_devices sd
+               JOIN devices d ON sd.device_id = d.id
+               WHERE sd.staff_id = $1 AND d.client_id = $2
+               ORDER BY sd.created_at DESC
+               LIMIT $3 OFFSET $4`;
+    const { rows } = await db.query(q, [staffId, clientId, limit, offset]);
+
+    return res.status(200).json({ success: true, message: 'staff_devices_fetched', pagination: { total, page, limit, totalPages: Math.ceil(total / limit) }, data: rows });
+  } catch (err) {
+    console.error('Error in GET /staff/:id/devices:', err);
+    return res.status(500).json({ error: 'fetch_failed', detail: err.message });
+  }
+});
+
+// ----------------------
+// DELETE /staff/:id/devices/:device_id
+// Remove a device assignment from a staff (single device)
+// ----------------------
+router.delete('/staff/:id/devices/:device_id', checkValidClient, auth, async (req, res) => {
+  try {
+    const staffId = req.params.id;
+    const deviceId = req.params.device_id;
+    const clientId = req.client_id;
+
+    // verify mapping exists and both staff & device belong to client
+    const checkQ = `SELECT sd.id AS map_id FROM staffs_devices sd JOIN devices d ON sd.device_id = d.id WHERE sd.staff_id = $1 AND sd.device_id = $2 AND d.client_id = $3 LIMIT 1`;
+    const { rows: checkRows } = await db.query(checkQ, [staffId, deviceId, clientId]);
+    if (checkRows.length === 0) return res.status(404).json({ error: 'assignment_not_found' });
+
+    await db.query('BEGIN');
+    try {
+      // delete mapping
+      await db.query(`DELETE FROM staffs_devices WHERE staff_id = $1 AND device_id = $2`, [staffId, deviceId]);
+      // clear device flags
+      await db.query(`UPDATE devices SET is_assigned = false, assigned_to = NULL WHERE id = $1 AND client_id = $2`, [deviceId, clientId]);
+      await db.query('COMMIT');
+      return res.status(200).json({ success: true, message: 'device_unassigned', device_id: deviceId });
+    } catch (err) {
+      await db.query('ROLLBACK');
+      console.error('Error unassigning device:', err);
+      return res.status(500).json({ error: 'unassign_failed', detail: err.message });
+    }
+  } catch (err) {
+    console.error('Error in DELETE /staff/:id/devices/:device_id:', err);
+    return res.status(500).json({ error: 'server_error', detail: err.message });
   }
 });
 
