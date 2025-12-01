@@ -223,6 +223,33 @@ curl "$BASE_URL/admin/devices?search=main" \
 	-H "clientAuthorisationKey: CLIENT_ID"
 ```
 
+---
+
+## Device activation (TV app)
+
+When a staff member attempts to activate a device from the TV, the frontend should call a TV-facing endpoint with the device's activation code and the staff credentials. Activation requires:
+
+- activation_code (stored on the device row)
+- staff email
+- staff password
+
+Only the staff user who is assigned to the device can successfully activate it.
+
+Endpoint: POST /devices/activate
+
+Body JSON: { "activation_code": "CODE", "email": "staff@example.com", "password": "secret" }
+
+Example:
+
+```bash
+ACTIVATION_CODE=ABC123 EMAIL=staff@example.com PASSWORD=secret BASE_URL=http://localhost:3000 bash scripts/activate-device.sh
+```
+
+Responses:
+- 200: { success: true, message: 'device_activated', device: { id, status, is_assigned, assigned_to } }
+- 401 / 403 / 404 as appropriate (invalid code, not-assigned, invalid staff credentials, etc.)
+
+
 ### Remove (unassign) device from staff
 
 Endpoint: DELETE /admin/staff/:id/devices/:device_id
