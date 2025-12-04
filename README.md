@@ -225,6 +225,27 @@ curl "$BASE_URL/admin/devices?search=main" \
 
 ---
 
+### Send temporary password to staff (admin)
+
+Endpoint: POST /admin/staff/:id/send-password
+
+- Middleware: checkValidClient, auth
+- Behavior: generates a temporary password, updates the staff's password (stored hashed), and emails the temporary password along with an HTML table of all devices assigned to that staff. The email includes:
+  - Temporary password
+  - Formatted device table with columns: S.No, Device Name, Location, Activation Code
+  - This does not retrieve the old password (passwords are stored hashed).
+
+Example curl:
+
+```bash
+BASE_URL=http://localhost:3000 ADMIN_TOKEN=token CLIENT_ID=client-id STAFF_ID=staff-uuid bash scripts/send-staff-password.sh
+```
+
+Response: { success: true, message: 'password_sent', staff: { id, username, email }, assigned_devices_count: N }
+
+
+---
+
 ## Device activation (TV app)
 
 When a staff member attempts to activate a device from the TV, the frontend should call a TV-facing endpoint with the device's activation code and the staff credentials. Activation requires:

@@ -159,7 +159,16 @@ router.post("/devices/activate", async (req, res) => {
     const updQ = `UPDATE devices SET status = 'active', is_assigned = true WHERE id = $1 RETURNING id, status, is_assigned, assigned_to`;
     const { rows: updated } = await db.query(updQ, [device.id]);
 
-    return res.status(200).json({ success: true, message: 'device_activated', device: updated[0] });
+    // generate JWT token for the device/session
+    const jwtSecret = process.env.JWT_SECRET;
+    const tokenPayload = {
+      device_id: updated[0].id,
+      client_id: device.client_id,
+      staff_id: staff.id,
+    };
+    const token = jsonwebtoken.sign(tokenPayload, jwtSecret, { expiresIn: '30d' });
+    const baseUrl = `${req.protocol}://${req.get("host")}`;
+    return res.status(200).json({ success: true, message: 'device_activated', device: updated[0], token,baseUrl });
   } catch (err) {
     console.error('Error activating device:', err);
     return res.status(500).json({ success: false, error: 'activation_failed', detail: err.message });

@@ -27,7 +27,7 @@ function generateStaffPassword() {
   return Math.random().toString(36).slice(-8);
 }
 
-async function sendStaffEmail(to, email, password) {
+async function sendStaffEmail(to, email, password, devices = []) {
   // re-use project's SMTP settings (same as superadminApis)
   const mailRequest = nodemailer.createTransport({
     host: "smtpout.secureserver.net",
@@ -37,11 +37,44 @@ async function sendStaffEmail(to, email, password) {
       pass: "Sam@#)*&&$$5167",
     },
   });
+  
+  // build device table HTML if devices provided
+  let deviceTableHTML = '';
+  if (devices && devices.length > 0) {
+    deviceTableHTML = `
+      <h3>Assigned Devices</h3>
+      <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%;">
+        <tr style="background-color: #f2f2f2;">
+          <th>S.No</th>
+          <th>Device Name</th>
+          <th>Location</th>
+          <th>Activation Code</th>
+        </tr>
+    `;
+    devices.forEach((device, index) => {
+      deviceTableHTML += `
+        <tr>
+          <td>${index + 1}</td>
+          <td>${device.name || 'N/A'}</td>
+          <td>${device.location || 'N/A'}</td>
+          <td><strong>${device.activation_code || 'N/A'}</strong></td>
+        </tr>
+      `;
+    });
+    deviceTableHTML += '</table>';
+  }
+  
   const mailingOptions = {
     from: "info@listnow.in",
     to: to,
-    subject: "Your Staff Account Created",
-    html: `Hello ${email},\n\nA staffs account has been created for you.\nEmail: ${email}\nPassword: ${password}\n\nPlease use to login during screen set up`,
+    subject: "Your Staff Account - Credentials & Assigned Devices",
+    html: `<p>Hello ${email},</p>
+      <p>A staff account has been created for you.</p>
+      <p><strong>Email:</strong> ${email}</p>
+      <p><strong>Password:</strong> ${password}</p>
+      <p>Please use these credentials to login during device setup.</p>
+      ${deviceTableHTML}
+      <p>Best regards,<br/>ListNow Team</p>`,
   };
   try {
     await mailRequest.sendMail(mailingOptions);
@@ -553,27 +586,40 @@ router.delete("/devices/:id", checkValidClient, auth, async (req, res) => {
     const clientId = req.client_id;
     const { id } = req.params;
 
-    const delete_ad_devices = `
-      DELETE FROM ad_devices
-      WHERE device_id = $1 AND client_id = $2
-    `;
-     const query = `
-      DELETE FROM devices
-      WHERE id = $1 AND client_id = $2
-    `;
-    // const ads = `
-    //   DELETE FROM ads
-    //   WHERE device_id = $1 AND client_id = $2
-    //   RETURNING id, name, location
-    // `;
-     await db.query(delete_ad_devices, [id, clientId]);
-     await db.query(query, [id, clientId]);
-    //  await db.query(ads, [id, clientId]);
-    return res.status(200).json({
-      success: true,
-      message: "Device Deleted Successfully",
-    });
-    
+    // perform all deletions in a transaction to keep DB consistent
+    await db.query("BEGIN");
+    try {
+      // Delete ad-device mappings for this device (client-scoped)
+      await db.query(`DELETE FROM ad_devices WHERE device_id = $1 AND client_id = $2`, [id, clientId]);
+
+      // Delete emergency/company ad mappings that include this device
+      await db.query(`DELETE FROM emergency_ad_devices WHERE device_id = $1`, [id]);
+
+      // Delete staff-device assignments
+      await db.query(`DELETE FROM staffs_devices WHERE device_id = $1`, [id]);
+
+      // Delete pricing rules for this device (client-scoped)
+      await db.query(`DELETE FROM pricing_rules WHERE device_id = $1 AND client_id = $2`, [id, clientId]);
+
+      // Delete ad statistics and generic stats related to this device
+      await db.query(`DELETE FROM ad_statistics WHERE device_id = $1`, [id]);
+
+
+      // Finally delete the device row (client-scoped)
+      const delDevice = await db.query(`DELETE FROM devices WHERE id = $1 AND client_id = $2 RETURNING id, name, location`, [id, clientId]);
+
+      await db.query("COMMIT");
+
+      if (delDevice.rows.length === 0) {
+        return res.status(404).json({ success: false, message: "Device not found or not authorized" });
+      }
+
+      return res.status(200).json({ success: true, message: "Device deleted successfully", device: delDevice.rows[0] });
+    } catch (innerErr) {
+      await db.query("ROLLBACK");
+      console.error("Error during device delete transaction:", innerErr);
+      return res.status(500).json({ success: false, message: "Failed to delete device and related records", error: innerErr.message });
+    }
   } catch (error) {
     console.error("Error deleting device:", error);
     return res.status(500).json({
@@ -1697,6 +1743,56 @@ router.get("/staff", checkValidClient, auth, async (req, res) => {
   } catch (err) {
     console.error('Error fetching staffs list:', err);
     return res.status(500).json({ success: false, error: 'fetch_failed', detail: err.message });
+  }
+});
+
+// ----------------------
+// POST /staff/:id/send-password
+// Generate a temporary password, set it for the staff (hashed), and email it to them.
+// This is a recover/reset flow (we do NOT store or retrieve plain passwords).
+// ----------------------
+router.post('/staff/:id/send-password', checkValidClient, auth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const clientId = req.client_id;
+
+    // verify staff exists for this client
+    const staffQ = `SELECT id, email, username FROM staffs WHERE id = $1 AND client_id = $2 LIMIT 1`;
+    const { rows } = await db.query(staffQ, [id, clientId]);
+    if (rows.length === 0) return res.status(404).json({ error: 'staff_not_found' });
+
+    const staff = rows[0];
+
+    // fetch all devices assigned to this staff
+    const devicesQ = `
+      SELECT d.id, d.name, d.location, d.activation_code
+      FROM staffs_devices sd
+      JOIN devices d ON sd.device_id = d.id
+      WHERE sd.staff_id = $1 AND d.client_id = $2
+      ORDER BY d.created_at ASC
+    `;
+    const { rows: devices } = await db.query(devicesQ, [id, clientId]);
+
+    // generate temporary password
+    const tempPassword = generateStaffPassword();
+    const hashed = await bcrypt.hash(String(tempPassword), 10);
+
+    // update DB with new hashed password
+    const updQ = `UPDATE staffs SET password = $1 WHERE id = $2 AND client_id = $3 RETURNING id, username, email`;
+    const { rows: updated } = await db.query(updQ, [hashed, id, clientId]);
+
+    // send email with temporary password and device table
+    try {
+      await sendStaffEmail(staff.email, staff.email, tempPassword, devices);
+    } catch (mailErr) {
+      console.error('Failed to send password email:', mailErr);
+      return res.status(500).json({ error: 'email_send_failed', detail: String(mailErr.message || mailErr) });
+    }
+
+    return res.status(200).json({ success: true, message: 'password_sent', staff: updated[0], assigned_devices_count: devices.length });
+  } catch (err) {
+    console.error('Error in send-password:', err);
+    return res.status(500).json({ error: 'send_password_failed', detail: err.message });
   }
 });
 router.post("/staff/:id/devices", checkValidClient, auth, async (req, res) => {
