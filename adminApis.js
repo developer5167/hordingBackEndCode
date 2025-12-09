@@ -1323,8 +1323,8 @@ router.post(
     next();
   },
 
-  // 2) accept any file field (we'll pick "file" if present). fields() allows files + fields parsing.
-  upload.fields([{ name: "file", maxCount: 1 }]),
+  // 2) accept multiple files in `files` field (one device only)
+  upload.array('files', 10),
 
   // 3) your auth middleware(s) (keep as-is)
   checkValidClient,
@@ -1340,11 +1340,6 @@ router.post(
       console.log("req.body keys:", Object.keys(req.body || {}));
       // console.log("req.body raw:", req.body);
 
-      // pick uploaded file robustly
-      const file =
-        (req.files && req.files.file && req.files.file[0]) ||
-        (req.file ? req.file : null);
-
       // safety: req.body might be undefined (but multer should set it); use body = {}
       const body = req.body || {};
 
@@ -1352,168 +1347,107 @@ router.post(
       const media_type = body.media_type;
       const start_date = body.start_date;
       const end_date = body.end_date;
-      const companyAdId = body.companyAdId;
+      const deviceId = body.device_id || body.device;
 
-      // ------- parse selected_devices in multiple possible formats -------
-      let selected_devices = [];
-
-      // 1) JSON string in field: selected_devices = '["id1","id2"]'
-      if (body.selected_devices) {
-        if (Array.isArray(body.selected_devices)) {
-          // unlikely for stringified array, but handle it
-          selected_devices = body.selected_devices.flatMap((v) => {
-            if (typeof v === "string") {
-              try {
-                return JSON.parse(v);
-              } catch {
-                return v
-                  .split(",")
-                  .map((s) => s.trim())
-                  .filter(Boolean);
-              }
-            }
-            return [v];
-          });
-        } else {
-          // single string
-          try {
-            selected_devices = JSON.parse(body.selected_devices);
-            if (!Array.isArray(selected_devices)) {
-              // if parsed to single value, normalize
-              selected_devices = [String(selected_devices)];
-            }
-          } catch (e) {
-            // fallback: comma-separated string "id1,id2"
-            selected_devices = String(body.selected_devices)
-              .split(",")
-              .map((s) => s.trim())
-              .filter(Boolean);
-          }
-        }
-      } else if (body["selected_devices[]"]) {
-        // repeated fields: selected_devices[]=id1 & selected_devices[]=id2
-        selected_devices = Array.isArray(body["selected_devices[]"])
-          ? body["selected_devices[]"]
-          : [body["selected_devices[]"]];
-      } else {
-        // maybe client sent multiple fields named selected_devices each separately
-        // multer would give a single joined string for same keys in many setups; keep fallback
-        selected_devices = [];
-      }
+      // files uploaded as array
+      const files = Array.isArray(req.files) ? req.files : [];
 
       // ---------- validations ----------
       if (!title) return res.status(400).json({ error: "title_required" });
       if (!media_type || !["image", "video"].includes(media_type))
         return res.status(400).json({ error: "invalid_media_type" });
-      if (!file) {
-        // return helpful debug to client so you can see what arrived
-        return res.status(400).json({
-          error: "file_required",
-          debug: {
-            files: req.files ? Object.keys(req.files) : null,
-            bodyKeys: Object.keys(body),
-          },
-        });
+      if (!files || files.length === 0) {
+        return res.status(400).json({ error: "files_required", detail: "At least one file must be uploaded in 'files' field" });
       }
       if (!start_date || !end_date)
         return res.status(400).json({ error: "start_and_end_dates_required" });
-      if (!selected_devices || selected_devices.length === 0)
-        return res.status(400).json({ error: "select_at_least_one_device" });
+      if (!deviceId) return res.status(400).json({ error: "device_id_required" });
 
-      // ---------- upload to firebase (same as your logic) ----------
-      const timestamp = Date.now();
-      const safeOriginal = file.originalname.replace(/\s+/g, "_");
-      const filename = `emergency_ads/${req.client_id}/${timestamp}_${safeOriginal}`;
+      // verify device belongs to client
+      const devCheck = await db.query(`SELECT id FROM devices WHERE id = $1 AND client_id = $2 LIMIT 1`, [deviceId, req.client_id]);
+      if (devCheck.rows.length === 0) return res.status(404).json({ error: 'device_not_found_or_unauthorized' });
 
-      const fileUpload = bucket.file(filename);
-      const uuid = uuidv4();
-      const blobStream = fileUpload.createWriteStream({
-        metadata: {
-          contentType: file.mimetype,
-          metadata: { firebaseStorageDownloadTokens: uuid },
-        },
-        resumable: false,
-      });
-
-      const uploadPromise = new Promise((resolve, reject) => {
-        blobStream.on("error", (err) => reject(err));
-        blobStream.on("finish", () => {
-          const url = `https://firebasestorage.googleapis.com/v0/b/${
-            bucket.name
-          }/o/${encodeURIComponent(fileUpload.name)}?alt=media&token=${uuid}`;
-          resolve({ url, filename });
-        });
-        blobStream.end(file.buffer);
-      });
-
-      let uploaded;
+      // ---------- upload each file to firebase and insert rows in a transaction ----------
+      const uploadedResults = [];
       try {
-        uploaded = await uploadPromise;
-      } catch (err) {
-        console.error("Firebase upload error:", err);
-        return res.status(500).json({ error: "file_upload_failed" });
-      }
+        await db.query('BEGIN');
 
-      // ---------- insert into emergency_ads + emergency_ad_devices in a transaction ----------
-      try {
-        await db.query("BEGIN");
-        const compAdId = companyAdId || uuidv4();
-        const insertCompanyAd = `
-          INSERT INTO emergency_ads (
-            id, client_id, title, media_type, media_url, filename,
-            start_date, end_date, status, status_updated_at, created_at
-          )
-          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'pause',NOW(), NOW())
-          ON CONFLICT (id) DO NOTHING
-          RETURNING id
-        `;
-        const { rows: adRows } = await db.query(insertCompanyAd, [
-          compAdId,
-          req.client_id,
-          title,
-          media_type,
-          uploaded.url,
-          uploaded.filename,
-          start_date,
-          end_date,
-        ]);
-        const finalCompanyAdId = adRows.length ? adRows[0].id : compAdId;
+        for (const file of files) {
+          const timestamp = Date.now();
+          const safeOriginal = file.originalname.replace(/\s+/g, "_");
+          const filename = `emergency_ads/${req.client_id}/${timestamp}_${safeOriginal}`;
 
-        const insertDeviceMapping = `
-          INSERT INTO emergency_ad_devices
-            (company_ad_id, device_id, start_date, end_date, status, status_updated_at)
-          VALUES ($1,$2,$3,$4,'active',NOW())
-        `;
-        for (const device of selected_devices) {
-          await db.query(insertDeviceMapping, [
-            finalCompanyAdId,
-            device,
+          const fileUpload = bucket.file(filename);
+          const uuid = uuidv4();
+          const blobStream = fileUpload.createWriteStream({
+            metadata: {
+              contentType: file.mimetype,
+              metadata: { firebaseStorageDownloadTokens: uuid },
+            },
+            resumable: false,
+          });
+
+          const uploadPromise = new Promise((resolve, reject) => {
+            blobStream.on("error", (err) => reject(err));
+            blobStream.on("finish", () => {
+              const url = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileUpload.name)}?alt=media&token=${uuid}`;
+              resolve({ url, filename });
+            });
+            blobStream.end(file.buffer);
+          });
+
+          let uploaded;
+          try {
+            uploaded = await uploadPromise;
+          } catch (err) {
+            throw new Error(`firebase_upload_failed: ${err.message || err}`);
+          }
+
+          // insert emergency_ad row
+          const newAdId = uuidv4();
+          const insertCompanyAd = `
+            INSERT INTO emergency_ads (
+              id, client_id, title, media_type, media_url, filename,
+              start_date, end_date, status, status_updated_at, created_at
+            )
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'pause',NOW(), NOW())
+            RETURNING id
+          `;
+          const { rows: adRows } = await db.query(insertCompanyAd, [
+            newAdId,
+            req.client_id,
+            title,
+            media_type,
+            uploaded.url,
+            uploaded.filename,
             start_date,
             end_date,
           ]);
+
+          const finalCompanyAdId = adRows.length ? adRows[0].id : newAdId;
+
+          // insert mapping for single device
+          const insertDeviceMapping = `
+            INSERT INTO emergency_ad_devices
+              (company_ad_id, device_id, start_date, end_date, status, status_updated_at)
+            VALUES ($1,$2,$3,$4,'active',NOW())
+          `;
+          await db.query(insertDeviceMapping, [finalCompanyAdId, deviceId, start_date, end_date]);
+
+          uploadedResults.push({ company_ad_id: finalCompanyAdId, media: uploaded });
         }
 
-        await db.query("COMMIT");
+        await db.query('COMMIT');
 
-        return res.status(201).json({
-          success: true,
-          message: "Company ad created successfully",
-          company_ad_id: finalCompanyAdId,
-          devices: selected_devices,
-          media: uploaded,
-        });
+        return res.status(201).json({ success: true, message: 'company_ads_created', created: uploadedResults });
       } catch (txErr) {
-        console.error("DB tx error:", txErr);
-        try {
-          await db.query("ROLLBACK");
-        } catch (_) {}
-        // delete firebase file
-        try {
-          await bucket.file(uploaded.filename).delete();
-        } catch (_) {}
-        return res
-          .status(500)
-          .json({ error: "database_error", detail: txErr.message });
+        console.error('DB tx error or upload error:', txErr);
+        try { await db.query('ROLLBACK'); } catch (_) {}
+        // best-effort cleanup of uploaded files
+        for (const r of uploadedResults) {
+          try { await bucket.file(r.media.filename).delete(); } catch (_) {}
+        }
+        return res.status(500).json({ error: 'database_or_upload_error', detail: txErr.message });
       }
     } catch (err) {
       console.error("Unexpected error in /emergency-ads/create:", err);

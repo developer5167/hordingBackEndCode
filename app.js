@@ -20,6 +20,7 @@ const superadminAnalyticsApis = require("./superadminAnalyticsApis");
 const superadminPayments = require("./superadminPayments");
 const apisForTv = require("./apisForTvApp");
 const { log } = require("console");
+const {jsonwebtoken} =require("./deps")
 
 app.use("/superadmin", superAdminApis);
 app.use("/superadmin", superadminAnalyticsApis);
@@ -41,17 +42,15 @@ const io = new Server(server, {
 io.use((socket, next) => {
   try {
     const token = socket.handshake.query.token;
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jsonwebtoken.verify(token, process.env.JWT_SECRET);
     socket.device_id = decoded.device_id;
     socket.client_id = decoded.client_id;
     return next();
   } catch (err) {
-    console.log("❌ Invalid device token");
+    console.log("❌ Invalid device token. "+err);
     return next(new Error("Unauthorized"));
   }
 });
-
-
  client.on("notification", async (msg) => {
     const channel = msg.channel;
     const payload = JSON.parse(msg.payload);

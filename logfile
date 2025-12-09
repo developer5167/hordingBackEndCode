@@ -4811,3 +4811,19 @@
 2025-12-01 19:06:18.936 IST [11432] LOG:  background worker "logical replication launcher" (PID 11439) exited with exit code 1
 2025-12-01 19:06:18.937 IST [11434] LOG:  shutting down
 2025-12-01 19:06:18.950 IST [11432] LOG:  database system is shut down
+2025-12-05 16:52:22.025 IST [20715] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-12-05 16:52:22.028 IST [20715] LOG:  listening on IPv6 address "::1", port 5432
+2025-12-05 16:52:22.028 IST [20715] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-12-05 16:52:22.028 IST [20715] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-12-05 16:52:22.052 IST [20716] LOG:  database system was shut down at 2025-12-05 01:07:58 IST
+2025-12-05 16:52:22.066 IST [20715] LOG:  database system is ready to accept connections
+2025-12-05 18:16:03.285 IST [20715] LOG:  received smart shutdown request
+2025-12-05 18:16:03.289 IST [20715] LOG:  background worker "logical replication launcher" (PID 20722) exited with exit code 1
+2025-12-05 18:16:03.289 IST [20717] LOG:  shutting down
+2025-12-05 18:16:03.307 IST [20715] LOG:  database system is shut down
+2025-12-09 22:52:39.580 IST [3416] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-12-09 22:52:39.583 IST [3416] LOG:  listening on IPv6 address "::1", port 5432
+2025-12-09 22:52:39.583 IST [3416] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-12-09 22:52:39.585 IST [3416] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-12-09 22:52:39.602 IST [3417] LOG:  database system was shut down at 2025-12-05 18:16:03 IST
+2025-12-09 22:52:39.613 IST [3416] LOG:  database system is ready to accept connections

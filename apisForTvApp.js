@@ -1,18 +1,16 @@
-const {
-  express,
-  jsonwebtoken,
-   bcrypt,
-  db} = require("./deps");
+const { express, jsonwebtoken, bcrypt, db } = require("./deps");
 
-  require("dotenv").config();
+require("dotenv").config();
 const deviceAuth = require("./middleware/deviceAuth");
 const router = express.Router();
-router.post("/ad-statistics", deviceAuth,async (req, res) => {
+router.post("/ad-statistics", deviceAuth, async (req, res) => {
   try {
     const { ad_id, device_id, duration_played, location } = req.body;
 
     if (!ad_id || !device_id) {
-      return res.status(400).json({ error: "ad_id and device_id are required" });
+      return res
+        .status(400)
+        .json({ error: "ad_id and device_id are required" });
     }
 
     const result = await db.query(
@@ -25,7 +23,7 @@ router.post("/ad-statistics", deviceAuth,async (req, res) => {
     res.json({
       message: "Ad statistics recorded",
       id: result.rows[0].id,
-      play_time: result.rows[0].play_time
+      play_time: result.rows[0].play_time,
     });
   } catch (err) {
     console.error("Error saving ad statistics:", err);
@@ -53,106 +51,76 @@ WHERE ad_devices.device_id = $1
     [device_id]
   );
   console.log(ads.rows);
-  
+
   res.json({ success: true, ads: ads.rows });
 });
-
-// ----------------------
-// POST /devices/activate
-// Activate a device using activation_code + staff email + password
-// Only the staff assigned to the device may activate it.
-// Body: { activation_code, email, password }
-// ----------------------
-
-// router.post("/activate", async (req, res) => {
-//   const { activationCode, email, password } = req.body;
-
-//   if (!activationCode || !email || !password)
-//     return res.status(400).json({ success: false, message: "Missing fields" });
-
-//   try {
-//     const staff = await db.query(
-//       "SELECT * FROM staffs WHERE email=$1",
-//       [email]
-//     );
-//     if (staff.rows.length === 0)
-//       return res.status(401).json({ success: false, message: "Invalid user" });
-
-//     const validPass = await bcrypt.compare(password, staff.rows[0].password);
-//     if (!validPass)
-//       return res.status(401).json({ success: false, message: "Incorrect password" });
-
-//     const device = await db.query(
-//       "SELECT * FROM devices WHERE activation_code=$1",
-//       [activationCode]
-//     );
-//     if (device.rows.length === 0)
-//       return res.status(400).json({ success: false, message: "Invalid activation code" });
-
-//     // Mark device as activated
-//     await db.query(
-//       "UPDATE devices SET status='active', activated_by=$1, activated_at=NOW() WHERE activation_code=$2",
-//       [staff.rows[0].id, activationCode]
-//     );
-
-//     // Generate token
-//     const token = jsonwebtoken.sign(
-//       { device_id: device.rows[0].id, client_id: device.rows[0].client_id },
-//       process.env.JWT_SECRET,
-//     );
-//     const baseUrl = `${req.protocol}://${req.get("host")}`;
-
-//     return res.json({
-//       success: true,
-//       message: "Device activated successfully",
-//       token,
-//       device_id:device.rows[0].id,
-//       baseUrl
-//     });
-//   } catch (err) {
-//     console.error("Activation error:", err);
-//     return res.status(500).json({ success: false, message: "Server error" });
-//   }
-// });
-
 
 
 router.post("/devices/activate", async (req, res) => {
   try {
     const { activation_code, email, password } = req.body || {};
     if (!activation_code || !email || !password) {
-      return res.status(400).json({ success: false, error: 'activation_code_email_password_required' });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          error: "activation_code_email_password_required",
+        });
     }
 
     // lookup device by activation_code
     const devQ = `SELECT id, client_id, is_assigned, assigned_to, status FROM devices WHERE activation_code = $1 LIMIT 1`;
     const { rows: devRows } = await db.query(devQ, [activation_code]);
-    if (devRows.length === 0) return res.status(404).json({ success: false, error: 'invalid_activation_code' });
+    if (devRows.length === 0)
+      return res
+        .status(404)
+        .json({ success: false, error: "invalid_activation_code" });
 
     const device = devRows[0];
 
     // Device must be assigned to a staff (per requirement)
     if (!device.is_assigned || !device.assigned_to) {
-      return res.status(403).json({ success: false, error: 'device_not_assigned' });
+      return res
+        .status(403)
+        .json({ success: false, error: "device_not_assigned" });
     }
 
     // Lookup staff by assigned_to id and client scope
     const staffQ = `SELECT id, username, email, password, status FROM staffs WHERE id = $1 AND client_id = $2 LIMIT 1`;
-    const { rows: staffRows } = await db.query(staffQ, [device.assigned_to, device.client_id]);
-    if (staffRows.length === 0) return res.status(404).json({ success: false, error: 'assigned_staff_not_found' });
+    const { rows: staffRows } = await db.query(staffQ, [
+      device.assigned_to,
+      device.client_id,
+    ]);
+    if (staffRows.length === 0)
+      return res
+        .status(404)
+        .json({ success: false, error: "assigned_staff_not_found" });
 
     const staff = staffRows[0];
-    if (!staff.email || staff.email.toLowerCase().trim() !== String(email).toLowerCase().trim()) {
-      return res.status(401).json({ success: false, error: 'invalid_staff_credentials' });
+    if (
+      !staff.email ||
+      staff.email.toLowerCase().trim() !== String(email).toLowerCase().trim()
+    ) {
+      return res
+        .status(401)
+        .json({ success: false, error: "invalid_staff_credentials" });
     }
 
     // verify password
     const ok = await bcrypt.compare(String(password), staff.password);
-    if (!ok) return res.status(401).json({ success: false, error: 'invalid_staff_credentials' });
+    if (!ok)
+      return res
+        .status(401)
+        .json({ success: false, error: "invalid_staff_credentials" });
 
     // optional: ensure staff is active
-    if (staff.status === false || String(staff.status).toLowerCase() === 'disabled') {
-      return res.status(403).json({ success: false, error: 'staff_not_active' });
+    if (
+      staff.status === false ||
+      String(staff.status).toLowerCase() === "disabled"
+    ) {
+      return res
+        .status(403)
+        .json({ success: false, error: "staff_not_active" });
     }
 
     // All checks passed — activate device (mark status active and preserve assigned_to)
@@ -166,15 +134,75 @@ router.post("/devices/activate", async (req, res) => {
       client_id: device.client_id,
       staff_id: staff.id,
     };
-    const token = jsonwebtoken.sign(tokenPayload, jwtSecret, { expiresIn: '30d' });
+    const token = jsonwebtoken.sign(tokenPayload, jwtSecret, {
+      expiresIn: "30d",
+    });
     const baseUrl = `${req.protocol}://${req.get("host")}`;
-    return res.status(200).json({ success: true, message: 'device_activated', device: updated[0], token,baseUrl });
+    return res
+      .status(200)
+      .json({
+        success: true,
+        message: "device_activated",
+        device: updated[0],
+        token,
+        baseUrl,
+      });
   } catch (err) {
-    console.error('Error activating device:', err);
-    return res.status(500).json({ success: false, error: 'activation_failed', detail: err.message });
+    console.error("Error activating device:", err);
+    return res
+      .status(500)
+      .json({
+        success: false,
+        error: "activation_failed",
+        detail: err.message,
+      });
+  }
+});
+router.get("/company-ads", deviceAuth, async (req, res) => {
+  try {
+    const clientId = req.client_id;
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(Number(req.query.limit) || 20, 200);
+    const offset = (page - 1) * limit;
+    const status = req.query.status || null;
+    const media_type = req.query.media_type || null;
+
+    // build where clause with parameterized queries
+    const baseParams = [clientId];
+    let where = `WHERE client_id = $1`;
+    if (status) {
+      baseParams.push(status);
+      where += ` AND status = $${baseParams.length}`;
+    }
+    if (media_type) {
+      baseParams.push(media_type);
+      where += ` AND media_type = $${baseParams.length}`;
+    }
+
+    // total count
+    const countQ = `SELECT COUNT(*)::int AS total FROM company_ads ${where}`;
+    const { rows: countRows } = await db.query(countQ, baseParams);
+    const total = countRows[0] ? Number(countRows[0].total) : 0;
+
+    // page query
+    const pageParams = baseParams.concat([limit, offset]);
+    // select only columns present in company_ads table
+    const q = `SELECT id, client_id, media_type, filename, media_url,created_at,file
+           FROM company_ads ${where} ORDER BY id DESC LIMIT $${pageParams.length - 1} OFFSET $${pageParams.length}`;
+
+    // Note: $${pageParams.length -1} is limit and $${pageParams.length} is offset
+    const { rows } = await db.query(q, pageParams);
+
+    return res.status(200).json({
+      success: true,
+      message: "company_ads_fetched",
+      pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
+      data: rows,
+    });
+  } catch (err) {
+    console.error("Error fetching company ads:", err);
+    return res.status(500).json({ success: false, error: "fetch_failed", detail: err.message });
   }
 });
 
 module.exports = router;
-
-
