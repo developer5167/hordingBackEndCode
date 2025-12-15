@@ -4827,3 +4827,66 @@
 2025-12-09 22:52:39.585 IST [3416] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
 2025-12-09 22:52:39.602 IST [3417] LOG:  database system was shut down at 2025-12-05 18:16:03 IST
 2025-12-09 22:52:39.613 IST [3416] LOG:  database system is ready to accept connections
+2025-12-10 19:17:43.438 IST [3416] LOG:  received smart shutdown request
+2025-12-10 19:17:43.445 IST [3416] LOG:  background worker "logical replication launcher" (PID 3423) exited with exit code 1
+2025-12-10 19:17:43.445 IST [3418] LOG:  shutting down
+2025-12-10 19:17:43.467 IST [3416] LOG:  database system is shut down
+2025-12-10 22:40:35.910 IST [3573] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-12-10 22:40:35.915 IST [3573] LOG:  listening on IPv6 address "::1", port 5432
+2025-12-10 22:40:35.915 IST [3573] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-12-10 22:40:35.917 IST [3573] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-12-10 22:40:35.975 IST [3574] LOG:  database system was shut down at 2025-12-10 19:17:43 IST
+2025-12-10 22:40:35.995 IST [3573] LOG:  database system is ready to accept connections
+2025-12-10 23:02:33.897 IST [4857] ERROR:  operator does not exist: character varying == unknown at character 558
+2025-12-10 23:02:33.897 IST [4857] HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+2025-12-10 23:02:33.897 IST [4857] STATEMENT:  
+	      SELECT 
+	        ca.id AS company_ad_id,
+	        ca.title,
+	        ca.media_type,
+	        ca.media_url,
+	        ca.filename,
+	        ca.start_date,
+	        ca.end_date,
+	        ca.status,
+	        ca.status_updated_at,
+	        cad.device_id,
+	        d.name AS device_name,
+	        d.location AS device_location,
+	        cad.status AS device_status
+	      FROM emergency_ads ca
+	      JOIN emergency_ad_devices cad ON cad.company_ad_id = ca.id
+	      JOIN devices d ON d.id = cad.device_id
+	      WHERE cad.device_id = $1 AND ca.client_id = $2 AND ca.status=='active'
+	      ORDER BY ca.created_at DESC
+	    
+2025-12-10 23:55:27.708 IST [3573] LOG:  received smart shutdown request
+2025-12-10 23:55:27.711 IST [3573] LOG:  background worker "logical replication launcher" (PID 3580) exited with exit code 1
+2025-12-10 23:55:27.711 IST [3575] LOG:  shutting down
+2025-12-10 23:55:27.722 IST [3573] LOG:  database system is shut down
+2025-12-11 21:39:35.320 IST [14337] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-12-11 21:39:35.324 IST [14337] LOG:  listening on IPv6 address "::1", port 5432
+2025-12-11 21:39:35.324 IST [14337] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-12-11 21:39:35.325 IST [14337] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-12-11 21:39:35.359 IST [14338] LOG:  database system was shut down at 2025-12-10 23:55:27 IST
+2025-12-11 21:39:35.380 IST [14337] LOG:  database system is ready to accept connections
+2025-12-12 01:27:12.330 IST [14337] LOG:  received smart shutdown request
+2025-12-12 01:27:12.332 IST [14337] LOG:  background worker "logical replication launcher" (PID 14344) exited with exit code 1
+2025-12-12 01:27:12.332 IST [14339] LOG:  shutting down
+2025-12-12 01:27:12.347 IST [14337] LOG:  database system is shut down
+2025-12-12 11:20:12.978 IST [3526] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-12-12 11:20:12.981 IST [3526] LOG:  listening on IPv6 address "::1", port 5432
+2025-12-12 11:20:12.981 IST [3526] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-12-12 11:20:12.982 IST [3526] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-12-12 11:20:13.004 IST [3527] LOG:  database system was shut down at 2025-12-12 01:27:12 IST
+2025-12-12 11:20:13.012 IST [3526] LOG:  database system is ready to accept connections
+2025-12-12 19:02:33.718 IST [3526] LOG:  received smart shutdown request
+2025-12-12 19:02:33.721 IST [3526] LOG:  background worker "logical replication launcher" (PID 3533) exited with exit code 1
+2025-12-12 19:02:33.721 IST [3528] LOG:  shutting down
+2025-12-12 19:02:33.734 IST [3526] LOG:  database system is shut down
+2025-12-15 15:46:12.443 IST [20472] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2025-12-15 15:46:12.445 IST [20472] LOG:  listening on IPv6 address "::1", port 5432
+2025-12-15 15:46:12.445 IST [20472] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2025-12-15 15:46:12.446 IST [20472] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2025-12-15 15:46:12.463 IST [20473] LOG:  database system was shut down at 2025-12-12 19:02:33 IST
+2025-12-15 15:46:12.470 IST [20472] LOG:  database system is ready to accept connections

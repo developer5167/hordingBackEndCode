@@ -55,6 +55,43 @@ WHERE ad_devices.device_id = $1
   res.json({ success: true, ads: ads.rows });
 });
 
+// GET /device/status?device_id=...  -> returns { status: "active" | "maintainance" | "offline" | "emergency-ads" }
+router.get("/device/status", deviceAuth, async (req, res) => {
+  try {
+    const deviceId = req.query.device_id || req.query.id;
+    if (!deviceId) return res.status(400).json({ success: false, error: 'device_id_required' });
+
+    // fetch device
+    const devQ = `SELECT id, status, client_id FROM devices WHERE id = $1 LIMIT 1`;
+    const { rows: devRows } = await db.query(devQ, [deviceId]);
+    if (devRows.length === 0) return res.status(404).json({ success: false, error: 'device_not_found' });
+    const device = devRows[0];
+
+    // Check for active emergency ads mapped to this device
+    const emQ = `
+      SELECT 1 FROM emergency_ad_devices ed
+      JOIN emergency_ads ea ON ea.id = ed.company_ad_id
+      WHERE ed.device_id = $1
+        AND ed.status = 'active'
+        AND ea.client_id = $2
+        AND (ed.start_date IS NULL OR ed.start_date <= NOW())
+        AND (ed.end_date IS NULL OR ed.end_date >= NOW())
+      LIMIT 1
+    `;
+    const { rows: emRows } = await db.query(emQ, [deviceId, device.client_id]);
+    if (emRows.length > 0) {
+      return res.status(200).json({ success: true, status: 'emergency-ads' });
+    }
+
+    // No emergency ads; return device.status if present, otherwise 'offline'
+    const status = device.status || 'offline';
+    return res.status(200).json({ success: true, status });
+  } catch (err) {
+    console.error('Error fetching device status:', err);
+    return res.status(500).json({ success: false, error: 'failed_to_fetch_status', detail: err.message });
+  }
+});
+
 
 router.post("/devices/activate", async (req, res) => {
   try {

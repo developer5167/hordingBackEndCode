@@ -19,6 +19,7 @@ const bucket = admin.storage().bucket();
 const router = express.Router();
 
 const checkValidClient = require("./middleware/checkValidClient");
+const deviceAuth = require("./middleware/deviceAuth");
 
 // ----------------------
 // Staff Management Helpers
@@ -2531,7 +2532,6 @@ router.get("/recent-activity", checkValidClient, auth, async (req, res) => {
     `;
 
     const { rows } = await db.query(query, [clientId]);
-
     return res.json({
       success: true,
       message: "Recent activity fetched successfully",
@@ -2551,8 +2551,7 @@ router.get("/recent-activity", checkValidClient, auth, async (req, res) => {
 // ===============================
 router.get(
   "/emergency-ads/devices/:deviceId",
-  checkValidClient,
-  auth,
+  deviceAuth,
   async (req, res) => {
     try {
       const clientId = req.client_id;
@@ -2596,7 +2595,7 @@ router.get(
 
       return res.status(200).json({
         success: true,
-        message: "Company ads for device fetched successfully",
+        message: "Emergency ads for device fetched successfully",
         data: rows,
       });
     } catch (error) {

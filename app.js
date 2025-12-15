@@ -39,9 +39,13 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
   },
 });
+
+
 io.use((socket, next) => {
   try {
-    const token = socket.handshake.query.token;
+ const token =
+      socket.handshake.query?.token ||
+      socket.handshake.auth?.token;
     const decoded = jsonwebtoken.verify(token, process.env.JWT_SECRET);
     socket.device_id = decoded.device_id;
     socket.client_id = decoded.client_id;
@@ -50,6 +54,23 @@ io.use((socket, next) => {
     console.log("❌ Invalid device token. "+err);
     return next(new Error("Unauthorized"));
   }
+});
+io.on("connection", (socket) => {
+  console.log("🟢 Device connected:", socket.device_id);
+
+  // 🔑 JOIN ROOM = device_id
+  socket.on("join_device", (deviceId) => {
+    socket.join(deviceId);
+    console.log(`Device ${deviceId} joined room`);
+  });
+  console.log(`📥 Device ${socket.device_id} joined room`);
+
+  socket.on("disconnect", () => {
+    console.log("🔴 Device disconnected:", socket.device_id);
+  });
+});
+io.on("connect_error", (err) => {
+  console.log("❌ Socket.IO error:", err.message);
 });
  client.on("notification", async (msg) => {
     const channel = msg.channel;
