@@ -9,16 +9,18 @@ function generatePassword() {
 }
 
 async function sendAdminEmail(to, email, password) {
+  console.log(password);
+  
   const mailRequest = nodemailer.createTransport({
     host: "smtpout.secureserver.net",
-    port: 465,
+    port: 443,
     auth: {
-      user: "info@listnow.in",
-      pass: "Sam@#)*&&$$5167",
+      user: "support@sandboxdeveloper.com",
+      pass: "Sam@@@5167",
     },
   });
   const mailingOptions = {
-    from: "info@listnow.in",
+    from: "support@sandboxdeveloper.com",
     to: to,
     subject: "Your Admin Account Created",
     html: `Hello,\n\nYour admin account has been created.\nEmail: ${email}\nPassword: ${password}\n\nPlease login and change your password.`,

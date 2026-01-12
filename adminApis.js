@@ -32,10 +32,10 @@ async function sendStaffEmail(to, email, password, devices = []) {
   // re-use project's SMTP settings (same as superadminApis)
   const mailRequest = nodemailer.createTransport({
     host: "smtpout.secureserver.net",
-    port: 465,
+    port: 443,
     auth: {
-      user: "info@listnow.in",
-      pass: "Sam@#)*&&$$5167",
+      user: "support@sandboxdeveloper.com",
+      pass: "Sam@@@5167",
     },
   });
   
@@ -66,7 +66,7 @@ async function sendStaffEmail(to, email, password, devices = []) {
   }
   
   const mailingOptions = {
-    from: "info@listnow.in",
+    from: "support@sandboxdeveloper.com",
     to: to,
     subject: "Your Staff Account - Credentials & Assigned Devices",
     html: `<p>Hello ${email},</p>
@@ -2551,7 +2551,7 @@ router.get("/recent-activity", checkValidClient, auth, async (req, res) => {
 // ===============================
 router.get(
   "/emergency-ads/devices/:deviceId",
-  deviceAuth,
+  checkValidClient, auth,
   async (req, res) => {
     try {
       const clientId = req.client_id;

@@ -47,14 +47,14 @@ async function sendEmail(email, client_id) {
   const OTP = Math.floor(100000 + Math.random() * 900000).toString();
   const mailRequest = nodemailer.createTransport({
     host: "smtpout.secureserver.net",
-    port: 465,
+    port: 443,
     auth: {
-      user: "info@listnow.in",
-      pass: "Sam@#)*&&$$5167",
+      user: "support@sandboxdeveloper.com",
+      pass: "Sam@@@5167",
     },
   });
   const mailingOptions = {
-    from: "info@listnow.in",
+    from: "support@sandboxdeveloper.com",
     to: email,
     subject: "Your OTP Code",
     html: `<body style='background:#f2f2f2;text-align:center;border-top:5px solid #2D317D;width:100%;'><div style='padding:35px 50px;'><p style='font-weight:bold;'>Dear Customer, Your OTP to Login  is</p><h1 style='letter-spacing: 1.1rem;'> ${OTP} </h1><p style='font-weight:bold;'>OTP is valid for 3 minutes.</p><p style='font-weight:bold;'> Thank you</p></div><div style='background:#1b1f6d;padding:20px;'></div></body>`,

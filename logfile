@@ -4920,3 +4920,39 @@
 2025-12-17 21:41:38.532 IST [2537] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
 2025-12-17 21:41:38.549 IST [2538] LOG:  database system was shut down at 2025-12-17 19:30:38 IST
 2025-12-17 21:41:38.555 IST [2537] LOG:  database system is ready to accept connections
+2025-12-18 02:17:55.300 IST [2537] LOG:  received smart shutdown request
+2025-12-18 02:17:55.302 IST [2537] LOG:  background worker "logical replication launcher" (PID 2544) exited with exit code 1
+2025-12-18 02:17:55.302 IST [2539] LOG:  shutting down
+2025-12-18 02:17:55.312 IST [2537] LOG:  database system is shut down
+2026-01-02 21:40:14.384 IST [2924] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2026-01-02 21:40:14.387 IST [2924] LOG:  listening on IPv6 address "::1", port 5432
+2026-01-02 21:40:14.387 IST [2924] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2026-01-02 21:40:14.388 IST [2924] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2026-01-02 21:40:14.420 IST [2925] LOG:  database system was shut down at 2026-01-02 20:09:29 IST
+2026-01-02 21:40:14.433 IST [2924] LOG:  database system is ready to accept connections
+2026-01-02 23:01:46.161 IST [2924] LOG:  received smart shutdown request
+2026-01-02 23:01:46.163 IST [2924] LOG:  background worker "logical replication launcher" (PID 2931) exited with exit code 1
+2026-01-02 23:01:46.163 IST [2926] LOG:  shutting down
+2026-01-02 23:01:46.174 IST [2924] LOG:  database system is shut down
+2026-01-12 21:24:34.778 IST [2565] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2026-01-12 21:24:34.782 IST [2565] LOG:  listening on IPv6 address "::1", port 5432
+2026-01-12 21:24:34.782 IST [2565] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2026-01-12 21:24:34.782 IST [2565] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2026-01-12 21:24:34.803 IST [2566] LOG:  database system was shut down at 2026-01-10 16:51:44 IST
+2026-01-12 21:24:34.810 IST [2565] LOG:  database system is ready to accept connections
+2026-01-12 21:30:34.738 IST [3278] ERROR:  update or delete on table "clients" violates foreign key constraint "fk_client_id" on table "ad_devices"
+2026-01-12 21:30:34.738 IST [3278] DETAIL:  Key (id)=(499e9429-0bf5-4407-b58c-a2d76364a54f) is still referenced from table "ad_devices".
+2026-01-12 21:30:34.738 IST [3278] STATEMENT:  delete from clients
+2026-01-12 21:31:17.559 IST [3278] ERROR:  null value in column "plan_id" of relation "client_subscriptions" violates not-null constraint
+2026-01-12 21:31:17.559 IST [3278] DETAIL:  Failing row contains (4729e00b-ea52-41f2-b005-35906e7ffdcd, 6494001a-6fc5-4964-b146-2f0af4a175c2, null, null, active, 2025-11-28 23:41:12.935, 2025-12-26 23:41:12.935, null, 2025-11-28 23:41:12.936789, 2025-11-28 23:41:12.936789).
+2026-01-12 21:31:17.559 IST [3278] CONTEXT:  SQL statement "UPDATE ONLY "public"."client_subscriptions" SET "plan_id" = NULL WHERE $1 OPERATOR(pg_catalog.=) "plan_id""
+2026-01-12 21:31:17.559 IST [3278] STATEMENT:  delete from subscription_plans
+2026-01-12 21:31:32.383 IST [3278] ERROR:  null value in column "plan_id" of relation "client_subscriptions" violates not-null constraint
+2026-01-12 21:31:32.383 IST [3278] DETAIL:  Failing row contains (4729e00b-ea52-41f2-b005-35906e7ffdcd, 6494001a-6fc5-4964-b146-2f0af4a175c2, null, null, active, 2025-11-28 23:41:12.935, 2025-12-26 23:41:12.935, null, 2025-11-28 23:41:12.936789, 2025-11-28 23:41:12.936789).
+2026-01-12 21:31:32.383 IST [3278] CONTEXT:  SQL statement "UPDATE ONLY "public"."client_subscriptions" SET "plan_id" = NULL WHERE $1 OPERATOR(pg_catalog.=) "plan_id""
+2026-01-12 21:31:32.383 IST [3278] STATEMENT:  delete from subscription_plans
+2026-01-12 21:31:40.873 IST [3278] ERROR:  update or delete on table "staffs" violates foreign key constraint "staffs_devices_staff_id_fkey" on table "staffs_devices"
+2026-01-12 21:31:40.873 IST [3278] DETAIL:  Key (id)=(d4b6c4ac-bd40-4167-885c-7c3d335a88af) is still referenced from table "staffs_devices".
+2026-01-12 21:31:40.873 IST [3278] STATEMENT:  delete from staffs
+2026-01-12 21:34:09.562 IST [3278] ERROR:  relation "staff_devices" does not exist at character 13
+2026-01-12 21:34:09.562 IST [3278] STATEMENT:  delete from staff_devices

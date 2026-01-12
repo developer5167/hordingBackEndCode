@@ -29,7 +29,7 @@ router.get("/analytics/overview", async (req, res) => {
     const revenueStats = await db.query(`
       SELECT COALESCE(SUM(amount), 0) AS total_revenue
       FROM payments
-      WHERE status = 'success'
+      WHERE status = 'PAID'
     `);
 
     return res.json({
@@ -54,10 +54,12 @@ router.get("/analytics/revenue-by-client", async (req, res) => {
     const result = await db.query(`
       SELECT c.id AS client_id, c.name AS client_name, COALESCE(SUM(p.amount), 0) AS revenue
       FROM clients c
-      LEFT JOIN payments p ON p.client_id = c.id AND p.status = 'success'
+      LEFT JOIN payments p ON p.client_id = c.id AND p.status = 'PAID'
       GROUP BY c.id, c.name
       ORDER BY revenue DESC
     `);
+    console.log(result.rows);
+    
     res.json({ success: true, data: result.rows });
   } catch (err) {
     console.error("Error fetching revenue by client:", err);
