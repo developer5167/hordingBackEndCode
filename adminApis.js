@@ -32,7 +32,7 @@ async function sendStaffEmail(to, email, password, devices = []) {
   // re-use project's SMTP settings (same as superadminApis)
   const mailRequest = nodemailer.createTransport({
     host: "smtpout.secureserver.net",
-    port: 443,
+    port: 445,
     auth: {
       user: "support@sandboxdeveloper.com",
       pass: "Sam@@@5167",

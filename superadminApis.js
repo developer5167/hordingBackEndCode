@@ -13,7 +13,8 @@ async function sendAdminEmail(to, email, password) {
   
   const mailRequest = nodemailer.createTransport({
     host: "smtpout.secureserver.net",
-    port: 443,
+    port: 465,
+    secure: true,
     auth: {
       user: "support@sandboxdeveloper.com",
       pass: "Sam@@@5167",

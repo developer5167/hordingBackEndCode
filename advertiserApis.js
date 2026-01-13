@@ -47,7 +47,7 @@ async function sendEmail(email, client_id) {
   const OTP = Math.floor(100000 + Math.random() * 900000).toString();
   const mailRequest = nodemailer.createTransport({
     host: "smtpout.secureserver.net",
-    port: 443,
+    port: 445,
     auth: {
       user: "support@sandboxdeveloper.com",
       pass: "Sam@@@5167",
