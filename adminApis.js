@@ -385,11 +385,12 @@ router.post("/logout", checkValidClient, auth, async (req, res) => {
 });
 
 // Device Management APIs (List, Add, Update, Delete, etc.).
-// API: List Devices
+// API: List Devices with Heartbeat Status
 router.get("/devices", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
     const search = req.query.search ? String(req.query.search).trim() : null;
+    const statusFilter = req.query.status_filter ? String(req.query.status_filter).toLowerCase().trim() : 'all'; // 'all', 'active', 'stopped'
 
     // build optional search filtering
     let where = `WHERE client_id = $1`;
@@ -400,17 +401,50 @@ router.get("/devices", checkValidClient, auth, async (req, res) => {
     }
 
     const query = `
-      SELECT id, name, location, width, height, status, is_assigned, assigned_to, created_at
+      SELECT id, name, location, width, height, status, is_assigned, assigned_to, created_at, last_seen
       FROM devices
       ${where}
       ORDER BY created_at DESC
     `;
     const { rows } = await db.query(query, params);
 
+    // Process rows: calculate online/offline based on last_seen (10 second heartbeat)
+    const now = new Date();
+    const HEARTBEAT_THRESHOLD = 10000; // 10 seconds in milliseconds
+    
+    const processedRows = rows.map((device) => {
+      let online = false;
+      let secondsSinceLastSeen = null;
+      
+      if (device.last_seen) {
+        const lastSeen = new Date(device.last_seen);
+        const timeDiff = now - lastSeen;
+        secondsSinceLastSeen = Math.floor(timeDiff / 1000);
+        online = timeDiff <= HEARTBEAT_THRESHOLD;
+      }
+      
+      return {
+        ...device,
+        online, // true = active/online, false = offline/stopped
+        seconds_since_last_seen: secondsSinceLastSeen,
+      };
+    });
+
+    // Apply status filter after calculating online status
+    let filtered = processedRows;
+    if (statusFilter === 'active') {
+      filtered = processedRows.filter((d) => d.online === true);
+    } else if (statusFilter === 'stopped') {
+      filtered = processedRows.filter((d) => d.online === false);
+    }
+    // 'all' returns everything
+
     return res.status(200).json({
       success: true,
       message: "Devices fetched successfully",
-      data: rows,
+      total: filtered.length,
+      status_filter: statusFilter,
+      data: filtered,
     });
   } catch (error) {
     console.error("Error fetching devices:", error);
@@ -1540,8 +1574,8 @@ router.post(
       // generate id here for clarity, though DB may have default gen_random_uuid()
       const newId = uuidv4();
 
-      const insQ = `INSERT INTO company_ads (id, client_id, media_type, filename, media_url,file) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`;
-      const insVals = [newId, targetClientId, media_type, uploaded.filename, uploaded.url,safeOriginal];
+      const insQ = `INSERT INTO company_ads (id, client_id, media_type, filename, media_url, file) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`;
+      const insVals = [newId, targetClientId, media_type, uploaded.filename, uploaded.url, safeOriginal];
       const { rows: inserted } = await db.query(insQ, insVals);
 
       return res.status(201).json({ success: true, message: "company_ad_uploaded", company_ad: inserted[0] });
@@ -1611,7 +1645,7 @@ router.patch("/staff/:id/enable", checkValidClient, auth, async (req, res) => {
   try {
     const { id } = req.params;
     const upd = `UPDATE staffs SET status=$3 WHERE id = $1 AND client_id = $2 RETURNING id, username, email, status`;
-    const { rows } = await db.query(upd, [id, req.client_id,true]);
+    const { rows } = await db.query(upd, [id, req.client_id, true]);
     if (rows.length === 0) return res.status(404).json({ error: 'staffs_not_found' });
     return res.json({ success: true, message: 'staffs_enabled', staffs: rows[0] });
   } catch (err) {
@@ -1624,7 +1658,7 @@ router.patch("/staff/:id/disable", checkValidClient, auth, async (req, res) => {
   try {
     const { id } = req.params;
     const upd = `UPDATE staffs SET status=$3 WHERE id = $1 AND client_id = $2 RETURNING id, username, email, status`;
-    const { rows } = await db.query(upd, [id, req.client_id,false]);
+    const { rows } = await db.query(upd, [id, req.client_id, false]);
     if (rows.length === 0) return res.status(404).json({ error: 'staffs_not_found' });
     return res.json({ success: true, message: 'staffs_disabled', staffs: rows[0] });
   } catch (err) {
@@ -1925,11 +1959,8 @@ router.delete("/emergency-ads/:id", checkValidClient, auth, async (req, res) => 
         await file.delete();
         console.log("Deleted company ad file:", ad.filename);
       } catch (err) {
-        if (err.code === 404) {
-          console.warn("File not found in Firebase:", ad.filename);
-        } else {
-          console.error("Error deleting company ad file:", err.message);
-        }
+        console.error("Error deleting company ad file:", err.message);
+        // Don't fail API if file deletion fails
       }
     }
 
@@ -2116,7 +2147,7 @@ router.get("/company-ads", checkValidClient, auth, async (req, res) => {
     // page query
     const pageParams = baseParams.concat([limit, offset]);
     // select only columns present in company_ads table
-    const q = `SELECT id, client_id, media_type, filename, media_url,created_at,file
+    const q = `SELECT id, client_id, media_type, filename, media_url, created_at, file
            FROM company_ads ${where} ORDER BY id DESC LIMIT $${pageParams.length - 1} OFFSET $${pageParams.length}`;
 
     // Note: $${pageParams.length -1} is limit and $${pageParams.length} is offset
@@ -2475,15 +2506,9 @@ router.get("/reports/ads", checkValidClient, auth, async (req, res) => {
   }
 });
 // adminApis.js
-
-// adminApis.js
-
-// adminApis.js
-// adminApis.js
 router.get("/recent-activity", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
-
     const query = `
       (
         SELECT 
@@ -2892,7 +2917,349 @@ router.get("/get-pricing-rules", checkValidClient, async (req, res) => {
   }
 });
 
+// ----------------------
+// Payments APIs (Client Admin)
+// - Summary, recent transactions, payments by user
+// ----------------------
+router.get("/payments/summary", checkValidClient, auth, async (req, res) => {
+  try {
+    const clientId = req.client_id;
+    const q = `
+      SELECT
+        COUNT(*)::int AS total_transactions,
+        COALESCE(SUM(amount),0)::bigint AS total_amount_paise,
+        COALESCE(SUM(CASE WHEN UPPER(status) = 'PAID' THEN amount ELSE 0 END),0)::bigint AS paid_amount_paise,
+        COUNT(*) FILTER (WHERE UPPER(status) = 'PAID') AS paid_count,
+        COUNT(*) FILTER (WHERE UPPER(status) IN ('FAILED','FAIL')) AS failed_count,
+        COALESCE(SUM(CASE WHEN DATE(created_at) = CURRENT_DATE THEN amount ELSE 0 END),0)::bigint AS today_amount_paise,
+        COALESCE(SUM(CASE WHEN DATE_TRUNC('month', created_at) = DATE_TRUNC('month', CURRENT_DATE) THEN amount ELSE 0 END),0)::bigint AS month_amount_paise
+      FROM payments
+      WHERE client_id = $1
+    `;
+    const { rows } = await db.query(q, [clientId]);
+    const r = rows[0] || {};
+    const toRupees = (v) => Number((Number(v || 0) / 100).toFixed(2));
+    return res.status(200).json({
+      success: true,
+      data: {
+        total_transactions: r.total_transactions || 0,
+        total_amount_paise: Number(r.total_amount_paise || 0),
+        total_amount: toRupees(r.total_amount_paise),
+        paid_amount_paise: Number(r.paid_amount_paise || 0),
+        paid_amount: toRupees(r.paid_amount_paise),
+        paid_count: Number(r.paid_count || 0),
+        failed_count: Number(r.failed_count || 0),
+        today_amount_paise: Number(r.today_amount_paise || 0),
+        today_amount: toRupees(r.today_amount_paise),
+        month_amount_paise: Number(r.month_amount_paise || 0),
+        month_amount: toRupees(r.month_amount_paise),
+      },
+    });
+  } catch (err) {
+    console.error('Error fetching payments summary:', err);
+    return res.status(500).json({ success: false, message: 'failed_fetch_payments_summary', detail: err.message });
+  }
+});
+
+router.get('/payments/recent', checkValidClient, auth, async (req, res) => {
+  try {
+    const clientId = req.client_id;
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(Number(req.query.limit) || 20, 200);
+    const offset = (page - 1) * limit;
+    const status = req.query.status ? String(req.query.status).trim().toUpperCase() : null;
+
+    const params = [clientId];
+    let where = 'WHERE client_id = $1';
+    if (status) {
+      params.push(status);
+      where += ` AND UPPER(status) = UPPER($${params.length})`;
+    }
+
+    params.push(limit);
+    params.push(offset);
+    const q = `SELECT id, plan_id, amount, status, transaction_id, receipt, razorpay_order_id, wallet_applied, created_at FROM payments ${where} ORDER BY created_at DESC LIMIT $${params.length-1} OFFSET $${params.length}`;
+    const { rows } = await db.query(q, params);
+    const mapped = rows.map((p) => ({
+      id: p.id,
+      plan_id: p.plan_id,
+      amount_paise: Number(p.amount || 0),
+      amount: Number(((Number(p.amount || 0) / 100) || 0).toFixed(2)),
+      status: p.status,
+      transaction_id: p.transaction_id,
+      receipt: p.receipt,
+      razorpay_order_id: p.razorpay_order_id,
+      wallet_applied: Number(p.wallet_applied || 0),
+      created_at: p.created_at,
+    }));
+
+    return res.status(200).json({ success: true, page, limit, data: mapped });
+  } catch (err) {
+    console.error('Error fetching recent payments:', err);
+    return res.status(500).json({ success: false, message: 'failed_fetch_recent_payments', detail: err.message });
+  }
+});
+
+// aggregated recent by user (top payers)
+router.get('/payments/recent-by-user', checkValidClient, auth, async (req, res) => {
+  try {
+    const clientId = req.client_id;
+    const limit = Math.min(Number(req.query.limit) || 10, 100);
+    const q = `
+      SELECT advertiser_id, COUNT(*)::int AS tx_count, COALESCE(SUM(amount),0)::bigint AS amount_paise
+      FROM payments
+      WHERE client_id = $1 AND advertiser_id IS NOT NULL
+      GROUP BY advertiser_id
+      ORDER BY amount_paise DESC
+      LIMIT $2
+    `;
+    const { rows } = await db.query(q, [clientId, limit]);
+    const mapped = rows.map((r) => ({
+      advertiser_id: r.advertiser_id,
+      tx_count: r.tx_count,
+      amount_paise: Number(r.amount_paise || 0),
+      amount: Number(((Number(r.amount_paise || 0) / 100) || 0).toFixed(2)),
+    }));
+    return res.status(200).json({ success: true, data: mapped });
+  } catch (err) {
+    console.error('Error fetching payments by user:', err);
+    return res.status(500).json({ success: false, message: 'failed_fetch_payments_by_user', detail: err.message });
+  }
+});
+
+// payments for a specific user (advertiser_id) scoped to client
+router.get('/payments/user/:userId', checkValidClient, auth, async (req, res) => {
+  try {
+    const clientId = req.client_id;
+    const userId = req.params.userId;
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(Number(req.query.limit) || 50, 500);
+    const offset = (page - 1) * limit;
+
+    const q = `SELECT id, plan_id, amount, status, transaction_id, receipt, razorpay_order_id, wallet_applied, created_at FROM payments WHERE client_id=$1 AND created_by=$2 ORDER BY created_at DESC LIMIT $3 OFFSET $4`;
+    const { rows } = await db.query(q, [clientId, userId, limit, offset]);
+    const mapped = rows.map((p) => ({
+      id: p.id,
+      plan_id: p.plan_id,
+      amount_paise: Number(p.amount || 0),
+      amount: Number(((Number(p.amount || 0) / 100) || 0).toFixed(2)),
+      status: p.status,
+      transaction_id: p.transaction_id,
+      receipt: p.receipt,
+      razorpay_order_id: p.razorpay_order_id,
+      wallet_applied: Number(p.wallet_applied || 0),
+      created_at: p.created_at,
+    }));
+    return res.status(200).json({ success: true, page, limit, data: mapped });
+  } catch (err) {
+    console.error('Error fetching payments for user:', err);
+    return res.status(500).json({ success: false, message: 'failed_fetch_user_payments', detail: err.message });
+  }
+});
+
+// ----------------------
+// Wallet APIs (Client Admin)
+// ----------------------
+
+// GET /wallet/balance
+router.get('/wallet/balance', checkValidClient, auth, async (req, res) => {
+  try {
+    const clientId = req.client_id;
+    const q = `SELECT id, balance FROM client_wallets WHERE client_id = $1 LIMIT 1`;
+    const { rows } = await db.query(q, [clientId]);
+    const wallet = rows[0] || { id: null, balance: 0 };
+    return res.status(200).json({
+      success: true,
+      data: {
+        balance_paise: Number(wallet.balance || 0),
+        balance: Number(((Number(wallet.balance || 0) / 100) || 0).toFixed(2)),
+      },
+    });
+  } catch (err) {
+    console.error('Error fetching wallet balance:', err);
+    return res.status(500).json({ success: false, message: 'failed_fetch_wallet_balance', detail: err.message });
+  }
+});
+
+// GET /wallet/transactions
+router.get('/wallet/transactions', checkValidClient, auth, async (req, res) => {
+  try {
+    const clientId = req.client_id;
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(Number(req.query.limit) || 50, 500);
+    const offset = (page - 1) * limit;
+    const tr_type = req.query.tr_type ? String(req.query.tr_type).trim() : null;
+
+    const params = [clientId];
+    let where = 'WHERE client_id = $1';
+    if (tr_type) {
+      params.push(tr_type);
+      where += ` AND tr_type = $${params.length}`;
+    }
+
+    // count
+    const countQ = `SELECT COUNT(*)::int AS total FROM wallet_transactions ${where}`;
+    const { rows: countRows } = await db.query(countQ, params);
+    const total = countRows[0]?.total || 0;
+
+    params.push(limit);
+    params.push(offset);
+    const q = `SELECT id, amount, tr_type, balance_after, description, reference_type, reference_id, created_by, updated_at FROM wallet_transactions ${where} ORDER BY updated_at DESC LIMIT $${params.length-1} OFFSET $${params.length}`;
+    const { rows } = await db.query(q, params);
+    const mapped = rows.map((t) => ({
+      id: t.id,
+      amount_paise: Number(t.amount || 0),
+      amount: Number(((Number(t.amount || 0) / 100) || 0).toFixed(2)),
+      tr_type: t.tr_type,
+      balance_after_paise: Number(t.balance_after || 0),
+      balance_after: Number(((Number(t.balance_after || 0) / 100) || 0).toFixed(2)),
+      description: t.description,
+      reference_type: t.reference_type,
+      reference_id: t.reference_id,
+      created_by: t.created_by,
+      updated_at: t.updated_at,
+    }));
+    return res.status(200).json({ success: true, page, limit, total, totalPages: Math.ceil(total / limit), data: mapped });
+  } catch (err) {
+    console.error('Error fetching wallet transactions:', err);
+    return res.status(500).json({ success: false, message: 'failed_fetch_wallet_transactions', detail: err.message });
+  }
+});
+
+// GET /wallet/transactions/:id
+router.get('/wallet/transactions/:id', checkValidClient, auth, async (req, res) => {
+  try {
+    const clientId = req.client_id;
+    const txnId = req.params.id;
+    const q = `SELECT id, amount, tr_type, balance_after, description, reference_type, reference_id, created_by, updated_at FROM wallet_transactions WHERE id = $1 AND client_id = $2 LIMIT 1`;
+    const { rows } = await db.query(q, [txnId, clientId]);
+    if (rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'transaction_not_found' });
+    }
+    const t = rows[0];
+    return res.status(200).json({
+      success: true,
+      data: {
+        id: t.id,
+        amount_paise: Number(t.amount || 0),
+        amount: Number(((Number(t.amount || 0) / 100) || 0).toFixed(2)),
+        tr_type: t.tr_type,
+        balance_after_paise: Number(t.balance_after || 0),
+        balance_after: Number(((Number(t.balance_after || 0) / 100) || 0).toFixed(2)),
+        description: t.description,
+        reference_type: t.reference_type,
+        reference_id: t.reference_id,
+        created_by: t.created_by,
+        updated_at: t.updated_at,
+      },
+    });
+  } catch (err) {
+    console.error('Error fetching wallet transaction:', err);
+    return res.status(500).json({ success: false, message: 'failed_fetch_wallet_transaction', detail: err.message });
+  }
+});
+
+// ----------------------
+// CSV Export APIs
+// ----------------------
+
+// GET /payments/export/csv
+router.get('/payments/export/csv', checkValidClient, auth, async (req, res) => {
+  try {
+    const clientId = req.client_id;
+    const status = req.query.status ? String(req.query.status).trim() : null;
+
+    const params = [clientId];
+    let where = 'WHERE client_id = $1';
+    if (status) {
+      params.push(status);
+      where += ` AND UPPER(status) = UPPER($${params.length})`;
+    }
+
+    const q = `SELECT id, plan_id, amount, status, transaction_id, receipt, razorpay_order_id, wallet_applied, created_at FROM payments ${where} ORDER BY created_at DESC`;
+    const { rows } = await db.query(q, params);
+
+    // Build CSV headers
+    const headers = ['ID', 'Plan ID', 'Amount (Paise)', 'Amount (Rupees)', 'Status', 'Transaction ID', 'Receipt', 'Razorpay Order ID', 'Wallet Applied', 'Created At'];
+    const csvRows = [headers.join(',')];
+
+    // Add data rows
+    rows.forEach((p) => {
+      const row = [
+        `"${p.id}"`,
+        `"${p.plan_id || ''}"`,
+        Number(p.amount || 0),
+        Number(((Number(p.amount || 0) / 100) || 0).toFixed(2)),
+        `"${p.status}"`,
+        `"${p.transaction_id || ''}"`,
+        `"${p.receipt || ''}"`,
+        `"${p.razorpay_order_id || ''}"`,
+        Number(p.wallet_applied || 0),
+        `"${new Date(p.created_at).toISOString()}"`,
+      ];
+      csvRows.push(row.join(','));
+    });
+
+    const csv = csvRows.join('\n');
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="payments_${clientId}_${Date.now()}.csv"`);
+    return res.status(200).send(csv);
+  } catch (err) {
+    console.error('Error exporting payments CSV:', err);
+    return res.status(500).json({ success: false, message: 'failed_export_payments_csv', detail: err.message });
+  }
+});
+
+// GET /wallet/transactions/export/csv
+router.get('/wallet/transactions/export/csv', checkValidClient, auth, async (req, res) => {
+  try {
+    const clientId = req.client_id;
+    const tr_type = req.query.tr_type ? String(req.query.tr_type).trim() : null;
+
+    const params = [clientId];
+    let where = 'WHERE client_id = $1';
+    if (tr_type) {
+      params.push(tr_type);
+      where += ` AND tr_type = $${params.length}`;
+    }
+
+    const q = `SELECT id, amount, tr_type, balance_after, description, reference_type, reference_id, created_by, updated_at FROM wallet_transactions ${where} ORDER BY updated_at DESC`;
+    const { rows } = await db.query(q, params);
+
+    // Build CSV headers
+    const headers = ['ID', 'Amount (Paise)', 'Amount (Rupees)', 'Type', 'Balance After (Paise)', 'Balance After (Rupees)', 'Description', 'Reference Type', 'Reference ID', 'Created By', 'Updated At'];
+    const csvRows = [headers.join(',')];
+
+    // Add data rows
+    rows.forEach((t) => {
+      const row = [
+        `"${t.id}"`,
+        Number(t.amount || 0),
+        Number(((Number(t.amount || 0) / 100) || 0).toFixed(2)),
+        `"${t.tr_type}"`,
+        Number(t.balance_after || 0),
+        Number(((Number(t.balance_after || 0) / 100) || 0).toFixed(2)),
+        `"${(t.description || '').replace(/"/g, '""')}"`,
+        `"${t.reference_type || ''}"`,
+        `"${t.reference_id || ''}"`,
+        `"${t.created_by || ''}"`,
+        `"${new Date(t.updated_at).toISOString()}"`,
+      ];
+      csvRows.push(row.join(','));
+    });
+
+    const csv = csvRows.join('\n');
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="wallet_transactions_${clientId}_${Date.now()}.csv"`);
+    return res.status(200).send(csv);
+  } catch (err) {
+    console.error('Error exporting wallet transactions CSV:', err);
+    return res.status(500).json({ success: false, message: 'failed_export_wallet_csv', detail: err.message });
+  }
+});
+
 module.exports = router;
+
 function generateActivationCode() {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   const bytes = crypto.randomBytes(6);
@@ -2902,3 +3269,5 @@ function generateActivationCode() {
   }
   return code;
 }
+
+

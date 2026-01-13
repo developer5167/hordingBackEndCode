@@ -4956,3 +4956,7 @@
 2026-01-12 21:31:40.873 IST [3278] STATEMENT:  delete from staffs
 2026-01-12 21:34:09.562 IST [3278] ERROR:  relation "staff_devices" does not exist at character 13
 2026-01-12 21:34:09.562 IST [3278] STATEMENT:  delete from staff_devices
+2026-01-12 23:17:36.453 IST [2565] LOG:  received smart shutdown request
+2026-01-12 23:17:36.456 IST [2565] LOG:  background worker "logical replication launcher" (PID 2572) exited with exit code 1
+2026-01-12 23:17:36.456 IST [2567] LOG:  shutting down
+2026-01-12 23:17:36.464 IST [2565] LOG:  database system is shut down
