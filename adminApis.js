@@ -22,6 +22,22 @@ const checkValidClient = require("./middleware/checkValidClient");
 const deviceAuth = require("./middleware/deviceAuth");
 
 // ----------------------
+// Subscription Helper
+// ----------------------
+async function checkActiveSubscription(clientId) {
+  const subQ = `
+    SELECT sp.max_devices
+    FROM client_subscriptions cs
+    JOIN subscription_plans sp ON sp.id = cs.plan_id
+    WHERE cs.client_id = $1 AND cs.status = 'active'
+    ORDER BY cs.created_at DESC
+    LIMIT 1
+  `;
+  const subRes = await db.query(subQ, [clientId]);
+  return subRes.rows.length > 0 ? subRes.rows[0] : null;
+}
+
+// ----------------------
 // Staff Management Helpers
 // ----------------------
 function generateStaffPassword() {
@@ -32,7 +48,7 @@ async function sendStaffEmail(to, email, password, devices = []) {
   // re-use project's SMTP settings (same as superadminApis)
   const mailRequest = nodemailer.createTransport({
     host: "smtpout.secureserver.net",
-    port: 445,
+    port: 465,
     auth: {
       user: "support@sandboxdeveloper.com",
       pass: "Sam@@@5167",
@@ -389,6 +405,13 @@ router.post("/logout", checkValidClient, auth, async (req, res) => {
 router.get("/devices", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
+    
+    // Check active subscription
+    const subscription = await checkActiveSubscription(clientId);
+    if (!subscription) {
+      return res.status(400).json({ success: false, message: "No active subscription" });
+    }
+    
     const search = req.query.search ? String(req.query.search).trim() : null;
     const statusFilter = req.query.status_filter ? String(req.query.status_filter).toLowerCase().trim() : 'all'; // 'all', 'active', 'stopped'
 
@@ -460,6 +483,13 @@ router.get("/devices", checkValidClient, auth, async (req, res) => {
 router.get("/devices/:id", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
+    
+    // Check active subscription
+    const subscription = await checkActiveSubscription(clientId);
+    if (!subscription) {
+      return res.status(400).json({ success: false, message: "No active subscription" });
+    }
+    
     const { id } = req.params;
     const query = `
       SELECT id, name, location, width, height, status, created_at
@@ -562,6 +592,13 @@ router.post("/devices", checkValidClient, auth, async (req, res) => {
 router.put("/devices/:id", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
+    
+    // Check active subscription
+    const subscription = await checkActiveSubscription(clientId);
+    if (!subscription) {
+      return res.status(400).json({ success: false, message: "No active subscription" });
+    }
+    
     const { id } = req.params;
     const { device_name, location, width, height, status } = req.body;
 
@@ -619,6 +656,13 @@ router.put("/devices/:id", checkValidClient, auth, async (req, res) => {
 router.delete("/devices/:id", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
+    
+    // Check active subscription
+    const subscription = await checkActiveSubscription(clientId);
+    if (!subscription) {
+      return res.status(400).json({ success: false, message: "No active subscription" });
+    }
+    
     const { id } = req.params;
 
     // perform all deletions in a transaction to keep DB consistent
@@ -768,6 +812,13 @@ router.get("/ads/:id", checkValidClient, auth, async (req, res) => {
 router.post("/ads", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
+    
+    // Check active subscription
+    const subscription = await checkActiveSubscription(clientId);
+    if (!subscription) {
+      return res.status(400).json({ success: false, message: "No active subscription" });
+    }
+    
     const { device_id, status, location, page = 1, limit = 10 } = req.body;
 
     const offset = (page - 1) * limit;
@@ -1025,6 +1076,13 @@ router.post("/users", checkValidClient, auth, async (req, res) => {
 router.delete("/ads/:id", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
+    
+    // Check active subscription
+    const subscription = await checkActiveSubscription(clientId);
+    if (!subscription) {
+      return res.status(400).json({ success: false, message: "No active subscription" });
+    }
+    
     const { id } = req.params;
 
     // Step 1: Find ad to get fileName
@@ -1099,6 +1157,13 @@ async function deleteFileFromStorage(filePath) {
 router.get("/review/pending", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
+    
+    // Check active subscription
+    const subscription = await checkActiveSubscription(clientId);
+    if (!subscription) {
+      return res.status(400).json({ success: false, message: "No active subscription" });
+    }
+    
     const { device_id } = req.query;
 
     let query = `
@@ -1152,6 +1217,13 @@ router.patch(
   async (req, res) => {
     try {
       const clientId = req.client_id;
+      
+      // Check active subscription
+      const subscription = await checkActiveSubscription(clientId);
+      if (!subscription) {
+        return res.status(400).json({ success: false, message: "No active subscription" });
+      }
+      
       const { adId, deviceId } = req.params;
 
       const query = `
@@ -1200,6 +1272,13 @@ router.patch(
   async (req, res) => {
     try {
       const clientId = req.client_id;
+      
+      // Check active subscription
+      const subscription = await checkActiveSubscription(clientId);
+      if (!subscription) {
+        return res.status(400).json({ success: false, message: "No active subscription" });
+      }
+      
       const { adId, deviceId } = req.params;
       const { reason } = req.body;
 
@@ -1261,6 +1340,13 @@ router.patch(
   async (req, res) => {
     try {
       const clientId = req.client_id;
+      
+      // Check active subscription
+      const subscription = await checkActiveSubscription(clientId);
+      if (!subscription) {
+        return res.status(400).json({ success: false, message: "No active subscription" });
+      }
+      
       const { adId, deviceId } = req.params;
 
       const query = `
@@ -1307,6 +1393,12 @@ router.patch(
   async (req, res) => {
     try {
       const clientId = req.client_id;
+      
+      // Check active subscription
+      const subscription = await checkActiveSubscription(clientId);
+      if (!subscription) {
+        return res.status(400).json({ success: false, message: "No active subscription" });
+      }
       const { adId, deviceId } = req.params;
 
       const query = `
@@ -1592,6 +1684,12 @@ router.post(
 // ----------------------
 router.post("/staff", checkValidClient, auth, async (req, res) => {
   try {
+    // Check active subscription
+    const subscription = await checkActiveSubscription(req.client_id);
+    if (!subscription) {
+      return res.status(400).json({ success: false, message: "No active subscription" });
+    }
+    
     const { name, email } = req.body;
     if (!name || !email) return res.status(400).json({ error: "name_and_email_required" });
 
@@ -1625,6 +1723,12 @@ router.post("/staff", checkValidClient, auth, async (req, res) => {
 // ----------------------
 router.delete("/staff/:id", checkValidClient, auth, async (req, res) => {
   try {
+    // Check active subscription
+    const subscription = await checkActiveSubscription(req.client_id);
+    if (!subscription) {
+      return res.status(400).json({ success: false, message: "No active subscription" });
+    }
+    
     const { id } = req.params;
     const delQ = `DELETE FROM staffs WHERE id = $1 AND client_id = $2 RETURNING id, username, email`;
     const { rows } = await db.query(delQ, [id, req.client_id]);
@@ -1643,6 +1747,12 @@ router.delete("/staff/:id", checkValidClient, auth, async (req, res) => {
 // ----------------------
 router.patch("/staff/:id/enable", checkValidClient, auth, async (req, res) => {
   try {
+    // Check active subscription
+    const subscription = await checkActiveSubscription(req.client_id);
+    if (!subscription) {
+      return res.status(400).json({ success: false, message: "No active subscription" });
+    }
+    
     const { id } = req.params;
     const upd = `UPDATE staffs SET status=$3 WHERE id = $1 AND client_id = $2 RETURNING id, username, email, status`;
     const { rows } = await db.query(upd, [id, req.client_id, true]);
@@ -1656,6 +1766,12 @@ router.patch("/staff/:id/enable", checkValidClient, auth, async (req, res) => {
 
 router.patch("/staff/:id/disable", checkValidClient, auth, async (req, res) => {
   try {
+    // Check active subscription
+    const subscription = await checkActiveSubscription(req.client_id);
+    if (!subscription) {
+      return res.status(400).json({ success: false, message: "No active subscription" });
+    }
+    
     const { id } = req.params;
     const upd = `UPDATE staffs SET status=$3 WHERE id = $1 AND client_id = $2 RETURNING id, username, email, status`;
     const { rows } = await db.query(upd, [id, req.client_id, false]);
@@ -1766,6 +1882,12 @@ router.post('/staff/:id/send-password', checkValidClient, auth, async (req, res)
 });
 router.post("/staff/:id/devices", checkValidClient, auth, async (req, res) => {
     try {
+      // Check active subscription
+      const subscription = await checkActiveSubscription(req.client_id);
+      if (!subscription) {
+        return res.status(400).json({ success: false, message: "No active subscription" });
+      }
+      
       const staffId = req.params.id;
       const clientId = req.client_id;
       const { device_ids } = req.body;
@@ -1921,6 +2043,13 @@ router.get(
 router.delete("/emergency-ads/:id", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
+    
+    // Check active subscription
+    const subscription = await checkActiveSubscription(clientId);
+    if (!subscription) {
+      return res.status(400).json({ success: false, message: "No active subscription" });
+    }
+    
     const { id } = req.params; // company_ad_id
 
     // Step 1: Check if the company ad exists
@@ -1992,6 +2121,13 @@ router.post(
   async (req, res) => {
     try {
       const clientId = req.client_id;
+      
+      // Check active subscription
+      const subscription = await checkActiveSubscription(clientId);
+      if (!subscription) {
+        return res.status(400).json({ success: false, message: "No active subscription" });
+      }
+      
       const userId = req.user_id;
       const { id } = req.params; // company_ad_id
       let { status } = req.body;
@@ -2071,6 +2207,13 @@ router.post(
 router.delete("/company-ads/:id/file", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
+    
+    // Check active subscription
+    const subscription = await checkActiveSubscription(clientId);
+    if (!subscription) {
+      return res.status(400).json({ success: false, message: "No active subscription" });
+    }
+    
     const { id } = req.params;
 
     // fetch company ad
@@ -2739,6 +2882,12 @@ router.post(
   auth,
   async (req, res) => {
     try {
+      // Check active subscription
+      const subscription = await checkActiveSubscription(req.client_id);
+      if (!subscription) {
+        return res.status(400).json({ success: false, message: "No active subscription" });
+      }
+      
       const { id, media_type, duration_seconds, base_price } = req.body;
       const clientId = req.client_id;
 
@@ -2800,6 +2949,12 @@ router.put(
   auth,
   async (req, res) => {
     try {
+      // Check active subscription
+      const subscription = await checkActiveSubscription(req.client_id);
+      if (!subscription) {
+        return res.status(400).json({ success: false, message: "No active subscription" });
+      }
+      
       const { id } = req.params;
       const { base_price, media_type, duration_seconds, device_id } = req.body;
       const clientId = req.client_id;
@@ -2846,6 +3001,12 @@ router.put(
 // API 3: Delete Pricing Rule
 router.delete("/delete-pricing-rule:id", checkValidClient, async (req, res) => {
   try {
+    // Check active subscription
+    const subscription = await checkActiveSubscription(req.client_id);
+    if (!subscription) {
+      return res.status(400).json({ success: false, message: "No active subscription" });
+    }
+    
     const { id } = req.params;
     const clientId = req.client_id;
 

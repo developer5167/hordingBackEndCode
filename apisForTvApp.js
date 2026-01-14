@@ -55,7 +55,7 @@ WHERE ad_devices.device_id = $1
   res.json({ success: true, ads: ads.rows });
 });
 
-// GET /device/status?device_id=...  -> returns { status: "active" | "maintainance" | "offline" | "emergency-ads" }
+// GET /device/status?device_id=...  -> returns { status: "active" | "maintainance" | "offline" | "emergency-mode" }
 router.get("/device/status", deviceAuth, async (req, res) => {
   try {
     const deviceId = req.query.device_id || req.query.id;
@@ -66,25 +66,7 @@ router.get("/device/status", deviceAuth, async (req, res) => {
     const { rows: devRows } = await db.query(devQ, [deviceId]);
     if (devRows.length === 0) return res.status(404).json({ success: false, error: 'device_not_found' });
     const device = devRows[0];
-
-    // Check for active emergency ads mapped to this device
-    const emQ = `
-      SELECT 1 FROM emergency_ad_devices ed
-      JOIN emergency_ads ea ON ea.id = ed.company_ad_id
-      WHERE ed.device_id = $1
-        AND ed.status = 'active'
-        AND ea.client_id = $2
-        AND (ed.start_date IS NULL OR ed.start_date <= NOW())
-        AND (ed.end_date IS NULL OR ed.end_date >= NOW())
-      LIMIT 1
-    `;
-    const { rows: emRows } = await db.query(emQ, [deviceId, device.client_id]);
-    if (emRows.length > 0) {
-      return res.status(200).json({ success: true, status: 'emergency-ads' });
-    }
-
-    // No emergency ads; return device.status if present, otherwise 'offline'
-    const status = device.status || 'offline';
+    const status = device.status;
     return res.status(200).json({ success: true, status });
   } catch (err) {
     console.error('Error fetching device status:', err);
@@ -195,6 +177,65 @@ router.post("/devices/activate", async (req, res) => {
       });
   }
 });
+router.get(
+  "/emergency-ads/devices/:deviceId",
+  deviceAuth,
+  async (req, res) => {
+    try {
+      const clientId = req.client_id;
+      const { deviceId } = req.params;
+
+      // ✅ Step 1: Verify device belongs to this client
+      const deviceCheck = await db.query(
+        `SELECT id, name FROM devices WHERE id = $1 AND client_id = $2 LIMIT 1`,
+        [deviceId, clientId]
+      );
+      if (deviceCheck.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: "Device not found or not authorized",
+        });
+      }
+
+      // ✅ Step 2: Fetch company ads linked to this device
+      const query = `
+      SELECT 
+        ca.id AS company_ad_id,
+        ca.title,
+        ca.media_type,
+        ca.media_url,
+        ca.filename,
+        ca.start_date,
+        ca.end_date,
+        ca.status,
+        ca.status_updated_at,
+        cad.device_id,
+        d.name AS device_name,
+        d.location AS device_location,
+        cad.status AS device_status
+      FROM emergency_ads ca
+      JOIN emergency_ad_devices cad ON cad.company_ad_id = ca.id
+      JOIN devices d ON d.id = cad.device_id
+      WHERE cad.device_id = $1 AND ca.client_id = $2 AND cad.status = 'active'
+      ORDER BY ca.created_at DESC
+    `;
+      const { rows } = await db.query(query, [deviceId, clientId]);
+
+      return res.status(200).json({
+        success: true,
+        message: "Emergency ads for device fetched successfully",
+        data: rows,
+      });
+    } catch (error) {
+      console.error("Error fetching company ads by device:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Something went wrong while fetching company ads",
+        error: error.message,
+      });
+    }
+  }
+);
 router.get("/company-ads", deviceAuth, async (req, res) => {
   try {
     const clientId = req.client_id;

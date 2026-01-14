@@ -15,6 +15,23 @@ const router = express.Router();
 const timers = {};
 
 const checkValidClient = require("./middleware/checkValidClient");
+
+// ----------------------
+// Subscription Helper
+// ----------------------
+async function checkActiveSubscription(clientId) {
+  const subQ = `
+    SELECT sp.max_devices
+    FROM client_subscriptions cs
+    JOIN subscription_plans sp ON sp.id = cs.plan_id
+    WHERE cs.client_id = $1 AND cs.status = 'active'
+    ORDER BY cs.created_at DESC
+    LIMIT 1
+  `;
+  const subRes = await db.query(subQ, [clientId]);
+  return subRes.rows.length > 0 ? subRes.rows[0] : null;
+}
+
 // ----------------------
 // GET /ads/my
 // ----------------------
@@ -47,7 +64,7 @@ async function sendEmail(email, client_id) {
   const OTP = Math.floor(100000 + Math.random() * 900000).toString();
   const mailRequest = nodemailer.createTransport({
     host: "smtpout.secureserver.net",
-    port: 445,
+    port: 465,
     auth: {
       user: "support@sandboxdeveloper.com",
       pass: "Sam@@@5167",
@@ -278,6 +295,13 @@ router.get("/ads/my", checkValidClient, auth, async (req, res) => {
   try {
     const userId = req.user_id;
     const clientId = req.client_id;
+    
+    // Check active subscription
+    const subscription = await checkActiveSubscription(clientId);
+    if (!subscription) {
+      return res.status(400).json({ success: false, message: "No active subscription" });
+    }
+    
     const { status } = req.query;
 
     // Query only ads table
@@ -319,6 +343,13 @@ router.get("/ads/details", checkValidClient, auth, async (req, res) => {
   try {
     const userId = req.user_id;
     const clientId = req.client_id;
+    
+    // Check active subscription
+    const subscription = await checkActiveSubscription(clientId);
+    if (!subscription) {
+      return res.status(400).json({ success: false, message: "No active subscription" });
+    }
+    
     const { id } = req.query; // ad_id
 
     if (!id) {
@@ -440,6 +471,12 @@ router.get("/ads/details", checkValidClient, auth, async (req, res) => {
 // router.js
 router.delete("/ads/delete", checkValidClient, auth, async (req, res) => {
   try {
+    // Check active subscription
+    const subscription = await checkActiveSubscription(req.client_id);
+    if (!subscription) {
+      return res.status(400).json({ success: false, message: "No active subscription" });
+    }
+    
     const userId = req.user_id; // from auth middleware
     const clientId = req.client_id; // from checkValidClient middleware
     const { id } = req.query;
@@ -489,6 +526,12 @@ router.delete("/ads/delete", checkValidClient, auth, async (req, res) => {
   }
 });
 router.post("/ads/extend", checkValidClient, auth, async (req, res) => {
+  // Check active subscription
+  const subscription = await checkActiveSubscription(req.client_id);
+  if (!subscription) {
+    return res.status(400).json({ success: false, message: "No active subscription" });
+  }
+  
   const { id } = req.query;
   const { end_date } = req.body;
 
@@ -578,6 +621,13 @@ router.put("/ads/update", checkValidClient, auth, async (req, res) => {
   try {
     const userId = req.user_id; // from auth middleware
     const clientId = req.client_id; // from checkValidClient middleware
+    
+    // Check active subscription
+    const subscription = await checkActiveSubscription(clientId);
+    if (!subscription) {
+      return res.status(400).json({ success: false, message: "No active subscription" });
+    }
+    
     const { id } = req.query;
     const { title, description, start_time, end_time, media_url, media_type } =
       req.body;
@@ -706,6 +756,12 @@ router.put("/ads/update", checkValidClient, auth, async (req, res) => {
 //   }
 // });
 router.post('/ads/:adId/devices/:deviceId/pause', checkValidClient, auth, async (req, res) => {
+  // Check active subscription
+  const subscription = await checkActiveSubscription(req.client_id);
+  if (!subscription) {
+    return res.status(400).json({ success: false, message: "No active subscription" });
+  }
+  
   const { adId, deviceId } = req.params;
   const userId = req.user_id;
   try {
@@ -774,6 +830,12 @@ router.post('/ads/:adId/devices/:deviceId/pause', checkValidClient, auth, async 
   }
 });
 router.post('/ads/:adId/devices/:deviceId/resume', checkValidClient, auth, async (req, res) => {
+  // Check active subscription
+  const subscription = await checkActiveSubscription(req.client_id);
+  if (!subscription) {
+    return res.status(400).json({ success: false, message: "No active subscription" });
+  }
+  
   const { adId, deviceId } = req.params;
   const userId = req.user_id;
   try {
@@ -828,6 +890,12 @@ router.post('/ads/:adId/devices/:deviceId/resume', checkValidClient, auth, async
   }
 });
 router.post('/ads/:adId/devices/:deviceId/extend', checkValidClient, auth, async (req, res) => {
+  // Check active subscription
+  const subscription = await checkActiveSubscription(req.client_id);
+  if (!subscription) {
+    return res.status(400).json({ success: false, message: "No active subscription" });
+  }
+  
   const { adId, deviceId } = req.params;
   const { end_date } = req.body;
   if (!end_date) return res.status(400).json({ error: 'end_date_required' });
@@ -842,6 +910,12 @@ router.post('/ads/:adId/devices/:deviceId/extend', checkValidClient, auth, async
   }
 });
 router.delete('/ads/:adId/devices/:deviceId', checkValidClient, auth, async (req, res) => {
+  // Check active subscription
+  const subscription = await checkActiveSubscription(req.client_id);
+  if (!subscription) {
+    return res.status(400).json({ success: false, message: "No active subscription" });
+  }
+  
   const { adId, deviceId } = req.params;
   const userId = req.user_id;
 
@@ -892,6 +966,12 @@ router.delete('/ads/:adId/devices/:deviceId', checkValidClient, auth, async (req
   }
 });
 router.put('/ads/:adId', checkValidClient, auth, upload.single('file'), async (req, res) => {
+  // Check active subscription
+  const subscription = await checkActiveSubscription(req.client_id);
+  if (!subscription) {
+    return res.status(400).json({ success: false, message: "No active subscription" });
+  }
+  
   const { adId } = req.params;
   const userId = req.user_id;
   const { title, description } = req.body;
@@ -1395,6 +1475,12 @@ router.post(
 
 router.post("/payments/create", checkValidClient, auth, async (req, res) => {
   try {
+    // Check active subscription
+    const subscription = await checkActiveSubscription(req.client_id);
+    if (!subscription) {
+      return res.status(400).json({ success: false, message: "No active subscription" });
+    }
+    
     const { total_amount } = req.body;
     const clientId = req.client_id;
     const advertiserId = req.user_id; // from auth middleware
@@ -1636,6 +1722,13 @@ router.get("/dashboard", checkValidClient, auth, async (req, res) => {
   try {
     const userId = req.user_id;
     const clientId = req.client_id;
+    
+    // Check active subscription
+    const subscription = await checkActiveSubscription(clientId);
+    if (!subscription) {
+      return res.status(400).json({ success: false, message: "No active subscription" });
+    }
+    
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
     // 1) Counts for ads (from ad_devices, joined with ads for filtering)
@@ -1802,6 +1895,13 @@ router.get("/ads/recent", checkValidClient, auth, async (req, res) => {
   try {
     const userId = req.user_id;
     const clientId = req.client_id;
+    
+    // Check active subscription
+    const subscription = await checkActiveSubscription(clientId);
+    if (!subscription) {
+      return res.status(400).json({ success: false, message: "No active subscription" });
+    }
+    
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
     const query = `
@@ -1859,6 +1959,12 @@ router.post(
   auth,
   upload.single("file"),
   async (req, res) => {
+    // Check active subscription
+    const subscription = await checkActiveSubscription(req.client_id);
+    if (!subscription) {
+      return res.status(400).json({ success: false, message: "No active subscription" });
+    }
+    
     const file = req.file;
 
     try {
@@ -2103,6 +2209,12 @@ router.post("/login", checkValidClient, async (req, res) => {
   }
 });
 router.get("/ads/:id/statistics",checkValidClient, auth, async (req, res) => {
+  // Check active subscription
+  const subscription = await checkActiveSubscription(req.client_id);
+  if (!subscription) {
+    return res.status(400).json({ success: false, message: "No active subscription" });
+  }
+
   const { id } = req.params;
 
   try {
@@ -2260,6 +2372,12 @@ router.post("/signup", checkValidClient, async (req, res) => {
 router.get("/devices", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
+    
+    // Check active subscription
+    const subscription = await checkActiveSubscription(clientId);
+    if (!subscription) {
+      return res.status(400).json({ success: false, message: "No active subscription" });
+    }
 
     const query = `
       SELECT d.id, d.name, d.location, d.width, d.height, d.status, d.created_at,

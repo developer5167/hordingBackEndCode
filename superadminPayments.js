@@ -686,16 +686,55 @@ router.get("/subscription", checkValidClient, auth, async (req, res) => {
 
     const { rows } = await db.query(q, [client_id]);
 
+    // Check if subscription exists and is not expired
     if (rows.length === 0) {
+      // No subscription found - block all devices
+      const updateQuery = `
+        UPDATE devices
+        SET status = 'blocked'
+        WHERE client_id = $1
+      `;
+      await db.query(updateQuery, [client_id]);
+      
       return res.status(200).json({
         success: false,
         message: "No active subscription found",
+        action: "All devices have been blocked"
       });
     }
 
     const sub = rows[0];
     const now = new Date();
     const expired = new Date(sub.current_period_end) < now;
+
+    // If subscription is expired, block all devices
+    if (expired) {
+      const updateQuery = `
+        UPDATE devices
+        SET status = 'blocked'
+        WHERE client_id = $1
+      `;
+      await db.query(updateQuery, [client_id]);
+      
+      return res.status(200).json({
+        success: false,
+        message: "Subscription has expired",
+        action: "All devices have been blocked",
+        subscription: {
+          subscription_id: sub.subscription_id,
+          client_id: sub.client_id,
+          plan_id: sub.plan_id,
+          plan_name: sub.plan_name,
+          amount: sub.amount,
+          period: sub.period,
+          max_devices: sub.max_devices,
+          current_period_start: sub.current_period_start,
+          current_period_end: sub.current_period_end,
+          status: "expired",
+          updated_at: sub.updated_at,
+        },
+      });
+    }
 
     res.json({
       success: true,
@@ -709,7 +748,7 @@ router.get("/subscription", checkValidClient, auth, async (req, res) => {
         max_devices: sub.max_devices,
         current_period_start: sub.current_period_start,
         current_period_end: sub.current_period_end,
-        status: expired ? "expired" : sub.status,
+        status: sub.status,
         updated_at: sub.updated_at,
       },
     });
