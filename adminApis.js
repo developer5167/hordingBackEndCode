@@ -3419,6 +3419,134 @@ router.get('/wallet/transactions/export/csv', checkValidClient, auth, async (req
   }
 });
 
+// ----------------------
+// GET /ad-statistics
+// Fetch ad statistics for admin dashboard
+// Query params: device_id (optional), ad_id (optional), start_date (optional), end_date (optional), page, limit
+// ----------------------
+router.get("/ad-statistics", checkValidClient, auth, async (req, res) => {
+  try {
+    const clientId = req.client_id;
+    
+    // Check active subscription
+    const subscription = await checkActiveSubscription(clientId);
+    if (!subscription) {
+      return res.status(400).json({ success: false, message: "No active subscription" });
+    }
+    
+    const {
+      device_id,
+      ad_id,
+      start_date,
+      end_date,
+      page = 1,
+      limit = 20,
+    } = req.query;
+
+    const offset = (page - 1) * limit;
+
+    // Build dynamic query with filters
+    const params = [clientId];
+    let whereConditions = ['d.client_id = $1'];
+    
+    if (device_id) {
+      params.push(device_id);
+      whereConditions.push(`stats.device_id = $${params.length}`);
+    }
+    
+    if (ad_id) {
+      params.push(ad_id);
+      whereConditions.push(`stats.ad_id = $${params.length}`);
+    }
+    
+    if (start_date) {
+      params.push(start_date);
+      whereConditions.push(`stats.play_time >= $${params.length}::timestamp`);
+    }
+    
+    if (end_date) {
+      params.push(end_date);
+      whereConditions.push(`stats.play_time <= $${params.length}::timestamp`);
+    }
+
+    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+    // Count query for pagination
+    const countQuery = `
+      SELECT COUNT(*) AS total
+      FROM ad_statistics stats
+      JOIN devices d ON d.id = stats.device_id
+      JOIN ads a ON a.id = stats.ad_id
+      ${whereClause}
+    `;
+    const { rows: countRows } = await db.query(countQuery, params);
+    const total = Number(countRows[0]?.total || 0);
+
+    // Main query with joins to get ad and device details
+    params.push(limit, offset);
+    const query = `
+      SELECT 
+        stats.id,
+        stats.ad_id,
+        stats.device_id,
+        stats.location,
+        stats.play_time,
+        a.title AS ad_title,
+        a.media_type AS ad_media_type,
+        a.media_url AS ad_media_url,
+        d.name AS device_name,
+        d.location AS device_location
+      FROM ad_statistics stats
+      JOIN devices d ON d.id = stats.device_id
+      JOIN ads a ON a.id = stats.ad_id
+      ${whereClause}
+      ORDER BY stats.play_time DESC
+      LIMIT $${params.length - 1} OFFSET $${params.length}
+    `;
+
+    const { rows } = await db.query(query, params);
+
+    // Calculate summary statistics
+    const summaryQuery = `
+      SELECT 
+        COUNT(*) AS total_plays,
+        COUNT(DISTINCT stats.device_id) AS unique_devices,
+        COUNT(DISTINCT stats.ad_id) AS unique_ads,
+        COUNT(DISTINCT DATE(stats.play_time)) AS active_days
+      FROM ad_statistics stats
+      JOIN devices d ON d.id = stats.device_id
+      ${whereClause}
+    `;
+    const { rows: summaryRows } = await db.query(summaryQuery, params.slice(0, -2));
+    const summary = summaryRows[0] || {};
+
+    return res.status(200).json({
+      success: true,
+      message: "Ad statistics fetched successfully",
+      data: rows,
+      summary: {
+        total_plays: Number(summary.total_plays || 0),
+        unique_devices: Number(summary.unique_devices || 0),
+        unique_ads: Number(summary.unique_ads || 0),
+        active_days: Number(summary.active_days || 0),
+      },
+      pagination: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching ad statistics:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong while fetching ad statistics",
+      error: error.message,
+    });
+  }
+});
+
 module.exports = router;
 
 function generateActivationCode() {

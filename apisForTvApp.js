@@ -5,7 +5,7 @@ const deviceAuth = require("./middleware/deviceAuth");
 const router = express.Router();
 router.post("/ad-statistics", deviceAuth, async (req, res) => {
   try {
-    const { ad_id, device_id, duration_played, location } = req.body;
+    const { ad_id, device_id, location } = req.body;
 
     if (!ad_id || !device_id) {
       return res
@@ -14,10 +14,10 @@ router.post("/ad-statistics", deviceAuth, async (req, res) => {
     }
 
     const result = await db.query(
-      `INSERT INTO ad_statistics (ad_id, device_id, duration_played, location)
-       VALUES ($1, $2, COALESCE($3, 0), $4)
+      `INSERT INTO ad_statistics (ad_id, device_id, location)
+       VALUES ($1, $2, $3)
        RETURNING id, play_time`,
-      [ad_id, device_id, duration_played || 0, location || null]
+      [ad_id, device_id, location || null]
     );
 
     res.json({
@@ -280,6 +280,47 @@ router.get("/company-ads", deviceAuth, async (req, res) => {
   } catch (err) {
     console.error("Error fetching company ads:", err);
     return res.status(500).json({ success: false, error: "fetch_failed", detail: err.message });
+  }
+});
+
+// POST /device/heartbeat - Device sends heartbeat to update last_seen timestamp
+router.post("/device/heartbeat", deviceAuth, async (req, res) => {
+  try {
+    const { device_id } = req.body;
+
+    if (!device_id) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "device_id is required" 
+      });
+    }
+
+    // Update device's last_seen timestamp
+    const result = await db.query(
+      `UPDATE devices SET last_seen = NOW() WHERE id = $1 RETURNING id, last_seen`,
+      [device_id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        error: "device_not_found" 
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "heartbeat_updated",
+      device_id: result.rows[0].id,
+      last_seen: result.rows[0].last_seen
+    });
+  } catch (err) {
+    console.error("Error updating device heartbeat:", err);
+    res.status(500).json({ 
+      success: false, 
+      error: "failed_to_update_heartbeat",
+      detail: err.message 
+    });
   }
 });
 

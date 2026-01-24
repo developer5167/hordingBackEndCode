@@ -4966,3 +4966,23 @@
 2026-01-13 20:51:24.804 IST [2945] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
 2026-01-13 20:51:24.832 IST [2946] LOG:  database system was shut down at 2026-01-13 19:37:02 IST
 2026-01-13 20:51:24.841 IST [2945] LOG:  database system is ready to accept connections
+2026-01-14 23:30:38.460 IST [2945] LOG:  received smart shutdown request
+2026-01-14 23:30:38.463 IST [2945] LOG:  background worker "logical replication launcher" (PID 2952) exited with exit code 1
+2026-01-14 23:30:38.463 IST [2947] LOG:  shutting down
+2026-01-14 23:30:38.477 IST [2945] LOG:  database system is shut down
+2026-01-23 18:26:53.462 IST [17576] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2026-01-23 18:26:53.466 IST [17576] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2026-01-23 18:26:53.466 IST [17576] LOG:  listening on IPv6 address "::1", port 5432
+2026-01-23 18:26:53.467 IST [17576] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2026-01-23 18:26:53.492 IST [17577] LOG:  database system was shut down at 2026-01-22 19:09:17 IST
+2026-01-23 18:26:53.502 IST [17576] LOG:  database system is ready to accept connections
+2026-01-23 19:55:38.972 IST [17576] LOG:  received smart shutdown request
+2026-01-23 19:55:38.975 IST [17576] LOG:  background worker "logical replication launcher" (PID 17583) exited with exit code 1
+2026-01-23 19:55:38.975 IST [17578] LOG:  shutting down
+2026-01-23 19:55:38.993 IST [17576] LOG:  database system is shut down
+2026-01-24 23:22:02.882 IST [2913] LOG:  starting PostgreSQL 14.15 (Homebrew) on x86_64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit
+2026-01-24 23:22:02.885 IST [2913] LOG:  listening on IPv6 address "::1", port 5432
+2026-01-24 23:22:02.885 IST [2913] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2026-01-24 23:22:02.885 IST [2913] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2026-01-24 23:22:02.910 IST [2914] LOG:  database system was shut down at 2026-01-23 19:55:38 IST
+2026-01-24 23:22:02.921 IST [2913] LOG:  database system is ready to accept connections
