@@ -304,31 +304,78 @@ router.get("/ads/my", checkValidClient, auth, async (req, res) => {
     
     const { status } = req.query;
 
-    // Query only ads table
+    // Join with ad_devices to get device-level status
     let query = `
-      SELECT id AS ad_id, title, description, media_type, media_url, created_at
-      FROM ads
-      WHERE user_id = $1 AND client_id = $2
+      SELECT 
+        a.id AS ad_id,
+        a.title,
+        a.description,
+        a.media_type,
+        a.media_url,
+        a.created_at,
+        ad.device_id,
+        ad.start_date,
+        ad.end_date,
+        ad.status,
+        ad.status_updated_at,
+        d.name AS device_name,
+        d.location AS device_location
+      FROM ads a
+      JOIN ad_devices ad ON ad.ad_id = a.id
+      JOIN devices d ON d.id = ad.device_id
+      WHERE a.user_id = $1 AND a.client_id = $2
     `;
     const params = [userId, clientId];
 
-    // Optional filter: ads that have at least one device with this status
+    // Optional filter by status (device-level status)
     if (status) {
-      query += ` AND EXISTS (
-        SELECT 1 FROM ad_devices ad
-        WHERE ad.ad_id = ads.id AND ad.status = $3
-      )`;
+      query += ` AND ad.status = $3`;
       params.push(status);
     }
 
-    query += ` ORDER BY created_at DESC`;
+    query += ` ORDER BY a.created_at DESC, ad.start_date ASC`;
 
     const { rows } = await db.query(query, params);
+
+    if (rows.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: status
+          ? `No ads found with status '${status}'.`
+          : "No ads found.",
+        data: [],
+      });
+    }
+
+    // Group ads with their devices
+    const grouped = {};
+    for (const row of rows) {
+      if (!grouped[row.ad_id]) {
+        grouped[row.ad_id] = {
+          ad_id: row.ad_id,
+          title: row.title,
+          description: row.description,
+          media_type: row.media_type,
+          media_url: row.media_url,
+          created_at: row.created_at,
+          devices: []
+        };
+      }
+      grouped[row.ad_id].devices.push({
+        device_id: row.device_id,
+        device_name: row.device_name,
+        device_location: row.device_location,
+        start_date: row.start_date,
+        end_date: row.end_date,
+        status: row.status,
+        status_updated_at: row.status_updated_at
+      });
+    }
 
     return res.status(200).json({
       success: true,
       message: "Ads fetched successfully",
-      data: rows
+      data: Object.values(grouped),
     });
   } catch (error) {
     console.error("Error fetching ads:", error);
@@ -1905,19 +1952,59 @@ router.get("/ads/recent", checkValidClient, auth, async (req, res) => {
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
     const query = `
-      SELECT id AS ad_id, title, description, media_type, media_url, created_at
-      FROM ads
-      WHERE user_id = $1 AND client_id = $2
-      ORDER BY created_at DESC
-      LIMIT 5
+      SELECT 
+        a.id AS ad_id,
+        a.title,
+        a.description,
+        a.media_type,
+        a.media_url,
+        a.created_at,
+        ad.device_id,
+        ad.start_date,
+        ad.end_date,
+        ad.status,
+        ad.status_updated_at,
+        d.name AS device_name,
+        d.location AS device_location
+      FROM ads a
+      JOIN ad_devices ad ON ad.ad_id = a.id
+      JOIN devices d ON d.id = ad.device_id
+      WHERE a.user_id = $1 AND a.client_id = $2
+      ORDER BY a.created_at DESC
+      LIMIT 20
     `;
 
     const { rows } = await db.query(query, [userId, clientId]);
 
+    // Group ads by ad_id
+    const grouped = {};
+    for (const row of rows) {
+      if (!grouped[row.ad_id]) {
+        grouped[row.ad_id] = {
+          ad_id: row.ad_id,
+          title: row.title,
+          description: row.description,
+          media_type: row.media_type,
+          media_url: row.media_url,
+          created_at: row.created_at,
+          devices: []
+        };
+      }
+      grouped[row.ad_id].devices.push({
+        device_id: row.device_id,
+        device_name: row.device_name,
+        device_location: row.device_location,
+        start_date: row.start_date,
+        end_date: row.end_date,
+        status: row.status,
+        status_updated_at: row.status_updated_at
+      });
+    }
+
     res.json({
       success: true,
       message: "Recent ads fetched successfully",
-      data: rows
+      data: Object.values(grouped).slice(0, 5) // ensure only top 5 ads
     });
   } catch (err) {
     console.error("Error fetching recent ads:", err);

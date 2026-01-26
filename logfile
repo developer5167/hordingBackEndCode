@@ -4986,3 +4986,7 @@
 2026-01-24 23:22:02.885 IST [2913] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
 2026-01-24 23:22:02.910 IST [2914] LOG:  database system was shut down at 2026-01-23 19:55:38 IST
 2026-01-24 23:22:02.921 IST [2913] LOG:  database system is ready to accept connections
+2026-01-25 01:02:14.635 IST [2913] LOG:  received smart shutdown request
+2026-01-25 01:02:14.637 IST [2913] LOG:  background worker "logical replication launcher" (PID 2920) exited with exit code 1
+2026-01-25 01:02:14.637 IST [2915] LOG:  shutting down
+2026-01-25 01:02:14.647 IST [2913] LOG:  database system is shut down
