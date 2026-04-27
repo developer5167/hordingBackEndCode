@@ -8,24 +8,53 @@ function generatePassword() {
   return Math.random().toString(36).slice(-8);
 }
 
-async function sendAdminEmail(to, email, password) {
+async function sendAdminEmail(to, email, password, clientId) {
   console.log(password);
-  
+
   const mailRequest = nodemailer.createTransport({
-    host: "smtpout.secureserver.net",
-    port: 465,
+    host: process.env.SMTP_HOST,
+    port: parseInt(process.env.SMTP_PORT, 10),
     secure: true,
     auth: {
-      user: "support@sandboxdeveloper.com",
-      pass: "Sam@@@5167",
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
     },
   });
+
   const mailingOptions = {
-    from: "support@sandboxdeveloper.com",
+    from: process.env.SMTP_FROM,
     to: to,
-    subject: "Your Admin Account Created",
-    html: `Hello,\n\nYour admin account has been created.\nEmail: ${email}\nPassword: ${password}\n\nPlease login and change your password.`,
+    subject: "Your Admin Account Has Been Created",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e0e0e0; border-radius: 8px;">
+        <h2 style="color: #3399cc; margin-bottom: 4px;">Welcome to Hoarding SaaS</h2>
+        <p style="color: #555; margin-top: 0;">Your admin account has been created. Use the credentials and Company ID below to log in.</p>
+
+        <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+          <tr style="background: #f5f5f5;">
+            <td style="padding: 12px 16px; font-weight: bold; color: #333; width: 40%;">Email</td>
+            <td style="padding: 12px 16px; color: #333;">${email}</td>
+          </tr>
+          <tr>
+            <td style="padding: 12px 16px; font-weight: bold; color: #333;">Password</td>
+            <td style="padding: 12px 16px; color: #333;">${password}</td>
+          </tr>
+          <tr style="background: #f5f5f5;">
+            <td style="padding: 12px 16px; font-weight: bold; color: #333;">Company ID</td>
+            <td style="padding: 12px 16px; font-family: monospace; color: #3399cc; font-size: 15px;">${clientId}</td>
+          </tr>
+        </table>
+
+        <div style="margin-top: 24px; padding: 14px 16px; background: #fff8e1; border-left: 4px solid #ffc107; border-radius: 4px;">
+          <strong style="color: #555;">Important:</strong>
+          <p style="color: #555; margin: 6px 0 0;">Enter the <strong>Company ID</strong> on the login page when prompted. Please change your password after your first login.</p>
+        </div>
+
+        <p style="color: #999; font-size: 12px; margin-top: 32px;">This is an automated message from Hoarding SaaS. Please do not reply to this email.</p>
+      </div>
+    `,
   };
+
   try {
     const data = await mailRequest.sendMail(mailingOptions);
     console.log(data);
@@ -67,8 +96,8 @@ router.post("/clients", async (req, res) => {
       [clientId, "Admin", email, passwordHash]
     );
 
-    // Send email
-    await sendAdminEmail(email, email, tempPassword);
+    // Send email with credentials + company ID
+    await sendAdminEmail(email, email, tempPassword, clientId);
 
     const response = await db.query(`select * from clients where id = $1`, [
       clientId,

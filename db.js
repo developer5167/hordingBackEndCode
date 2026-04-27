@@ -1,25 +1,17 @@
+require("dotenv").config();
 const { Client } = require("pg");
-// const client = new Client({
-//   name:"CONNECTION_NAME",
-//   host: "pg-fbcf2b8-kapilit-d70e.d.aivencloud.com",
-//   port: 22347,
-//   user: "avnadmin", // replace with your PostgreSQL username
-//   password: "AVNS_fIA1V5imhTZt-vb_VrN", // replace with your PostgreSQL password
-//   database: "defaultdb", // replace with your PostgreSQL database name
-//   ssl: {
-//     rejectUnauthorized: false // needed for self-signed certs on free tiers
-//   }
-// });
+
 const client = new Client({
-  host: "localhost",
-  port: 5432,
-  user: "kcs", // replace with your PostgreSQL username
-  password: "", // replace with your PostgreSQL password
-  database: "hording_tenant_based", // replace with your PostgreSQL database name
+  host: process.env.DB_HOST,
+  port: parseInt(process.env.DB_PORT, 10),
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
   // ssl: {
   //   rejectUnauthorized: false // needed for self-signed certs on free tiers
   // }
 });
+
 client
   .connect()
   .then(() => console.log("Connected to PostgreSQL"))

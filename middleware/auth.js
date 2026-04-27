@@ -10,7 +10,7 @@ const auth = async (req, res, next) => {
   }
 
   try {
-    const decode = jsonwebtoken.verify(auth, "THISISTESTAPPFORHORDING");
+    const decode = jsonwebtoken.verify(auth, process.env.JWT_SECRET);
       var sql = "SELECT tokens,id FROM users WHERE id=$1 and client_id = $2";
     const rows  = await db.query(sql, [decode['userId'], req.client_id]);
     if (rows.rowCount.length != 0) {

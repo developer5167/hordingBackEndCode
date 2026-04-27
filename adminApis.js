@@ -47,14 +47,14 @@ function generateStaffPassword() {
 async function sendStaffEmail(to, email, password, devices = []) {
   // re-use project's SMTP settings (same as superadminApis)
   const mailRequest = nodemailer.createTransport({
-    host: "smtpout.secureserver.net",
-    port: 465,
+    host: process.env.SMTP_HOST,
+    port: parseInt(process.env.SMTP_PORT, 10),
     auth: {
-      user: "support@sandboxdeveloper.com",
-      pass: "Sam@@@5167",
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
     },
   });
-  
+
   // build device table HTML if devices provided
   let deviceTableHTML = '';
   if (devices && devices.length > 0) {
@@ -80,9 +80,9 @@ async function sendStaffEmail(to, email, password, devices = []) {
     });
     deviceTableHTML += '</table>';
   }
-  
+
   const mailingOptions = {
-    from: "support@sandboxdeveloper.com",
+    from: process.env.SMTP_FROM,
     to: to,
     subject: "Your Staff Account - Credentials & Assigned Devices",
     html: `<p>Hello ${email},</p>
@@ -147,7 +147,7 @@ router.post("/login", checkValidClient, async (req, res) => {
       role: admin.role,
       email: admin.email,
     };
-    const token = jsonwebtoken.sign(tokenPayload, "THISISTESTAPPFORHORDING");
+    const token = jsonwebtoken.sign(tokenPayload, process.env.JWT_SECRET);
     // Step 3: Generate JWT
 
     // Step 4: Store token
@@ -194,11 +194,10 @@ router.get("/getWalletBalance", checkValidClient, auth, async (req, res) => {
         message: "Wallet balance fetched successfully.",
         data: {
           balance: 0,
-          update_at: `${
-            new Date().toLocaleDateString() +
+          update_at: `${new Date().toLocaleDateString() +
             "," +
             new Date().toLocaleTimeString()
-          }`,
+            }`,
         },
       });
     }
@@ -405,13 +404,13 @@ router.post("/logout", checkValidClient, auth, async (req, res) => {
 router.get("/devices", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
-    
+
     // Check active subscription
     const subscription = await checkActiveSubscription(clientId);
     if (!subscription) {
       return res.status(400).json({ success: false, message: "No active subscription" });
     }
-    
+
     const search = req.query.search ? String(req.query.search).trim() : null;
     const statusFilter = req.query.status_filter ? String(req.query.status_filter).toLowerCase().trim() : 'all'; // 'all', 'active', 'stopped'
 
@@ -434,18 +433,18 @@ router.get("/devices", checkValidClient, auth, async (req, res) => {
     // Process rows: calculate online/offline based on last_seen (10 second heartbeat)
     const now = new Date();
     const HEARTBEAT_THRESHOLD = 10000; // 10 seconds in milliseconds
-    
+
     const processedRows = rows.map((device) => {
       let online = false;
       let secondsSinceLastSeen = null;
-      
+
       if (device.last_seen) {
         const lastSeen = new Date(device.last_seen);
         const timeDiff = now - lastSeen;
         secondsSinceLastSeen = Math.floor(timeDiff / 1000);
         online = timeDiff <= HEARTBEAT_THRESHOLD;
       }
-      
+
       return {
         ...device,
         online, // true = active/online, false = offline/stopped
@@ -483,13 +482,13 @@ router.get("/devices", checkValidClient, auth, async (req, res) => {
 router.get("/devices/:id", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
-    
+
     // Check active subscription
     const subscription = await checkActiveSubscription(clientId);
     if (!subscription) {
       return res.status(400).json({ success: false, message: "No active subscription" });
     }
-    
+
     const { id } = req.params;
     const query = `
       SELECT id, name, location, width, height, status, created_at
@@ -592,13 +591,13 @@ router.post("/devices", checkValidClient, auth, async (req, res) => {
 router.put("/devices/:id", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
-    
+
     // Check active subscription
     const subscription = await checkActiveSubscription(clientId);
     if (!subscription) {
       return res.status(400).json({ success: false, message: "No active subscription" });
     }
-    
+
     const { id } = req.params;
     const { device_name, location, width, height, status } = req.body;
 
@@ -652,17 +651,17 @@ router.put("/devices/:id", checkValidClient, auth, async (req, res) => {
     });
   }
 });
-  // API: Delete Device
+// API: Delete Device
 router.delete("/devices/:id", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
-    
+
     // Check active subscription
     const subscription = await checkActiveSubscription(clientId);
     if (!subscription) {
       return res.status(400).json({ success: false, message: "No active subscription" });
     }
-    
+
     const { id } = req.params;
 
     // perform all deletions in a transaction to keep DB consistent
@@ -812,13 +811,13 @@ router.get("/ads/:id", checkValidClient, auth, async (req, res) => {
 router.post("/ads", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
-    
+
     // Check active subscription
     const subscription = await checkActiveSubscription(clientId);
     if (!subscription) {
       return res.status(400).json({ success: false, message: "No active subscription" });
     }
-    
+
     const { device_id, status, location, page = 1, limit = 10 } = req.body;
 
     const offset = (page - 1) * limit;
@@ -1076,13 +1075,13 @@ router.post("/users", checkValidClient, auth, async (req, res) => {
 router.delete("/ads/:id", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
-    
+
     // Check active subscription
     const subscription = await checkActiveSubscription(clientId);
     if (!subscription) {
       return res.status(400).json({ success: false, message: "No active subscription" });
     }
-    
+
     const { id } = req.params;
 
     // Step 1: Find ad to get fileName
@@ -1157,13 +1156,13 @@ async function deleteFileFromStorage(filePath) {
 router.get("/review/pending", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
-    
+
     // Check active subscription
     const subscription = await checkActiveSubscription(clientId);
     if (!subscription) {
       return res.status(400).json({ success: false, message: "No active subscription" });
     }
-    
+
     const { device_id } = req.query;
 
     let query = `
@@ -1217,13 +1216,13 @@ router.patch(
   async (req, res) => {
     try {
       const clientId = req.client_id;
-      
+
       // Check active subscription
       const subscription = await checkActiveSubscription(clientId);
       if (!subscription) {
         return res.status(400).json({ success: false, message: "No active subscription" });
       }
-      
+
       const { adId, deviceId } = req.params;
 
       const query = `
@@ -1272,13 +1271,13 @@ router.patch(
   async (req, res) => {
     try {
       const clientId = req.client_id;
-      
+
       // Check active subscription
       const subscription = await checkActiveSubscription(clientId);
       if (!subscription) {
         return res.status(400).json({ success: false, message: "No active subscription" });
       }
-      
+
       const { adId, deviceId } = req.params;
       const { reason } = req.body;
 
@@ -1340,13 +1339,13 @@ router.patch(
   async (req, res) => {
     try {
       const clientId = req.client_id;
-      
+
       // Check active subscription
       const subscription = await checkActiveSubscription(clientId);
       if (!subscription) {
         return res.status(400).json({ success: false, message: "No active subscription" });
       }
-      
+
       const { adId, deviceId } = req.params;
 
       const query = `
@@ -1393,7 +1392,7 @@ router.patch(
   async (req, res) => {
     try {
       const clientId = req.client_id;
-      
+
       // Check active subscription
       const subscription = await checkActiveSubscription(clientId);
       if (!subscription) {
@@ -1569,10 +1568,10 @@ router.post(
         return res.status(201).json({ success: true, message: 'company_ads_created', created: uploadedResults });
       } catch (txErr) {
         console.error('DB tx error or upload error:', txErr);
-        try { await db.query('ROLLBACK'); } catch (_) {}
+        try { await db.query('ROLLBACK'); } catch (_) { }
         // best-effort cleanup of uploaded files
         for (const r of uploadedResults) {
-          try { await bucket.file(r.media.filename).delete(); } catch (_) {}
+          try { await bucket.file(r.media.filename).delete(); } catch (_) { }
         }
         return res.status(500).json({ error: 'database_or_upload_error', detail: txErr.message });
       }
@@ -1689,7 +1688,7 @@ router.post("/staff", checkValidClient, auth, async (req, res) => {
     if (!subscription) {
       return res.status(400).json({ success: false, message: "No active subscription" });
     }
-    
+
     const { name, email } = req.body;
     if (!name || !email) return res.status(400).json({ error: "name_and_email_required" });
 
@@ -1728,7 +1727,7 @@ router.delete("/staff/:id", checkValidClient, auth, async (req, res) => {
     if (!subscription) {
       return res.status(400).json({ success: false, message: "No active subscription" });
     }
-    
+
     const { id } = req.params;
     const delQ = `DELETE FROM staffs WHERE id = $1 AND client_id = $2 RETURNING id, username, email`;
     const { rows } = await db.query(delQ, [id, req.client_id]);
@@ -1752,7 +1751,7 @@ router.patch("/staff/:id/enable", checkValidClient, auth, async (req, res) => {
     if (!subscription) {
       return res.status(400).json({ success: false, message: "No active subscription" });
     }
-    
+
     const { id } = req.params;
     const upd = `UPDATE staffs SET status=$3 WHERE id = $1 AND client_id = $2 RETURNING id, username, email, status`;
     const { rows } = await db.query(upd, [id, req.client_id, true]);
@@ -1771,7 +1770,7 @@ router.patch("/staff/:id/disable", checkValidClient, auth, async (req, res) => {
     if (!subscription) {
       return res.status(400).json({ success: false, message: "No active subscription" });
     }
-    
+
     const { id } = req.params;
     const upd = `UPDATE staffs SET status=$3 WHERE id = $1 AND client_id = $2 RETURNING id, username, email, status`;
     const { rows } = await db.query(upd, [id, req.client_id, false]);
@@ -1816,7 +1815,7 @@ router.get("/staff", checkValidClient, auth, async (req, res) => {
 
     // fetch page
     const pageParams = params.concat([limit, offset]);
-    const q = `SELECT id, username, email, status, created_at FROM staffs ${where} ORDER BY created_at DESC LIMIT $${pageParams.length-1} OFFSET $${pageParams.length}`;
+    const q = `SELECT id, username, email, status, created_at FROM staffs ${where} ORDER BY created_at DESC LIMIT $${pageParams.length - 1} OFFSET $${pageParams.length}`;
     const { rows } = await db.query(q, pageParams);
 
     return res.status(200).json({
@@ -1881,67 +1880,67 @@ router.post('/staff/:id/send-password', checkValidClient, auth, async (req, res)
   }
 });
 router.post("/staff/:id/devices", checkValidClient, auth, async (req, res) => {
-    try {
-      // Check active subscription
-      const subscription = await checkActiveSubscription(req.client_id);
-      if (!subscription) {
-        return res.status(400).json({ success: false, message: "No active subscription" });
-      }
-      
-      const staffId = req.params.id;
-      const clientId = req.client_id;
-      const { device_ids } = req.body;
-
-      if (!Array.isArray(device_ids) || device_ids.length === 0) {
-        return res.status(400).json({ error: "device_ids_required" });
-      }
-
-      // validate staff belongs to client
-      const staffQ = `SELECT id FROM staffs WHERE id = $1 AND client_id = $2 LIMIT 1`;
-      const staffRes = await db.query(staffQ, [staffId, clientId]);
-      if (staffRes.rows.length === 0) return res.status(404).json({ error: 'staff_not_found' });
-
-      // fetch devices and verify they belong to client
-      const devicesQ = `SELECT id, is_assigned, assigned_to FROM devices WHERE id = ANY($1::uuid[]) AND client_id = $2`;
-      const { rows: foundDevices } = await db.query(devicesQ, [device_ids, clientId]);
-
-      const foundIds = new Set(foundDevices.map((d) => d.id));
-      const missing = device_ids.filter((id) => !foundIds.has(id));
-      if (missing.length > 0) return res.status(404).json({ error: 'devices_not_found', missing });
-
-      // check for conflicting assignments
-      const conflicts = foundDevices.filter((d) => d.assigned_to && d.assigned_to !== staffId);
-      if (conflicts.length > 0) {
-        return res.status(409).json({ error: 'device_assigned_elsewhere', devices: conflicts.map(c => c.id) });
-      }
-
-      // everything OK — perform inserts and updates in a transaction
-      await db.query('BEGIN');
-      try {
-        const createdMappings = [];
-        for (const deviceId of device_ids) {
-          const mapId = uuidv4();
-          // safe insert: avoid duplicate mappings if already exists
-          const ins = `INSERT INTO staffs_devices (id, staff_id, device_id, created_at) VALUES ($1,$2,$3,NOW()) ON CONFLICT (device_id) DO NOTHING RETURNING *`;
-          const { rows } = await db.query(ins, [mapId, staffId, deviceId]);
-          if (rows && rows[0]) createdMappings.push(rows[0]);
-
-          // update device flags (idempotent)
-          await db.query(`UPDATE devices SET is_assigned = true, assigned_to = $1 WHERE id = $2 AND client_id = $3`, [staffId, deviceId, clientId]);
-        }
-
-        await db.query('COMMIT');
-        return res.status(201).json({ success: true, message: 'devices_assigned', assigned: createdMappings });
-      } catch (err) {
-        await db.query('ROLLBACK');
-        console.error('Error assigning devices to staff:', err);
-        return res.status(500).json({ error: 'assign_failed', detail: err.message });
-      }
-    } catch (err) {
-      console.error('Error in /staff/:id/devices POST:', err);
-      return res.status(500).json({ error: 'server_error', detail: err.message });
+  try {
+    // Check active subscription
+    const subscription = await checkActiveSubscription(req.client_id);
+    if (!subscription) {
+      return res.status(400).json({ success: false, message: "No active subscription" });
     }
-  });
+
+    const staffId = req.params.id;
+    const clientId = req.client_id;
+    const { device_ids } = req.body;
+
+    if (!Array.isArray(device_ids) || device_ids.length === 0) {
+      return res.status(400).json({ error: "device_ids_required" });
+    }
+
+    // validate staff belongs to client
+    const staffQ = `SELECT id FROM staffs WHERE id = $1 AND client_id = $2 LIMIT 1`;
+    const staffRes = await db.query(staffQ, [staffId, clientId]);
+    if (staffRes.rows.length === 0) return res.status(404).json({ error: 'staff_not_found' });
+
+    // fetch devices and verify they belong to client
+    const devicesQ = `SELECT id, is_assigned, assigned_to FROM devices WHERE id = ANY($1::uuid[]) AND client_id = $2`;
+    const { rows: foundDevices } = await db.query(devicesQ, [device_ids, clientId]);
+
+    const foundIds = new Set(foundDevices.map((d) => d.id));
+    const missing = device_ids.filter((id) => !foundIds.has(id));
+    if (missing.length > 0) return res.status(404).json({ error: 'devices_not_found', missing });
+
+    // check for conflicting assignments
+    const conflicts = foundDevices.filter((d) => d.assigned_to && d.assigned_to !== staffId);
+    if (conflicts.length > 0) {
+      return res.status(409).json({ error: 'device_assigned_elsewhere', devices: conflicts.map(c => c.id) });
+    }
+
+    // everything OK — perform inserts and updates in a transaction
+    await db.query('BEGIN');
+    try {
+      const createdMappings = [];
+      for (const deviceId of device_ids) {
+        const mapId = uuidv4();
+        // safe insert: avoid duplicate mappings if already exists
+        const ins = `INSERT INTO staffs_devices (id, staff_id, device_id, created_at) VALUES ($1,$2,$3,NOW()) ON CONFLICT (device_id) DO NOTHING RETURNING *`;
+        const { rows } = await db.query(ins, [mapId, staffId, deviceId]);
+        if (rows && rows[0]) createdMappings.push(rows[0]);
+
+        // update device flags (idempotent)
+        await db.query(`UPDATE devices SET is_assigned = true, assigned_to = $1 WHERE id = $2 AND client_id = $3`, [staffId, deviceId, clientId]);
+      }
+
+      await db.query('COMMIT');
+      return res.status(201).json({ success: true, message: 'devices_assigned', assigned: createdMappings });
+    } catch (err) {
+      await db.query('ROLLBACK');
+      console.error('Error assigning devices to staff:', err);
+      return res.status(500).json({ error: 'assign_failed', detail: err.message });
+    }
+  } catch (err) {
+    console.error('Error in /staff/:id/devices POST:', err);
+    return res.status(500).json({ error: 'server_error', detail: err.message });
+  }
+});
 // ----------------------
 // GET /staff/:id/devices
 // List devices assigned to a staff (paginated) — grouped near staff endpoints
@@ -2026,8 +2025,8 @@ router.get(
     if (result.rowCount > 0) {
       const subscriptionQuery = `select subscription_status from clients where id = $1`;
       const subscriptionResult = await db.query(subscriptionQuery, [clientId]);
-      if (subscriptionResult.rows[0]["subscription_status"] === "blocked"||subscriptionResult.rows[0]["subscription_status"] === "suspended") {
-        return res.status(500).json({ message: "Account is "+subscriptionResult.rows[0]["subscription_status"] });
+      if (subscriptionResult.rows[0]["subscription_status"] === "blocked" || subscriptionResult.rows[0]["subscription_status"] === "suspended") {
+        return res.status(500).json({ message: "Account is " + subscriptionResult.rows[0]["subscription_status"] });
       }
       console.log(subscriptionResult.rows[0]["subscription_status"]);
     } else {
@@ -2043,13 +2042,13 @@ router.get(
 router.delete("/emergency-ads/:id", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
-    
+
     // Check active subscription
     const subscription = await checkActiveSubscription(clientId);
     if (!subscription) {
       return res.status(400).json({ success: false, message: "No active subscription" });
     }
-    
+
     const { id } = req.params; // company_ad_id
 
     // Step 1: Check if the company ad exists
@@ -2121,13 +2120,13 @@ router.post(
   async (req, res) => {
     try {
       const clientId = req.client_id;
-      
+
       // Check active subscription
       const subscription = await checkActiveSubscription(clientId);
       if (!subscription) {
         return res.status(400).json({ success: false, message: "No active subscription" });
       }
-      
+
       const userId = req.user_id;
       const { id } = req.params; // company_ad_id
       let { status } = req.body;
@@ -2192,7 +2191,7 @@ router.post(
     } catch (err) {
       try {
         await db.query("ROLLBACK");
-      } catch (e) {}
+      } catch (e) { }
       console.error("Error updating company ad status:", err);
       return res.status(500).json({ error: "update_failed", detail: err.message });
     }
@@ -2207,13 +2206,13 @@ router.post(
 router.delete("/company-ads/:id/file", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
-    
+
     // Check active subscription
     const subscription = await checkActiveSubscription(clientId);
     if (!subscription) {
       return res.status(400).json({ success: false, message: "No active subscription" });
     }
-    
+
     const { id } = req.params;
 
     // fetch company ad
@@ -2250,7 +2249,7 @@ router.delete("/company-ads/:id/file", checkValidClient, auth, async (req, res) 
     }
     return res.status(200).json({ success: true, message: 'company_ad_file_removed', company_ad: upd.rows[0], storageDeleted });
   } catch (err) {
-    try { await db.query('ROLLBACK'); } catch (_) {}
+    try { await db.query('ROLLBACK'); } catch (_) { }
     console.error('Error removing company ad file:', err);
     return res.status(500).json({ error: 'remove_failed', detail: err.message });
   }
@@ -2376,7 +2375,7 @@ router.post("/use-wallet", checkValidClient, auth, async (req, res) => {
         .startsWith("month")
         ? 28
         : Math.ceil((endDate.getTime() - startDate.getTime()) / MS_PER_DAY) ||
-          1;
+        1;
       const remainingMs = endDate.getTime() - now.getTime();
       const days_remaining =
         remainingMs > 0 ? Math.ceil(remainingMs / MS_PER_DAY) : 0;
@@ -2887,7 +2886,7 @@ router.post(
       if (!subscription) {
         return res.status(400).json({ success: false, message: "No active subscription" });
       }
-      
+
       const { id, media_type, duration_seconds, base_price } = req.body;
       const clientId = req.client_id;
 
@@ -2954,7 +2953,7 @@ router.put(
       if (!subscription) {
         return res.status(400).json({ success: false, message: "No active subscription" });
       }
-      
+
       const { id } = req.params;
       const { base_price, media_type, duration_seconds, device_id } = req.body;
       const clientId = req.client_id;
@@ -3006,7 +3005,7 @@ router.delete("/delete-pricing-rule:id", checkValidClient, async (req, res) => {
     if (!subscription) {
       return res.status(400).json({ success: false, message: "No active subscription" });
     }
-    
+
     const { id } = req.params;
     const clientId = req.client_id;
 
@@ -3139,7 +3138,7 @@ router.get('/payments/recent', checkValidClient, auth, async (req, res) => {
 
     params.push(limit);
     params.push(offset);
-    const q = `SELECT id, plan_id, amount, status, transaction_id, receipt, razorpay_order_id, wallet_applied, created_at FROM payments ${where} ORDER BY created_at DESC LIMIT $${params.length-1} OFFSET $${params.length}`;
+    const q = `SELECT id, plan_id, amount, status, transaction_id, receipt, razorpay_order_id, wallet_applied, created_at FROM payments ${where} ORDER BY created_at DESC LIMIT $${params.length - 1} OFFSET $${params.length}`;
     const { rows } = await db.query(q, params);
     const mapped = rows.map((p) => ({
       id: p.id,
@@ -3265,7 +3264,7 @@ router.get('/wallet/transactions', checkValidClient, auth, async (req, res) => {
 
     params.push(limit);
     params.push(offset);
-    const q = `SELECT id, amount, tr_type, balance_after, description, reference_type, reference_id, created_by, updated_at FROM wallet_transactions ${where} ORDER BY updated_at DESC LIMIT $${params.length-1} OFFSET $${params.length}`;
+    const q = `SELECT id, amount, tr_type, balance_after, description, reference_type, reference_id, created_by, updated_at FROM wallet_transactions ${where} ORDER BY updated_at DESC LIMIT $${params.length - 1} OFFSET $${params.length}`;
     const { rows } = await db.query(q, params);
     const mapped = rows.map((t) => ({
       id: t.id,
@@ -3427,13 +3426,13 @@ router.get('/wallet/transactions/export/csv', checkValidClient, auth, async (req
 router.get("/ad-statistics", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
-    
+
     // Check active subscription
     const subscription = await checkActiveSubscription(clientId);
     if (!subscription) {
       return res.status(400).json({ success: false, message: "No active subscription" });
     }
-    
+
     const {
       device_id,
       ad_id,
@@ -3448,22 +3447,22 @@ router.get("/ad-statistics", checkValidClient, auth, async (req, res) => {
     // Build dynamic query with filters
     const params = [clientId];
     let whereConditions = ['d.client_id = $1'];
-    
+
     if (device_id) {
       params.push(device_id);
       whereConditions.push(`stats.device_id = $${params.length}`);
     }
-    
+
     if (ad_id) {
       params.push(ad_id);
       whereConditions.push(`stats.ad_id = $${params.length}`);
     }
-    
+
     if (start_date) {
       params.push(start_date);
       whereConditions.push(`stats.play_time >= $${params.length}::timestamp`);
     }
-    
+
     if (end_date) {
       params.push(end_date);
       whereConditions.push(`stats.play_time <= $${params.length}::timestamp`);

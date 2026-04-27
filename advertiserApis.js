@@ -63,15 +63,15 @@ router.post("/send-otp", checkValidClient, async (req, res) => {
 async function sendEmail(email, client_id) {
   const OTP = Math.floor(100000 + Math.random() * 900000).toString();
   const mailRequest = nodemailer.createTransport({
-    host: "smtpout.secureserver.net",
-    port: 465,
+    host: process.env.SMTP_HOST,
+    port: parseInt(process.env.SMTP_PORT, 10),
     auth: {
-      user: "support@sandboxdeveloper.com",
-      pass: "Sam@@@5167",
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
     },
   });
   const mailingOptions = {
-    from: "support@sandboxdeveloper.com",
+    from: process.env.SMTP_FROM,
     to: email,
     subject: "Your OTP Code",
     html: `<body style='background:#f2f2f2;text-align:center;border-top:5px solid #2D317D;width:100%;'><div style='padding:35px 50px;'><p style='font-weight:bold;'>Dear Customer, Your OTP to Login  is</p><h1 style='letter-spacing: 1.1rem;'> ${OTP} </h1><p style='font-weight:bold;'>OTP is valid for 3 minutes.</p><p style='font-weight:bold;'> Thank you</p></div><div style='background:#1b1f6d;padding:20px;'></div></body>`,
@@ -114,9 +114,9 @@ const deleteOtpFromDB = async (email, client_id) => {
   await client.query(query, [email, client_id]);
   console.log("OTP DELETED");
 };
-router.post("/verify-otp", checkValidClient,async (req, res) => {
+router.post("/verify-otp", checkValidClient, async (req, res) => {
   const { email, otp } = req.body;
-  if(!email||!otp)return res.status(400).send({"message":"email or otp is required"})
+  if (!email || !otp) return res.status(400).send({ "message": "email or otp is required" })
   const query = `select otp from otp where email='${email}' and client_id ='${req.client_id}' order by created_at desc limit 1`;
   console.log(email, otp);
   try {
@@ -128,8 +128,8 @@ router.post("/verify-otp", checkValidClient,async (req, res) => {
       if (DbOtp === otp) {
         const query = "delete from otp where email =$1 and client_id =$2";
         await db.query(query, [email, req.client_id]);
-       clearInterval(timers[email]); // Cancel the timer
-      delete timers[email];
+        clearInterval(timers[email]); // Cancel the timer
+        delete timers[email];
         res.status(200).json({
           message: "OTP Verified successfully",
           email: email,
@@ -137,19 +137,19 @@ router.post("/verify-otp", checkValidClient,async (req, res) => {
         });
       } else {
         clearInterval(timers[email]); // Cancel the timer
-      delete timers[email];
+        delete timers[email];
         res.status(500).json({ message: "Invalid OTP", status: 202 });
       }
     } else {
       clearInterval(timers[email]); // Cancel the timer
-      delete timers[email]; 
+      delete timers[email];
       res.status(500).json({ message: "Invalid OTP", status: 203 });
     }
   } catch (err) {
     clearInterval(timers[email]); // Cancel the timer
     delete timers[email];
     console.log(err);
-    res.status(500).send({"message":"Something went wrong"});
+    res.status(500).send({ "message": "Something went wrong" });
   }
 });
 
@@ -295,13 +295,13 @@ router.get("/ads/my", checkValidClient, auth, async (req, res) => {
   try {
     const userId = req.user_id;
     const clientId = req.client_id;
-    
+
     // Check active subscription
     const subscription = await checkActiveSubscription(clientId);
     if (!subscription) {
       return res.status(400).json({ success: false, message: "No active subscription" });
     }
-    
+
     const { status } = req.query;
 
     // Join with ad_devices to get device-level status
@@ -390,13 +390,13 @@ router.get("/ads/details", checkValidClient, auth, async (req, res) => {
   try {
     const userId = req.user_id;
     const clientId = req.client_id;
-    
+
     // Check active subscription
     const subscription = await checkActiveSubscription(clientId);
     if (!subscription) {
       return res.status(400).json({ success: false, message: "No active subscription" });
     }
-    
+
     const { id } = req.query; // ad_id
 
     if (!id) {
@@ -523,7 +523,7 @@ router.delete("/ads/delete", checkValidClient, auth, async (req, res) => {
     if (!subscription) {
       return res.status(400).json({ success: false, message: "No active subscription" });
     }
-    
+
     const userId = req.user_id; // from auth middleware
     const clientId = req.client_id; // from checkValidClient middleware
     const { id } = req.query;
@@ -578,7 +578,7 @@ router.post("/ads/extend", checkValidClient, auth, async (req, res) => {
   if (!subscription) {
     return res.status(400).json({ success: false, message: "No active subscription" });
   }
-  
+
   const { id } = req.query;
   const { end_date } = req.body;
 
@@ -668,13 +668,13 @@ router.put("/ads/update", checkValidClient, auth, async (req, res) => {
   try {
     const userId = req.user_id; // from auth middleware
     const clientId = req.client_id; // from checkValidClient middleware
-    
+
     // Check active subscription
     const subscription = await checkActiveSubscription(clientId);
     if (!subscription) {
       return res.status(400).json({ success: false, message: "No active subscription" });
     }
-    
+
     const { id } = req.query;
     const { title, description, start_time, end_time, media_url, media_type } =
       req.body;
@@ -808,7 +808,7 @@ router.post('/ads/:adId/devices/:deviceId/pause', checkValidClient, auth, async 
   if (!subscription) {
     return res.status(400).json({ success: false, message: "No active subscription" });
   }
-  
+
   const { adId, deviceId } = req.params;
   const userId = req.user_id;
   try {
@@ -871,7 +871,7 @@ router.post('/ads/:adId/devices/:deviceId/pause', checkValidClient, auth, async 
 
     return res.json({ success: true, message: 'paused', device: updRes.rows[0] });
   } catch (err) {
-    try { await db.query('ROLLBACK'); } catch(_) {}
+    try { await db.query('ROLLBACK'); } catch (_) { }
     console.error('Pause error', err);
     return res.status(500).json({ error: 'pause_failed', detail: err.message });
   }
@@ -882,7 +882,7 @@ router.post('/ads/:adId/devices/:deviceId/resume', checkValidClient, auth, async
   if (!subscription) {
     return res.status(400).json({ success: false, message: "No active subscription" });
   }
-  
+
   const { adId, deviceId } = req.params;
   const userId = req.user_id;
   try {
@@ -931,7 +931,7 @@ router.post('/ads/:adId/devices/:deviceId/resume', checkValidClient, auth, async
 
     return res.json({ success: true, message: 'resumed', device: updRes.rows[0] });
   } catch (err) {
-    try { await db.query('ROLLBACK'); } catch(_) {}
+    try { await db.query('ROLLBACK'); } catch (_) { }
     console.error('Resume error', err);
     return res.status(500).json({ error: 'resume_failed', detail: err.message });
   }
@@ -942,14 +942,14 @@ router.post('/ads/:adId/devices/:deviceId/extend', checkValidClient, auth, async
   if (!subscription) {
     return res.status(400).json({ success: false, message: "No active subscription" });
   }
-  
+
   const { adId, deviceId } = req.params;
   const { end_date } = req.body;
   if (!end_date) return res.status(400).json({ error: 'end_date_required' });
   try {
     const upd = `UPDATE ad_devices SET end_date = $1, status_updated_at = now() WHERE ad_id = $2 AND device_id = $3 RETURNING *`;
     const updRes = await db.query(upd, [end_date, adId, deviceId]);
-    
+
     return res.json({ success: true, message: 'extended', device: updRes.rows[0] });
   } catch (err) {
     console.error('Extend error', err);
@@ -962,7 +962,7 @@ router.delete('/ads/:adId/devices/:deviceId', checkValidClient, auth, async (req
   if (!subscription) {
     return res.status(400).json({ success: false, message: "No active subscription" });
   }
-  
+
   const { adId, deviceId } = req.params;
   const userId = req.user_id;
 
@@ -996,7 +996,7 @@ router.delete('/ads/:adId/devices/:deviceId', checkValidClient, auth, async (req
 
       // remove file from storage if you want:
       if (adRow.rows[0] && adRow.rows[0].filename) {
-        try { await deleteFileFromStorage(adRow.rows[0].filename); } catch(e) { /* log but don't fail */ }
+        try { await deleteFileFromStorage(adRow.rows[0].filename); } catch (e) { /* log but don't fail */ }
       }
     }
 
@@ -1007,7 +1007,7 @@ router.delete('/ads/:adId/devices/:deviceId', checkValidClient, auth, async (req
 
     return res.json({ success: true, message: 'mapping_deleted', deleted: delRes.rows[0] });
   } catch (err) {
-    try { await db.query('ROLLBACK'); } catch(_) {}
+    try { await db.query('ROLLBACK'); } catch (_) { }
     console.error('Delete mapping error', err);
     return res.status(500).json({ error: 'delete_mapping_failed', detail: err.message });
   }
@@ -1018,7 +1018,7 @@ router.put('/ads/:adId', checkValidClient, auth, upload.single('file'), async (r
   if (!subscription) {
     return res.status(400).json({ success: false, message: "No active subscription" });
   }
-  
+
   const { adId } = req.params;
   const userId = req.user_id;
   const { title, description } = req.body;
@@ -1063,7 +1063,7 @@ router.put('/ads/:adId', checkValidClient, auth, upload.single('file'), async (r
 
       // delete old file after commit (non-blocking) to be safe
       if (uploaded && ad.filename) {
-        try { await deleteFileFromStorage(ad.filename); } catch(e) { console.warn('failed deleting old file', e); }
+        try { await deleteFileFromStorage(ad.filename); } catch (e) { console.warn('failed deleting old file', e); }
       }
 
       return res.json({ success: true, message: 'updated', ad: upd.rows[0] });
@@ -1072,10 +1072,10 @@ router.put('/ads/:adId', checkValidClient, auth, upload.single('file'), async (r
       return res.status(400).json({ error: 'nothing_to_update' });
     }
   } catch (err) {
-    try { await db.query('ROLLBACK'); } catch(_) {}
+    try { await db.query('ROLLBACK'); } catch (_) { }
     console.error('Update ad error', err);
     // if we uploaded but failed: delete newly uploaded file to avoid orphans
-    if (uploaded) { try { await deleteFileFromStorage(uploaded.filename); } catch(_){} }
+    if (uploaded) { try { await deleteFileFromStorage(uploaded.filename); } catch (_) { } }
     return res.status(500).json({ error: 'update_failed', detail: err.message });
   }
 });
@@ -1305,7 +1305,7 @@ router.patch(
   async (req, res) => {
     try {
       const clientId = req.client_id;
-      const { old_password, new_password,email } = req.body;
+      const { old_password, new_password, email } = req.body;
 
       if (!old_password || !new_password) {
         return res.status(400).json({
@@ -1527,7 +1527,7 @@ router.post("/payments/create", checkValidClient, auth, async (req, res) => {
     if (!subscription) {
       return res.status(400).json({ success: false, message: "No active subscription" });
     }
-    
+
     const { total_amount } = req.body;
     const clientId = req.client_id;
     const advertiserId = req.user_id; // from auth middleware
@@ -1769,13 +1769,13 @@ router.get("/dashboard", checkValidClient, auth, async (req, res) => {
   try {
     const userId = req.user_id;
     const clientId = req.client_id;
-    
+
     // Check active subscription
     const subscription = await checkActiveSubscription(clientId);
     if (!subscription) {
       return res.status(400).json({ success: false, message: "No active subscription" });
     }
-    
+
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
     // 1) Counts for ads (from ad_devices, joined with ads for filtering)
@@ -1942,13 +1942,13 @@ router.get("/ads/recent", checkValidClient, auth, async (req, res) => {
   try {
     const userId = req.user_id;
     const clientId = req.client_id;
-    
+
     // Check active subscription
     const subscription = await checkActiveSubscription(clientId);
     if (!subscription) {
       return res.status(400).json({ success: false, message: "No active subscription" });
     }
-    
+
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
     const query = `
@@ -2051,7 +2051,7 @@ router.post(
     if (!subscription) {
       return res.status(400).json({ success: false, message: "No active subscription" });
     }
-    
+
     const file = req.file;
 
     try {
@@ -2141,9 +2141,8 @@ router.post(
         });
 
         blobStream.on("finish", () => {
-          const url = `https://firebasestorage.googleapis.com/v0/b/${
-            bucket.name
-          }/o/${encodeURIComponent(fileUpload.name)}?alt=media&token=${uuid}`;
+          const url = `https://firebasestorage.googleapis.com/v0/b/${bucket.name
+            }/o/${encodeURIComponent(fileUpload.name)}?alt=media&token=${uuid}`;
           resolve({ url, filename });
         });
 
@@ -2157,7 +2156,7 @@ router.post(
         console.error("Upload failed:", err);
         return res.status(500).json({ error: "file_upload_failed" });
       }
-    // duration=  duration==undefined?10:duration
+      // duration=  duration==undefined?10:duration
       try {
         await db.query("BEGIN");
 
@@ -2185,14 +2184,14 @@ router.post(
         VALUES ($1, $2, $3, $4, 'in_review',$5)
       `;
         for (const device of selected_devices) {
-        await db.query(insertDeviceQuery, [finalAdId, device, start_date, end_date,clientId]);
-      }
+          await db.query(insertDeviceQuery, [finalAdId, device, start_date, end_date, clientId]);
+        }
         await db.query("COMMIT");
         return res.status(201).json({
           success: true,
           message: "Ads created for devices",
           ads: finalAdId,
-         devices: selected_devices,
+          devices: selected_devices,
           media: {
             url: uploaded.url,
             filename: uploaded.filename,
@@ -2203,14 +2202,14 @@ router.post(
         console.error("Transaction error:", txErr);
         try {
           await db.query("ROLLBACK");
-        } catch (_) {}
+        } catch (_) { }
         await deleteFileFromStorage(uploaded.filename);
         return res
           .status(500)
           .json({ error: "database_error", detail: txErr.message });
       }
     } catch (err) {
-       
+
       console.error("Unexpected error in /ads/create:", err);
       return res
         .status(500)
@@ -2266,9 +2265,9 @@ router.post("/login", checkValidClient, async (req, res) => {
       userId: user.id,
       clientId: user.client_id,
       role: user.role,
-      email:user.email
+      email: user.email
     };
-    const token = jsonwebtoken.sign(tokenPayload, "THISISTESTAPPFORHORDING");
+    const token = jsonwebtoken.sign(tokenPayload, process.env.JWT_SECRET);
 
     // update user's tokens column and optionally fcmtoken
     // Here we store the latest token string in tokens column. If you use multiple sessions, change strategy.
@@ -2295,7 +2294,7 @@ router.post("/login", checkValidClient, async (req, res) => {
     return res.status(500).json({ error: "internal_server_error" });
   }
 });
-router.get("/ads/:id/statistics",checkValidClient, auth, async (req, res) => {
+router.get("/ads/:id/statistics", checkValidClient, auth, async (req, res) => {
   // Check active subscription
   const subscription = await checkActiveSubscription(req.client_id);
   if (!subscription) {
@@ -2332,16 +2331,16 @@ router.get(
     if (result.rowCount > 0) {
       const subscriptionQuery = `select subscription_status from clients where id = $1`;
       const subscriptionResult = await db.query(subscriptionQuery, [clientId]);
-      if (subscriptionResult.rows[0]["subscription_status"] === "blocked"||subscriptionResult.rows[0]["subscription_status"] === "suspended") {
-        return res.status(500).json({ message: "Account is "+subscriptionResult.rows[0]["subscription_status"] });
+      if (subscriptionResult.rows[0]["subscription_status"] === "blocked" || subscriptionResult.rows[0]["subscription_status"] === "suspended") {
+        return res.status(500).json({ message: "Account is " + subscriptionResult.rows[0]["subscription_status"] });
       }
       console.log(subscriptionResult.rows[0]["subscription_status"]);
     } else {
       return res.status(500).json({ message: "client not found" });
     }
-    const userBlocked =`select isactive from users where id = $1`;
+    const userBlocked = `select isactive from users where id = $1`;
     const userResult = await db.query(userBlocked, [req.user_id]);
-    if(userResult.rows[0]["isactive"]===false){
+    if (userResult.rows[0]["isactive"] === false) {
       return res.status(500).json({ message: "User account is inactive" });
     }
     return res.status(200).json({ message: "Account is active" });
@@ -2353,7 +2352,7 @@ router.get(
 
 router.post("/signup", checkValidClient, async (req, res) => {
   try {
-    const clientId =req.clientId || req.client_id || req.headers["x-client-id"];
+    const clientId = req.clientId || req.client_id || req.headers["x-client-id"];
     if (!clientId)
       return res.status(400).json({ error: "Client not identified" });
 
@@ -2459,7 +2458,7 @@ router.post("/signup", checkValidClient, async (req, res) => {
 router.get("/devices", checkValidClient, auth, async (req, res) => {
   try {
     const clientId = req.client_id;
-    
+
     // Check active subscription
     const subscription = await checkActiveSubscription(clientId);
     if (!subscription) {
