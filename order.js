@@ -58,7 +58,7 @@ function generateRandomId(length = 20) {
 router.post("/verify-payment", checkValidClient, auth, async (req, res) => {
   const { order_id, payment_id, signature } = req.body;
 
-  const hmac = crypto.createHmac("sha256", "js5dxGk4eqclWc4OAGezJ0AQ");
+  const hmac = crypto.createHmac("sha256", process.env.RAZORPAY_KEY_SECRET);
   hmac.update(order_id + "|" + payment_id);
   const generatedSignature = hmac.digest("hex");
 

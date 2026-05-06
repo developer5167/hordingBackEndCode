@@ -14,7 +14,9 @@ const {
   admin,
   auth,
 } = require("./deps");
-const bucket = admin.storage().bucket();
+const { uploadFileToS3, deleteFileFromS3 } = require("./s3Service");
+const bucket = admin.storage().bucket(); // Kept for potential backward compatibility or other uses if any, but S3 is preferred now.
+
 // router.js (or a separate advertiser.routes.js if you want to keep clean)
 const router = express.Router();
 
@@ -91,7 +93,7 @@ async function sendStaffEmail(to, email, password, devices = []) {
       <p><strong>Password:</strong> ${password}</p>
       <p>Please use these credentials to login during device setup.</p>
       ${deviceTableHTML}
-      <p>Best regards,<br/>ListNow Team</p>`,
+      <p>Best regards,<br/>Digital Hording Manager<br/><small>by SOTER SYSTEMS</small></p>`,
   };
   try {
     await mailRequest.sendMail(mailingOptions);
@@ -1145,10 +1147,11 @@ router.delete("/ads/:id", checkValidClient, auth, async (req, res) => {
 });
 async function deleteFileFromStorage(filePath) {
   try {
-    await bucket.file(filePath).delete();
-    console.log("File deleted successfully");
+    await deleteFileFromS3(filePath);
+    console.log("File deleted successfully from S3");
   } catch (err) {
-    throw new exception("File Delete failed");
+    console.error("S3 Delete failed:", err);
+    throw new Error("File Delete failed");
   }
 }
 // API: List Ads Pending Review
@@ -1503,30 +1506,11 @@ router.post(
           const safeOriginal = file.originalname.replace(/\s+/g, "_");
           const filename = `emergency_ads/${req.client_id}/${timestamp}_${safeOriginal}`;
 
-          const fileUpload = bucket.file(filename);
-          const uuid = uuidv4();
-          const blobStream = fileUpload.createWriteStream({
-            metadata: {
-              contentType: file.mimetype,
-              metadata: { firebaseStorageDownloadTokens: uuid },
-            },
-            resumable: false,
-          });
-
-          const uploadPromise = new Promise((resolve, reject) => {
-            blobStream.on("error", (err) => reject(err));
-            blobStream.on("finish", () => {
-              const url = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileUpload.name)}?alt=media&token=${uuid}`;
-              resolve({ url, filename });
-            });
-            blobStream.end(file.buffer);
-          });
-
           let uploaded;
           try {
-            uploaded = await uploadPromise;
+            uploaded = await uploadFileToS3(file, filename);
           } catch (err) {
-            throw new Error(`firebase_upload_failed: ${err.message || err}`);
+            throw new Error(`s3_upload_failed: ${err.message || err}`);
           }
 
           // insert emergency_ad row
@@ -1571,7 +1555,7 @@ router.post(
         try { await db.query('ROLLBACK'); } catch (_) { }
         // best-effort cleanup of uploaded files
         for (const r of uploadedResults) {
-          try { await bucket.file(r.media.filename).delete(); } catch (_) { }
+          try { await deleteFileFromS3(r.media.filename); } catch (_) { }
         }
         return res.status(500).json({ error: 'database_or_upload_error', detail: txErr.message });
       }
@@ -1634,30 +1618,11 @@ router.post(
       const safeOriginal = file.originalname.replace(/\s+/g, "_");
       const filename = `company_ads/${targetClientId}/${timestamp}_${safeOriginal}`;
 
-      const fileUpload = bucket.file(filename);
-      const uuid = uuidv4();
-      const blobStream = fileUpload.createWriteStream({
-        metadata: {
-          contentType: file.mimetype,
-          metadata: { firebaseStorageDownloadTokens: uuid },
-        },
-        resumable: false,
-      });
-
-      const uploadPromise = new Promise((resolve, reject) => {
-        blobStream.on("error", (err) => reject(err));
-        blobStream.on("finish", () => {
-          const url = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileUpload.name)}?alt=media&token=${uuid}`;
-          resolve({ url, filename });
-        });
-        blobStream.end(file.buffer);
-      });
-
       let uploaded;
       try {
-        uploaded = await uploadPromise;
+        uploaded = await uploadFileToS3(file, filename);
       } catch (err) {
-        console.error("Firebase upload error:", err);
+        console.error("S3 upload error:", err);
         return res.status(500).json({ error: "file_upload_failed", detail: err.message });
       }
 
@@ -1896,7 +1861,7 @@ router.post("/staff/:id/devices", checkValidClient, auth, async (req, res) => {
     }
 
     // validate staff belongs to client
-    const staffQ = `SELECT id FROM staffs WHERE id = $1 AND client_id = $2 LIMIT 1`;
+    const staffQ = `SELECT id, email FROM staffs WHERE id = $1 AND client_id = $2 LIMIT 1`;
     const staffRes = await db.query(staffQ, [staffId, clientId]);
     if (staffRes.rows.length === 0) return res.status(404).json({ error: 'staff_not_found' });
 
@@ -1930,6 +1895,26 @@ router.post("/staff/:id/devices", checkValidClient, auth, async (req, res) => {
       }
 
       await db.query('COMMIT');
+
+      // Fetch the staff's currently assigned devices to send in the email
+      try {
+        const allDevicesQ = `
+          SELECT d.id, d.name, d.location, d.activation_code
+          FROM staffs_devices sd
+          JOIN devices d ON sd.device_id = d.id
+          WHERE sd.staff_id = $1 AND d.client_id = $2
+          ORDER BY d.created_at ASC
+        `;
+        const { rows: assignedDevices } = await db.query(allDevicesQ, [staffId, clientId]);
+        
+        const staffEmail = staffRes.rows[0].email;
+        if (staffEmail) {
+          await sendStaffEmail(staffEmail, staffEmail, "****** (unchanged)", assignedDevices);
+        }
+      } catch (mailErr) {
+        console.error('Failed to send assigned devices email:', mailErr);
+      }
+
       return res.status(201).json({ success: true, message: 'devices_assigned', assigned: createdMappings });
     } catch (err) {
       await db.query('ROLLBACK');
@@ -2083,11 +2068,10 @@ router.delete("/emergency-ads/:id", checkValidClient, auth, async (req, res) => 
     // Step 4: Delete file from Firebase (if exists)
     if (ad.filename) {
       try {
-        const file = bucket.file(ad.filename);
-        await file.delete();
-        console.log("Deleted company ad file:", ad.filename);
+        await deleteFileFromS3(ad.filename);
+        console.log("Deleted company ad file from S3:", ad.filename);
       } catch (err) {
-        console.error("Error deleting company ad file:", err.message);
+        console.error("Error deleting company ad file from S3:", err.message);
         // Don't fail API if file deletion fails
       }
     }
@@ -2232,8 +2216,7 @@ router.delete("/company-ads/:id/file", checkValidClient, auth, async (req, res) 
     // attempt to delete file from Firebase storage — best-effort
     let storageDeleted = false;
     try {
-      const file = bucket.file(ad.filename);
-      await file.delete();
+      await deleteFileFromS3(ad.filename);
       await db.query('BEGIN');
       const updQ = `delete from company_ads WHERE id = $1 AND client_id = $2`;
       const upd = await db.query(updQ, [id, clientId]);
@@ -2241,11 +2224,7 @@ router.delete("/company-ads/:id/file", checkValidClient, auth, async (req, res) 
       storageDeleted = true;
     } catch (e) {
       // if file not found, warn but still succeed
-      if (e && e.code === 404) {
-        console.warn('Firebase file not found:', ad.filename);
-      } else {
-        console.error('Error deleting file from firebase:', e && e.message ? e.message : e);
-      }
+      console.error('Error deleting file from S3:', e && e.message ? e.message : e);
     }
     return res.status(200).json({ success: true, message: 'company_ad_file_removed', company_ad: upd.rows[0], storageDeleted });
   } catch (err) {
@@ -2816,9 +2795,9 @@ router.delete("/emergency-ads/:id", checkValidClient, auth, async (req, res) => 
     // Step 4: Delete file from Firebase
     if (ad.filename) {
       try {
-        await bucket.file(ad.filename).delete();
+        await deleteFileFromS3(ad.filename);
       } catch (err) {
-        console.error("Error deleting file from Firebase:", err.message);
+        console.error("Error deleting file from S3:", err.message);
         // Don't fail API if file deletion fails
       }
     }

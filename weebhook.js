@@ -10,7 +10,7 @@ router.post('/webhook', express.raw({ type: "*/*" }), async (req, res) => {
   try {
     const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
     const signature = req.headers["x-razorpay-signature"];
-    const expected = crypto.createHmac("sha256", secret).update(req.body).digest("hex");
+    const expected = crypto.createHmac("sha256", secret).update(req.rawBody || req.body).digest("hex");
 
     // Step 1: Verify signature
     if (expected !== signature) {
@@ -19,7 +19,7 @@ router.post('/webhook', express.raw({ type: "*/*" }), async (req, res) => {
     }
 
     // Step 2: Parse event payload
-    const payload = JSON.parse(req.body.toString());
+    const payload = typeof req.body === 'object' && Object.keys(req.body).length > 0 ? req.body : JSON.parse(req.body.toString());
     const event = payload.event;
     console.log(`✅ Razorpay Webhook Event Received: ${event}`);
 
@@ -107,4 +107,4 @@ router.post('/webhook', express.raw({ type: "*/*" }), async (req, res) => {
   }
 });
 
-module.exports=router
+module.exports = router

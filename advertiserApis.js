@@ -9,8 +9,9 @@ const {
 } = require("./deps");
 const nodemailer = require("nodemailer");
 
+const { uploadFileToS3, deleteFileFromS3 } = require("./s3Service");
 const { admin, fcm } = require("./firebaseAdmin");
-const bucket = admin.storage().bucket();
+const bucket = admin.storage().bucket(); // Kept for potential backward compatibility or other uses if any, but S3 is preferred now.
 const router = express.Router();
 const timers = {};
 
@@ -74,7 +75,7 @@ async function sendEmail(email, client_id) {
     from: process.env.SMTP_FROM,
     to: email,
     subject: "Your OTP Code",
-    html: `<body style='background:#f2f2f2;text-align:center;border-top:5px solid #2D317D;width:100%;'><div style='padding:35px 50px;'><p style='font-weight:bold;'>Dear Customer, Your OTP to Login  is</p><h1 style='letter-spacing: 1.1rem;'> ${OTP} </h1><p style='font-weight:bold;'>OTP is valid for 3 minutes.</p><p style='font-weight:bold;'> Thank you</p></div><div style='background:#1b1f6d;padding:20px;'></div></body>`,
+    html: `<body style='background:#f2f2f2;text-align:center;border-top:5px solid #2D317D;width:100%;'><div style='padding:35px 50px;'><h2 style='color:#2D317D;margin-bottom:2px;'>Digital Hording Manager</h2><p style='color:#888;font-size:12px;margin:0 0 20px;'>by SOTER SYSTEMS</p><p style='font-weight:bold;'>Dear Customer, Your OTP to Login  is</p><h1 style='letter-spacing: 1.1rem;'> ${OTP} </h1><p style='font-weight:bold;'>OTP is valid for 3 minutes.</p><p style='font-weight:bold;'> Thank you</p></div><div style='background:#1b1f6d;padding:20px;color:white;font-size:12px;'>Digital Hording Manager &copy; SOTER SYSTEMS</div></body>`,
   };
   try {
     const data = await mailRequest.sendMail(mailingOptions);
@@ -644,15 +645,10 @@ async function deleteAdFileIfUnused(filename, adId) {
 
     if (count === 0) {
       // 2. Safe to delete file
-      const file = bucket.file(filename);
-      await file.delete().catch((err) => {
-        if (err.code === 404) {
-          console.warn(`File not found in storage: ${filename}`);
-        } else {
-          throw err;
-        }
+      await deleteFileFromS3(filename).catch((err) => {
+        console.error(`Error deleting file from S3: ${filename}`, err);
       });
-      console.log(`Deleted file from storage: ${filename}`);
+      console.log(`Deleted file from S3: ${filename}`);
     } else {
       console.log(
         `File ${filename} is still used by ${count} other ad(s), skipping delete`
@@ -1467,21 +1463,22 @@ router.post(
       );
 
       if (result.rows.length === 0) {
+        console.warn(`[PreviewPricing] No pricing rules found for client_id: ${client_id}, media_type: ${media_type}, devices: ${selected_devices}`);
         return res
-          .status(404)
-          .json({ error: "No pricing rules found for devices" });
+          .status(200)
+          .json({ success: false, message: "No pricing rules found for the selected devices and media type. Please contact support or admin to set up pricing." });
       }
 
       // Build per-device items
       const items = result.rows.map((r) => {
-        const daily = Number(r.price_per_day) * Number(r.location_factor);
+        const daily = Number(r.price_per_day) * Number(r.location_factor || 1.0);
         const total = daily * days;
         return {
           device_id: r.device_id,
           device_name: r.name,
           location: r.location,
           price_per_day: Number(r.price_per_day),
-          location_factor: Number(r.location_factor),
+          location_factor: Number(r.location_factor || 1.0),
           adjusted_per_day: daily,
           days,
           total,
@@ -2016,11 +2013,11 @@ router.get("/ads/recent", checkValidClient, auth, async (req, res) => {
 // delete helper
 async function deleteFileFromStorage(filePath) {
   try {
-    await bucket.file(filePath).delete();
-    console.log("File deleted successfully:", filePath);
+    await deleteFileFromS3(filePath);
+    console.log("File deleted successfully from S3:", filePath);
     return true;
   } catch (err) {
-    console.error("File delete failed for", filePath, err);
+    console.error("S3 file delete failed for", filePath, err);
     // don't rethrow to avoid hiding original error — return false for caller decision
     return false;
   }
@@ -2115,47 +2112,20 @@ router.post(
 
       // if (end <= start) return res.status(400).json({ error: 'end_must_be_after_start' });
 
-      // Prepare firebase filename
+      // Prepare S3 filename
       const timestamp = Date.now();
       const safeOriginal = file.originalname.replace(/\s+/g, "_");
       const filename = `uploads/${clientId}/${user_id}/${timestamp}_${safeOriginal}`;
 
-      // Upload to firebase storage
-      const fileUpload = bucket.file(filename);
-      const uuid = uuidv4();
-      const blobStream = fileUpload.createWriteStream({
-        metadata: {
-          contentType: file.mimetype,
-          metadata: {
-            firebaseStorageDownloadTokens: uuid,
-          },
-        },
-        resumable: false,
-      });
-
-      // Wrap upload in a promise
-      const uploadPromise = new Promise((resolve, reject) => {
-        blobStream.on("error", (err) => {
-          console.error("Firebase upload error:", err);
-          reject(err);
-        });
-
-        blobStream.on("finish", () => {
-          const url = `https://firebasestorage.googleapis.com/v0/b/${bucket.name
-            }/o/${encodeURIComponent(fileUpload.name)}?alt=media&token=${uuid}`;
-          resolve({ url, filename });
-        });
-
-        blobStream.end(file.buffer);
-      });
-
+      // Upload to S3
       let uploaded;
       try {
-        uploaded = await uploadPromise; // { url, filename }
+        uploaded = await uploadFileToS3(file, filename);
       } catch (err) {
-        console.error("Upload failed:", err);
-        return res.status(500).json({ error: "file_upload_failed" });
+        console.error("S3 upload error:", err);
+        throw err;
       }
+
       // duration=  duration==undefined?10:duration
       try {
         await db.query("BEGIN");

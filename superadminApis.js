@@ -27,8 +27,9 @@ async function sendAdminEmail(to, email, password, clientId) {
     subject: "Your Admin Account Has Been Created",
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e0e0e0; border-radius: 8px;">
-        <h2 style="color: #3399cc; margin-bottom: 4px;">Welcome to Hoarding SaaS</h2>
-        <p style="color: #555; margin-top: 0;">Your admin account has been created. Use the credentials and Company ID below to log in.</p>
+        <h2 style="color: #3399cc; margin-bottom: 4px;">Digital Hording Manager</h2>
+        <p style="color: #888; font-size: 12px; margin-top: 0;">by SOTER SYSTEMS</p>
+        <p style="color: #555; margin-top: 4px;">Your admin account has been created. Use the credentials and Company ID below to log in.</p>
 
         <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
           <tr style="background: #f5f5f5;">
@@ -50,7 +51,7 @@ async function sendAdminEmail(to, email, password, clientId) {
           <p style="color: #555; margin: 6px 0 0;">Enter the <strong>Company ID</strong> on the login page when prompted. Please change your password after your first login.</p>
         </div>
 
-        <p style="color: #999; font-size: 12px; margin-top: 32px;">This is an automated message from Hoarding SaaS. Please do not reply to this email.</p>
+        <p style="color: #999; font-size: 12px; margin-top: 32px;">This is an automated message from Digital Hording Manager by SOTER SYSTEMS. Please do not reply to this email.</p>
       </div>
     `,
   };

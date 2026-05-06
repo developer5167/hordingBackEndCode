@@ -419,10 +419,10 @@ router.post("/webhook", express.raw({ type: "*/*" }), async (req, res) => {
   try {
     const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
     const signature = req.headers["x-razorpay-signature"];
-    const expected = crypto.createHmac("sha256", secret).update(req.body).digest("hex");
+    const expected = crypto.createHmac("sha256", secret).update(req.rawBody || req.body).digest("hex");
     if (expected !== signature) return res.status(400).send("Invalid signature");
 
-    const payload = JSON.parse(req.body.toString());
+    const payload = typeof req.body === 'object' && Object.keys(req.body).length > 0 ? req.body : JSON.parse(req.body.toString());
     // handle payment.failed
     if (payload.event === "payment.failed") {
       const payment = payload.payload.payment.entity;
@@ -457,21 +457,28 @@ router.post("/webhook", express.raw({ type: "*/*" }), async (req, res) => {
 // POST /superadmin/payments/create-plan
 router.post("/create-plan", async (req, res) => {
   try {
-    const { name, amount, period, max_devices, description } = req.body;
+    const { name, amount, period, max_devices, description, app_fee } = req.body;
     if (!name || !amount || !period) {
       return res.status(400).json({ error: "name, amount, period required" });
     }
 
+    // Ensure app_fee column exists (safe to run repeatedly)
+    await db.query(`
+      ALTER TABLE subscription_plans
+      ADD COLUMN IF NOT EXISTS app_fee NUMERIC DEFAULT 0
+    `);
+
     const q = `
-      INSERT INTO subscription_plans (name, amount, period, max_devices, description)
-      VALUES ($1,$2,$3,$4,$5) RETURNING *
+      INSERT INTO subscription_plans (name, amount, period, max_devices, description, app_fee)
+      VALUES ($1,$2,$3,$4,$5,$6) RETURNING *
       `;
     const { rows } = await db.query(q, [
       name,
       amount,
       period,
-      max_devices,
-      description,
+      max_devices || null,
+      description || null,
+      Number(app_fee || 0),
     ]);
 
     res.json({ success: true, plan: rows[0] });
@@ -887,7 +894,7 @@ router.post("/compute-proration", checkValidClient, auth, async (req, res) => {
 
     // Fetch new plan
     const planRes = await db.query(
-      `SELECT id, name, amount, period, max_devices FROM subscription_plans WHERE id=$1`,
+      `SELECT id, name, amount, period, max_devices, COALESCE(app_fee, 0) AS app_fee FROM subscription_plans WHERE id=$1`,
       [plan_id]
     );
     if (planRes.rows.length === 0)
@@ -1006,9 +1013,10 @@ router.post("/compute-proration", checkValidClient, auth, async (req, res) => {
           id: newPlan.id,
           name: newPlan.name,
           price: newPlanPrice,
+          app_fee: Number(newPlan.app_fee || 0),
           period: newPlan.period,
           max_devices: newPlan.max_devices,
-          start_date: now.toISOString(), // send ISO strings for frontend
+          start_date: now.toISOString(),
           end_date: endDate.toISOString(),
         },
         proration: {
