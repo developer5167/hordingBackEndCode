@@ -24,16 +24,19 @@ const superadminAnalyticsApis = require("./superadminAnalyticsApis");
 const superadminPayments = require("./superadminPayments");
 const apisForTv = require("./apisForTvApp");
 const couponApis = require("./couponApis");
+const marketingApis = require("./marketingApis");
 const { log } = require("console");
 const { jsonwebtoken } = require("./deps")
 
 app.use("/superadmin", superAdminApis);
 app.use("/superadmin", superadminAnalyticsApis);
 app.use("/superadmin/payments", superadminPayments);
+app.use("/superadmin", marketingApis);
 app.use("/advertiser", rootRouterAdvertiser); // e.g. GET /
 app.use("/admin", adminApis); // e.g. GET /
 app.use("/api", apiRoutes); // e.g. GET /api/users
 app.use("/tvApp", apisForTv); // e.g. GET /api/users
+app.use("/website", marketingApis);
 app.use("/advertiser/payments", order);
 app.use("/superadmin/coupons", couponApis);
 app.use("/admin/coupons", couponApis);

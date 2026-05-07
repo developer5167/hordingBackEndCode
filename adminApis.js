@@ -1250,6 +1250,9 @@ router.patch(
         });
       }
 
+      // Notify the device that its status/ads might have changed
+      await db.query(`NOTIFY device_status_channel, '${JSON.stringify({ device_id: deviceId, status: 'active' })}'`);
+
       return res.status(200).json({
         success: true,
         message: "Ad approved successfully",
@@ -1318,6 +1321,9 @@ router.patch(
         });
       }
 
+      // Notify the device
+      await db.query(`NOTIFY device_status_channel, '${JSON.stringify({ device_id: deviceId, status: 'active' })}'`);
+
       return res.status(200).json({
         success: true,
         message: "Ad rejected successfully",
@@ -1371,6 +1377,9 @@ router.patch(
         });
       }
 
+      // Notify the device
+      await db.query(`NOTIFY device_status_channel, '${JSON.stringify({ device_id: deviceId, status: 'active' })}'`);
+
       return res.status(200).json({
         success: true,
         message: "Ad paused successfully",
@@ -1421,6 +1430,10 @@ router.patch(
           message: "Ad not found or not authorized for this device",
         });
       }
+
+      // Notify the device
+      await db.query(`NOTIFY device_status_channel, '${JSON.stringify({ device_id: deviceId, status: 'active' })}'`);
+
       return res.status(200).json({
         success: true,
         message: "Ad resumed successfully",
@@ -2165,6 +2178,15 @@ router.post(
       const updDevicesRes = await db.query(updDevicesQ, [id]);
 
       await db.query("COMMIT");
+
+      // Notify all affected devices
+      if (updDevicesRes.rows && updDevicesRes.rows.length > 0) {
+        for (const dev of updDevicesRes.rows) {
+          if (dev.device_id) {
+            await db.query(`NOTIFY device_status_channel, '${JSON.stringify({ device_id: dev.device_id, status: 'active' })}'`);
+          }
+        }
+      }
 
       return res.status(200).json({
         success: true,

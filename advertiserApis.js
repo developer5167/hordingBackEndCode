@@ -862,8 +862,8 @@ router.post('/ads/:adId/devices/:deviceId/pause', checkValidClient, auth, async 
 
     await db.query('COMMIT');
 
-    // notify device (pseudo)
-    // notifyDevice(deviceId, { action: 'pause', ad_id: adId });
+    // Notify the device
+    await db.query(`NOTIFY device_status_channel, '${JSON.stringify({ device_id: deviceId, status: 'active' })}'`);
 
     return res.json({ success: true, message: 'paused', device: updRes.rows[0] });
   } catch (err) {
@@ -923,7 +923,8 @@ router.post('/ads/:adId/devices/:deviceId/resume', checkValidClient, auth, async
 
     await db.query('COMMIT');
 
-    // notify device: notifyDevice(deviceId,{action:'resume', ad_id:adId});
+    // Notify the device
+    await db.query(`NOTIFY device_status_channel, '${JSON.stringify({ device_id: deviceId, status: 'active' })}'`);
 
     return res.json({ success: true, message: 'resumed', device: updRes.rows[0] });
   } catch (err) {
@@ -2275,10 +2276,11 @@ router.get("/ads/:id/statistics", checkValidClient, auth, async (req, res) => {
 
   try {
     const result = await db.query(
-      `SELECT device_id, location, play_time, duration_played
-       FROM ad_statistics
-       WHERE ad_id = $1
-       ORDER BY play_time DESC`,
+      `SELECT ads.device_id, d.name as device_name, ads.location, ads.play_time, ads.duration_played
+       FROM ad_statistics ads
+       LEFT JOIN devices d ON d.id = ads.device_id
+       WHERE ads.ad_id = $1
+       ORDER BY ads.play_time DESC`,
       [id]
     );
 
