@@ -5,7 +5,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon app.js",
-    "start": "node app.js"
+    "start": "node app.js",
+    "db:backup": "node scripts/backupDatabase.js",
+    "db:reset": "node scripts/resetDevDatabase.js"
   },
   "author": "",
   "license": "ISC",

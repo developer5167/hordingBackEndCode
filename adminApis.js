@@ -22,6 +22,7 @@ const router = express.Router();
 
 const checkValidClient = require("./middleware/checkValidClient");
 const deviceAuth = require("./middleware/deviceAuth");
+const { computeSubscriptionTotalsForPlanId } = require("./services/subscriptionGstService");
 
 // ----------------------
 // Subscription Helper
@@ -2328,69 +2329,25 @@ router.get("/my-status", checkValidClient, auth, async (req, res) => {
 router.post("/use-wallet", checkValidClient, auth, async (req, res) => {
   try {
     const client_id = req.client_id;
-    const { plan_id } = req.body;
+    const { plan_id, coupon_discount_pct } = req.body;
     if (!plan_id)
       return res
         .status(400)
         .json({ success: false, message: "plan_id required" });
 
-    // fetch plan
-    const planRes = await db.query(
-      `SELECT * FROM subscription_plans WHERE id=$1`,
-      [plan_id]
-    );
-    if (planRes.rows.length === 0)
+    await db.query(`ALTER TABLE payments ADD COLUMN IF NOT EXISTS notes JSONB`);
+
+    const subtot = await computeSubscriptionTotalsForPlanId(db, client_id, plan_id, {
+      coupon_discount_pct,
+    });
+    if (subtot.error === "plan_not_found") {
       return res
         .status(404)
         .json({ success: false, message: "Plan not found" });
-    const plan = planRes.rows[0];
-    const newPlanPrice = Number(plan.amount || 0);
-
-    // fetch active subscription to compute proration
-    const activeSubRes = await db.query(
-      `SELECT cs.*, sp.amount AS old_plan_amount, sp.period AS old_plan_period, sp.name AS old_plan_name
-       FROM client_subscriptions cs
-       LEFT JOIN subscription_plans sp ON sp.id = cs.plan_id
-       WHERE cs.client_id=$1 AND cs.status='active'
-       ORDER BY cs.current_period_end DESC
-       LIMIT 1`,
-      [client_id]
-    );
-    const existingSub = activeSubRes.rows[0] || null;
-
-    // compute credit
-    const now = new Date();
-    const MS_PER_DAY = 1000 * 60 * 60 * 24;
-    let credit = 0;
-    if (
-      existingSub &&
-      existingSub.current_period_end &&
-      new Date(existingSub.current_period_end) > now
-    ) {
-      const endDate = new Date(existingSub.current_period_end);
-      const startDate = existingSub.current_period_start
-        ? new Date(existingSub.current_period_start)
-        : null;
-      let totalPeriodDays = (existingSub.old_plan_period || "")
-        .toLowerCase()
-        .startsWith("month")
-        ? 28
-        : Math.ceil((endDate.getTime() - startDate.getTime()) / MS_PER_DAY) ||
-        1;
-      const remainingMs = endDate.getTime() - now.getTime();
-      const days_remaining =
-        remainingMs > 0 ? Math.ceil(remainingMs / MS_PER_DAY) : 0;
-      const oldPlanAmount = Number(existingSub.old_plan_amount || 0);
-      const dailyRate = oldPlanAmount / totalPeriodDays;
-      credit = Number(
-        Math.min(dailyRate * days_remaining, oldPlanAmount).toFixed(2)
-      );
     }
+    const plan = subtot.plan;
+    const payable = subtot.total_due;
 
-    let payable = Number((newPlanPrice - credit).toFixed(2));
-    if (payable < 0) payable = 0;
-
-    // fetch wallet balance
     const wallet = await getWalletBalance(client_id);
     const available = wallet.available || wallet.balance || 0;
 
@@ -2403,10 +2360,8 @@ router.post("/use-wallet", checkValidClient, auth, async (req, res) => {
       });
     }
 
-    // Debit wallet and create subscription in same atomic flow
     try {
       await db.query("BEGIN");
-      // debit wallet
       const up = await upsertWallet(client_id, -Number(payable), {
         reference_type: "use_wallet",
         reference_id: null,
@@ -2421,7 +2376,6 @@ router.post("/use-wallet", checkValidClient, auth, async (req, res) => {
           .json({ success: false, message: "Insufficient funds" });
       }
 
-      // create subscription row
       const startDate = new Date();
       const endDate = new Date();
       const period = (plan.period || "").toLowerCase();
@@ -2440,10 +2394,21 @@ router.post("/use-wallet", checkValidClient, auth, async (req, res) => {
         [client_id, plan_id, startDate, endDate]
       );
 
-      // record a payments row marking wallet used
-      const payIns = await db.query(
-        `INSERT INTO payments (client_id, plan_id, amount, total_amount, status, transaction_id, receipt, razorpay_order_id, wallet_applied, created_at)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,NOW()) RETURNING *`,
+      const subscriptionNotes = {
+        subscription_checkout: {
+          taxable_base: subtot.taxable_base,
+          server_taxable_base: subtot.server_taxable_base,
+          breakdown: subtot.breakdown,
+          total_due: subtot.total_due,
+          tax_note: subtot.tax_note,
+          credit: subtot.credit,
+          new_plan_price: subtot.newPlanPrice,
+        },
+      };
+
+      await db.query(
+        `INSERT INTO payments (client_id, plan_id, amount, total_amount, status, transaction_id, receipt, razorpay_order_id, wallet_applied, notes, created_at)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW()) RETURNING *`,
         [
           client_id,
           plan_id,
@@ -2454,6 +2419,7 @@ router.post("/use-wallet", checkValidClient, auth, async (req, res) => {
           `rcpt_wallet_${Date.now()}`,
           `wallet_${Date.now()}`,
           Number(payable),
+          subscriptionNotes,
         ]
       );
 
@@ -2462,6 +2428,7 @@ router.post("/use-wallet", checkValidClient, auth, async (req, res) => {
         success: true,
         subscription: ins.rows[0],
         wallet: { balance: up.balance_after },
+        subscription_tax: subscriptionNotes.subscription_checkout,
       });
     } catch (err) {
       await db.query("ROLLBACK");

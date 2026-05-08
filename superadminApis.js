@@ -3,9 +3,44 @@ const { express, bcrypt, jwt, nodemailer, db, uuidv4 } = require("./deps");
 
 const router = express.Router();
 
+async function ensureClientComplianceColumns() {
+  await db.query(`
+    ALTER TABLE clients
+      ADD COLUMN IF NOT EXISTS legal_business_name TEXT,
+      ADD COLUMN IF NOT EXISTS gstin TEXT,
+      ADD COLUMN IF NOT EXISTS pan TEXT,
+      ADD COLUMN IF NOT EXISTS registered_address TEXT,
+      ADD COLUMN IF NOT EXISTS state_code TEXT,
+      ADD COLUMN IF NOT EXISTS place_of_supply_state_code TEXT,
+      ADD COLUMN IF NOT EXISTS gst_registered BOOLEAN DEFAULT FALSE,
+      ADD COLUMN IF NOT EXISTS ad_billing_gst_rate NUMERIC NOT NULL DEFAULT 18
+  `);
+}
+
 // 📌 Utility: generate random password
 function generatePassword() {
   return Math.random().toString(36).slice(-8);
+}
+
+const PERSONAL_EMAIL_DOMAINS = new Set([
+  "gmail.com",
+  "yahoo.com",
+  "outlook.com",
+  "hotmail.com",
+  "live.com",
+  "icloud.com",
+  "protonmail.com",
+  "aol.com",
+]);
+
+function isBusinessEmail(email) {
+  if (!email || typeof email !== "string") return false;
+  const normalized = email.trim().toLowerCase();
+  const parts = normalized.split("@");
+  if (parts.length !== 2) return false;
+  const domain = parts[1];
+  if (!domain || !domain.includes(".")) return false;
+  return !PERSONAL_EMAIL_DOMAINS.has(domain);
 }
 
 async function sendAdminEmail(to, email, password, clientId) {
@@ -68,21 +103,54 @@ async function sendAdminEmail(to, email, password, clientId) {
  * POST /superadmin/clients
  */
 router.post("/clients", async (req, res) => {
-  const { name, domain, email } = req.body;
+  const {
+    name,
+    domain,
+    email,
+    legal_business_name,
+    gstin,
+    pan,
+    registered_address,
+    state_code,
+    place_of_supply_state_code,
+    gst_registered,
+  } = req.body;
 
   if (!name || !domain || !email) {
     return res
       .status(400)
       .json({ error: "name, domain, adminEmail are required" });
   }
+  if (!isBusinessEmail(email)) {
+    return res.status(400).json({
+      error: "business_email_required",
+      message: "Use a business email address (personal email domains are not allowed).",
+    });
+  }
 
   try {
+    await ensureClientComplianceColumns();
     // Insert client
     const clientResult = await db.query(
-      `INSERT INTO clients (name, client_domains, subscription_status, created_at,email)
-       VALUES ($1, $2, 'active', NOW(),$3)
+      `INSERT INTO clients (
+        name, client_domains, subscription_status, created_at, email,
+        legal_business_name, gstin, pan, registered_address, state_code,
+        place_of_supply_state_code, gst_registered
+      )
+       VALUES ($1, $2, 'active', NOW(), $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING id`,
-      [name, domain, email]
+      [
+        name,
+        domain,
+        email,
+        legal_business_name || name,
+        gstin ? String(gstin).toUpperCase() : null,
+        pan ? String(pan).toUpperCase() : null,
+        registered_address || null,
+        state_code || null,
+        place_of_supply_state_code || null,
+        typeof gst_registered === "boolean" ? gst_registered : false,
+      ]
     );
 
     const clientId = clientResult.rows[0].id;
@@ -116,8 +184,11 @@ router.post("/clients", async (req, res) => {
  */
 router.get("/clients", async (req, res) => {
   try {
+    await ensureClientComplianceColumns();
     const result = await db.query(
-      `SELECT id, name, client_domains, email,subscription_status, created_at
+      `SELECT id, name, client_domains, email,subscription_status, created_at,
+              legal_business_name, gstin, pan, registered_address, state_code,
+              place_of_supply_state_code, gst_registered
        FROM clients
        ORDER BY created_at DESC`
     );
@@ -171,16 +242,56 @@ router.get("/clients-recent", async (req, res) => {
 // insert client id in ad_devices while inserting ad
 router.put("/clients/:id", async (req, res) => {
   const { id } = req.params;
-  const { name, domain, subscription_status } = req.body;
+  const {
+    name,
+    domain,
+    subscription_status,
+    legal_business_name,
+    gstin,
+    pan,
+    registered_address,
+    state_code,
+    place_of_supply_state_code,
+    gst_registered,
+    email,
+  } = req.body;
+  if (email && !isBusinessEmail(email)) {
+    return res.status(400).json({
+      error: "business_email_required",
+      message: "Use a business email address (personal email domains are not allowed).",
+    });
+  }
 
   try {
+    await ensureClientComplianceColumns();
     const result = await db.query(
       `UPDATE clients
        SET name = COALESCE($1, name),
            client_domains = COALESCE($2, client_domains),
-           subscription_status = COALESCE($3, subscription_status)
-       WHERE id = $4 RETURNING *`,
-      [name, domain, subscription_status, id]
+           subscription_status = COALESCE($3, subscription_status),
+           legal_business_name = COALESCE($4, legal_business_name),
+           gstin = COALESCE($5, gstin),
+           pan = COALESCE($6, pan),
+           registered_address = COALESCE($7, registered_address),
+           state_code = COALESCE($8, state_code),
+           place_of_supply_state_code = COALESCE($9, place_of_supply_state_code),
+           gst_registered = COALESCE($10, gst_registered),
+           email = COALESCE($11, email)
+       WHERE id = $12 RETURNING *`,
+      [
+        name,
+        domain,
+        subscription_status,
+        legal_business_name || null,
+        gstin ? String(gstin).toUpperCase() : null,
+        pan ? String(pan).toUpperCase() : null,
+        registered_address || null,
+        state_code || null,
+        place_of_supply_state_code || null,
+        typeof gst_registered === "boolean" ? gst_registered : null,
+        email || null,
+        id,
+      ]
     );
 
     res.json(result.rows[0]);

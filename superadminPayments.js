@@ -2,6 +2,8 @@
 const { express, auth, db } = require("./deps");
 const crypto = require("crypto");
 
+const { computeSubscriptionTotalsForPlanId } = require("./services/subscriptionGstService");
+
 const router = express.Router();
 const razorpay = require("./razorpay");
 const checkValidClient = require("./middleware/checkValidClient");
@@ -175,38 +177,68 @@ async function upsertWallet(client_id, delta_amount, options = {}) {
    ---------------------------*/
 router.post("/create-order", checkValidClient, auth, async (req, res) => {
   try {
-    const { plan_id, amount_override, wallet_applied } = req.body;
+    const { plan_id, amount_override, wallet_applied, coupon_discount_pct } = req.body;
     const client_id = req.client_id;
     if (!plan_id) return res.status(400).json({ success: false, message: "plan_id required" });
 
-    const planRes = await db.query(`SELECT * FROM subscription_plans WHERE id=$1`, [plan_id]);
-    if (planRes.rows.length === 0) return res.status(404).json({ success: false, message: "Plan not found" });
-    const plan = planRes.rows[0];
+    await db.query(`ALTER TABLE payments ADD COLUMN IF NOT EXISTS notes JSONB`);
 
-    const amountInRupees = (amount_override !== undefined && amount_override !== null) ? Number(amount_override) : Number(plan.amount);
-    if (isNaN(amountInRupees) || amountInRupees < 0) return res.status(400).json({ success: false, message: "Invalid amount_override" });
+    const subtot = await computeSubscriptionTotalsForPlanId(db, client_id, plan_id, {
+      amount_override,
+      coupon_discount_pct,
+    });
+    if (subtot.error === "plan_not_found") {
+      return res.status(404).json({ success: false, message: "Plan not found" });
+    }
+    if (subtot.error === "amount_override_exceeds_taxable") {
+      return res.status(400).json({
+        success: false,
+        message: "amount_override_exceeds_taxable",
+        server_taxable: subtot.serverTaxable,
+      });
+    }
 
-    // if wallet_applied provided, attempt to debit wallet immediately (atomic)
+    const plan = subtot.plan;
+    const totalDue = subtot.total_due;
+
     let walletApplied = 0;
     if (wallet_applied && Number(wallet_applied) > 0) {
       const up = await upsertWallet(client_id, -Number(wallet_applied), {
         reference_type: "order_reserve",
         description: `Reserved wallet for plan ${plan.name}`,
-        idempotency_key: `order_reserve_${client_id}_${Date.now()}`
+        idempotency_key: `order_reserve_${client_id}_${Date.now()}`,
       });
       if (up.error) return res.status(400).json({ success: false, message: "Insufficient wallet balance" });
       walletApplied = Number(wallet_applied);
     }
 
-    const remainder = Number((amountInRupees - walletApplied).toFixed(2));
+    if (walletApplied > totalDue + 0.05) {
+      return res.status(400).json({
+        success: false,
+        message: "wallet_applied_exceeds_total_due",
+        total_due: totalDue,
+      });
+    }
+
+    const remainder = Number((totalDue - walletApplied).toFixed(2));
     const paise = toPaise(remainder);
 
-    // create payments row (store amounts in rupees and paise)
+    const subscriptionNotes = {
+      subscription_checkout: {
+        taxable_base: subtot.taxable_base,
+        server_taxable_base: subtot.server_taxable_base,
+        breakdown: subtot.breakdown,
+        total_due: totalDue,
+        tax_note: subtot.tax_note,
+        credit: subtot.credit,
+        new_plan_price: subtot.newPlanPrice,
+      },
+    };
+
     const transactionId = `TXN-${uuidV4()}`;
-    const receipt = `rcpt_${crypto.randomBytes(8).toString('hex')}`;
-    const insertPaymentQ = `INSERT INTO payments (client_id, plan_id, amount, total_amount, status, transaction_id, receipt, razorpay_order_id, wallet_applied, created_at)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,NOW()) RETURNING *`;
-    // store amount in paise for amount fields to preserve old behavior; also store wallet_applied (rupees)
+    const receipt = `rcpt_${crypto.randomBytes(8).toString("hex")}`;
+    const insertPaymentQ = `INSERT INTO payments (client_id, plan_id, amount, total_amount, status, transaction_id, receipt, razorpay_order_id, wallet_applied, notes, created_at)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW()) RETURNING *`;
     const payRes = await db.query(insertPaymentQ, [
       client_id,
       plan_id,
@@ -216,15 +248,13 @@ router.post("/create-order", checkValidClient, auth, async (req, res) => {
       transactionId,
       receipt,
       null,
-      walletApplied
+      walletApplied,
+      subscriptionNotes,
     ]);
     const paymentRow = payRes.rows[0];
 
     if (remainder === 0) {
-      // finalize subscription immediately (wallet covered full amount)
-      // create subscription (same as verify-payment flow)
       const now = new Date();
-      // compute end date using 28-day month logic etc.
       const startDate = now;
       const endDate = new Date(now);
       const period = (plan.period || "").toLowerCase();
@@ -234,14 +264,24 @@ router.post("/create-order", checkValidClient, auth, async (req, res) => {
       else if (period.startsWith("year")) endDate.setFullYear(endDate.getFullYear() + 1);
       else endDate.setDate(endDate.getDate() + 28);
 
-      const insSub = await db.query(`INSERT INTO client_subscriptions (client_id, plan_id, status, current_period_start, current_period_end, created_at, updated_at) VALUES ($1,$2,'active',$3,$4,NOW(),NOW()) RETURNING *`, [client_id, plan_id, startDate, endDate]);
-      // mark payment as PAID and attach subscription_id
-      await db.query(`UPDATE payments SET status='PAID', subscription_id=$2, razorpay_order_id=$3, updated_at=NOW() WHERE id=$1`, [paymentRow.id, insSub.rows[0].id, `wallet_${paymentRow.id}`]);
+      const insSub = await db.query(
+        `INSERT INTO client_subscriptions (client_id, plan_id, status, current_period_start, current_period_end, created_at, updated_at) VALUES ($1,$2,'active',$3,$4,NOW(),NOW()) RETURNING *`,
+        [client_id, plan_id, startDate, endDate]
+      );
+      await db.query(
+        `UPDATE payments SET status='PAID', subscription_id=$2, razorpay_order_id=$3, updated_at=NOW() WHERE id=$1`,
+        [paymentRow.id, insSub.rows[0].id, `wallet_${paymentRow.id}`]
+      );
 
-      return res.json({ success: true, payment: paymentRow, order: null, subscription: insSub.rows[0] });
+      return res.json({
+        success: true,
+        payment: paymentRow,
+        order: null,
+        subscription: insSub.rows[0],
+        subscription_tax: subscriptionNotes.subscription_checkout,
+      });
     }
 
-    // create Razorpay order for remainder (paise)
     const options = {
       amount: paise,
       currency: "INR",
@@ -251,10 +291,14 @@ router.post("/create-order", checkValidClient, auth, async (req, res) => {
     };
     const order = await razorpay.orders.create(options);
 
-    // update payments row with order id and remain pending
     await db.query(`UPDATE payments SET razorpay_order_id=$1, updated_at=NOW() WHERE id=$2`, [order.id, paymentRow.id]);
 
-    return res.json({ success: true, order, payment: paymentRow });
+    return res.json({
+      success: true,
+      order,
+      payment: paymentRow,
+      subscription_tax: subscriptionNotes.subscription_checkout,
+    });
   } catch (err) {
     console.error("create-order error:", err);
     return res.status(500).json({ success: false, message: "failed_create_order", detail: err.message });
@@ -324,36 +368,55 @@ router.post("/verify-payment", checkValidClient, auth, async (req, res) => {
     const existingSub = activeSubRes.rows[0] || null;
 
     // compute proration credit as needed (same logic as earlier)
-    const MS_PER_DAY = 1000*60*60*24;
+    const MS_PER_DAY = 1000 * 60 * 60 * 24;
     const now = new Date();
-    let credit = 0; let days_remaining = 0; let old_plan_amount = 0;
+    let credit = 0;
+    let days_remaining = 0;
+    let old_plan_amount = 0;
     if (existingSub && existingSub.current_period_end && new Date(existingSub.current_period_end) > now) {
       const endDate = new Date(existingSub.current_period_end);
       const startDate = existingSub.current_period_start ? new Date(existingSub.current_period_start) : null;
-      let totalPeriodDays = (existingSub.old_plan_period||'').toLowerCase().startsWith('month') ? 28 : Math.ceil((endDate.getTime()-startDate.getTime())/MS_PER_DAY) || 1;
+      let totalPeriodDays = (existingSub.old_plan_period || "").toLowerCase().startsWith("month")
+        ? 28
+        : Math.ceil((endDate.getTime() - startDate.getTime()) / MS_PER_DAY) || 1;
       const remainingMs = endDate.getTime() - now.getTime();
-      days_remaining = remainingMs>0?Math.ceil(remainingMs/MS_PER_DAY):0;
+      days_remaining = remainingMs > 0 ? Math.ceil(remainingMs / MS_PER_DAY) : 0;
       old_plan_amount = Number(existingSub.old_plan_amount || 0);
-      const dailyRate = old_plan_amount/totalPeriodDays;
+      const dailyRate = old_plan_amount / totalPeriodDays;
       const rawCredit = dailyRate * days_remaining;
       credit = Number(Math.min(rawCredit, old_plan_amount).toFixed(2));
     }
 
-    // compute payable (server authoritative)
     const newPlanPrice = Number(plan.amount || 0);
-    let payable = Number((newPlanPrice - credit).toFixed(2));
-    if (payable < 0) payable = 0;
+    let payableBase = Number((newPlanPrice - credit).toFixed(2));
+    if (payableBase < 0) payableBase = 0;
 
-    // paid amount from Razorpay in rupees
-    const paidAmount = payment && payment.amount ? Number(payment.amount)/100 : Number(paymentRow?.amount || 0);
+    const sc = paymentRow?.notes && paymentRow.notes.subscription_checkout;
+    let totalDue = payableBase;
+    let subscription_tax = null;
+    if (sc && sc.breakdown && typeof sc.total_due === "number") {
+      totalDue = Number(sc.total_due);
+      subscription_tax = {
+        taxable_base: sc.taxable_base,
+        breakdown: sc.breakdown,
+        tax_note: sc.tax_note,
+        credit: sc.credit,
+      };
+    }
 
-    // wallet_applied recorded on payments table (in rupees)
+    const paidAmountRupees =
+      payment && payment.amount ? Number(payment.amount) / 100 : Number(paymentRow?.amount || 0) / 100;
+
     const walletApplied = paymentRow ? Number(paymentRow.wallet_applied || 0) : 0;
 
-    // If walletApplied was applied already when order created, do not debit again.
-    // Handle leftover/overpay: leftoverFromCredit and leftoverFromPaid -> totalLeftover credited to wallet
-    const leftoverFromCredit = credit > newPlanPrice ? Number((credit - newPlanPrice).toFixed(2)) : 0;
-    const leftoverFromPaid = paidAmount > Math.max(0, payable - walletApplied) ? Number((paidAmount - Math.max(0, payable - walletApplied)).toFixed(2)) : 0;
+    const gatewayExpected = Number(Math.max(0, totalDue - walletApplied).toFixed(2));
+
+    const leftoverFromCredit =
+      credit > newPlanPrice ? Number((credit - newPlanPrice).toFixed(2)) : 0;
+    const leftoverFromPaid =
+      paidAmountRupees > gatewayExpected
+        ? Number((paidAmountRupees - gatewayExpected).toFixed(2))
+        : 0;
     const totalLeftover = Number((leftoverFromCredit + leftoverFromPaid).toFixed(2));
 
     let walletBalanceAfter = null;
@@ -401,7 +464,8 @@ router.post("/verify-payment", checkValidClient, auth, async (req, res) => {
       success: true,
       message: "Payment verified successfully",
       payment: paymentRow,
-      proration: { credit, days_remaining, payable },
+      proration: { credit, days_remaining, payable: payableBase, total_due: totalDue },
+      subscription_tax,
       wallet: walletBalanceAfter !== null ? { balance: walletBalanceAfter } : null,
       subscription: subscriptionResult
     });
@@ -885,103 +949,28 @@ router.get("/summary", async (req, res) => {
 router.post("/compute-proration", checkValidClient, auth, async (req, res) => {
   try {
     const client_id = req.client_id;
-    const { plan_id } = req.body;
+    const { plan_id, coupon_discount_pct } = req.body;
     if (!plan_id) {
       return res
         .status(400)
         .json({ success: false, message: "plan_id required" });
     }
 
-    // Fetch new plan
-    const planRes = await db.query(
-      `SELECT id, name, amount, period, max_devices, COALESCE(app_fee, 0) AS app_fee FROM subscription_plans WHERE id=$1`,
-      [plan_id]
-    );
-    if (planRes.rows.length === 0)
+    const subtot = await computeSubscriptionTotalsForPlanId(db, client_id, plan_id, {
+      coupon_discount_pct,
+    });
+
+    if (subtot.error === "plan_not_found") {
       return res
         .status(404)
         .json({ success: false, message: "Plan not found" });
+    }
 
-    const newPlan = planRes.rows[0];
-    const newPlanPrice = Number(newPlan.amount);
-
-    // Fetch current active subscription (with plan amounts)
-    const activeSubRes = await db.query(
-      `SELECT cs.*, sp.amount AS old_plan_amount, sp.period AS old_plan_period, sp.name AS old_plan_name
-       FROM client_subscriptions cs
-       JOIN subscription_plans sp ON sp.id = cs.plan_id
-       WHERE cs.client_id=$1 AND cs.status='active'
-       ORDER BY cs.current_period_end DESC
-       LIMIT 1`,
-      [client_id]
-    );
-    const existingSub = activeSubRes.rows[0] || null;
+    const newPlan = subtot.plan;
+    const existingSub = subtot.existingSub;
+    const breakdown = subtot.breakdown;
 
     const now = new Date();
-    const MS_PER_DAY = 1000 * 60 * 60 * 24;
-
-    let credit = 0;
-    let days_remaining = 0;
-    let old_plan_name = null;
-    let old_plan_amount = 0;
-
-    if (
-      existingSub &&
-      existingSub.current_period_end &&
-      new Date(existingSub.current_period_end) > now
-    ) {
-      const endDate = new Date(existingSub.current_period_end);
-      const startDate = existingSub.current_period_start
-        ? new Date(existingSub.current_period_start)
-        : null;
-
-      // total days in the original paid period (use actual dates if available)
-      let totalPeriodDays;
-      if (
-        (existingSub.old_plan_period || "").toLowerCase().startsWith("month")
-      ) {
-        totalPeriodDays = 28;
-      } else {
-        totalPeriodDays =
-          Math.ceil((endDate.getTime() - startDate.getTime()) / MS_PER_DAY) ||
-          1;
-      }
-
-      // remaining days from now until endDate
-      const remainingMs = endDate.getTime() - now.getTime();
-      days_remaining =
-        remainingMs > 0 ? Math.ceil(remainingMs / MS_PER_DAY) : 0;
-
-      old_plan_amount = Number(existingSub.old_plan_amount || 0);
-      old_plan_name = existingSub.old_plan_name;
-
-      // compute precise daily rate (do NOT round here)
-      const dailyRate = old_plan_amount / totalPeriodDays;
-
-      // compute credit and cap it to the original paid amount (can't exceed what they paid)
-      const rawCredit = dailyRate * days_remaining;
-      credit = Number(Math.min(rawCredit, old_plan_amount).toFixed(2)); // round to 2 decimals for display
-    }
-
-    // compute payable (non-negative)
-    let payable = Number((newPlanPrice - credit).toFixed(2));
-    if (payable < 0) payable = 0;
-
-    // If credit > newPlanPrice, move remaining credit to wallet and set payable 0
-    if (credit > newPlanPrice) {
-      const remaining = Number((credit - newPlanPrice).toFixed(2));
-      // Use robust upsert to avoid ON CONFLICT issues and to track txn
-      const opts = {
-        reference_type: "proration_leftover",
-        reference_id: existingSub ? existingSub.id : null,
-        description: `Proration leftover from switching plans`,
-        idempotency_key: `pr_${client_id}_${existingSub ? existingSub.id : 'new'}_${Date.now()}`
-      };
-      // await upsertWallet(client_id, remaining, opts);
-      payable = 0;
-    }
-
-    // Compute new plan end date (if switching today)
     const endDate = new Date(now);
     const period = (newPlan.period || "").toLowerCase();
     if (period === "weekly" || period === "week")
@@ -992,7 +981,14 @@ router.post("/compute-proration", checkValidClient, auth, async (req, res) => {
       endDate.setMonth(endDate.getMonth() + 3);
     else if (period === "yearly" || period === "year" || period === "annual")
       endDate.setFullYear(endDate.getFullYear() + 1);
-    else endDate.setDate(endDate.getDate() + 30); // default fallback
+    else endDate.setDate(endDate.getDate() + 30);
+
+    let credit = subtot.credit;
+
+    let payableDisplay = subtot.total_due;
+    if (credit > subtot.newPlanPrice) {
+      payableDisplay = 0;
+    }
 
     return res.json({
       success: true,
@@ -1002,17 +998,17 @@ router.post("/compute-proration", checkValidClient, auth, async (req, res) => {
           ? {
               id: existingSub.id,
               plan_id: existingSub.plan_id,
-              plan_name: old_plan_name,
-              plan_amount: old_plan_amount,
+              plan_name: subtot.old_plan_name,
+              plan_amount: subtot.old_plan_amount,
               current_period_start: existingSub.current_period_start,
               current_period_end: existingSub.current_period_end,
-              days_remaining,
+              days_remaining: subtot.days_remaining,
             }
           : null,
         new_plan: {
           id: newPlan.id,
           name: newPlan.name,
-          price: newPlanPrice,
+          price: subtot.newPlanPrice,
           app_fee: Number(newPlan.app_fee || 0),
           period: newPlan.period,
           max_devices: newPlan.max_devices,
@@ -1021,7 +1017,14 @@ router.post("/compute-proration", checkValidClient, auth, async (req, res) => {
         },
         proration: {
           credit,
-          payable,
+          payable: subtot.taxable_base,
+          taxable_base: subtot.taxable_base,
+          server_taxable_before_discount: subtot.server_taxable_base,
+          total_due: payableDisplay,
+          gst: {
+            ...breakdown,
+            tax_note: subtot.tax_note,
+          },
         },
       },
     });

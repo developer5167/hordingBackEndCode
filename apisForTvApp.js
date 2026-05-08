@@ -32,27 +32,53 @@ router.post("/ad-statistics", deviceAuth, async (req, res) => {
 });
 
 router.get("/ads", deviceAuth, async (req, res) => {
-  const { device_id } = req.query;
-  const ads = await db.query(
-    `SELECT 
-    ads.id,
-    ads.title,
-    ads.media_url,
-    ads.media_type,
-    ad_devices.start_date,
-    ad_devices.end_date
-FROM ad_devices
-JOIN ads ON ads.id = ad_devices.ad_id
-WHERE ad_devices.device_id = $1
-  AND ad_devices.status = 'active'
-  AND ad_devices.start_date <= NOW()
-  AND ad_devices.end_date >= NOW();
-`,
-    [device_id]
-  );
-  console.log(ads.rows);
+  try {
+    const deviceIdFromQuery = req.query.device_id || req.query.id;
+    const deviceIdFromToken = req.device_id;
+    const deviceId = deviceIdFromQuery || deviceIdFromToken;
 
-  res.json({ success: true, ads: ads.rows });
+    if (!deviceId) {
+      return res.status(400).json({
+        success: false,
+        error: "device_id_required",
+      });
+    }
+
+    // Prevent one device token from reading another device's ads.
+    if (deviceIdFromQuery && deviceIdFromToken && String(deviceIdFromQuery) !== String(deviceIdFromToken)) {
+      return res.status(403).json({
+        success: false,
+        error: "forbidden_device_mismatch",
+      });
+    }
+
+    const ads = await db.query(
+      `SELECT
+        ads.id,
+        ads.title,
+        ads.media_url,
+        ads.media_type,
+        ad_devices.start_date,
+        ad_devices.end_date
+      FROM ad_devices
+      JOIN ads ON ads.id = ad_devices.ad_id
+      WHERE ad_devices.device_id = $1
+        AND LOWER(COALESCE(ad_devices.status, '')) = 'active'
+        AND ad_devices.start_date::date <= CURRENT_DATE
+        AND ad_devices.end_date::date >= CURRENT_DATE
+      ORDER BY ad_devices.start_date ASC, ads.created_at DESC`,
+      [deviceId]
+    );
+
+    return res.json({ success: true, ads: ads.rows });
+  } catch (err) {
+    console.error("Error fetching tv ads:", err);
+    return res.status(500).json({
+      success: false,
+      error: "failed_to_fetch_ads",
+      detail: err.message,
+    });
+  }
 });
 
 // GET /device/status?device_id=...  -> returns { status: "active" | "maintainance" | "offline" | "emergency-mode" }

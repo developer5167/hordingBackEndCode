@@ -2,6 +2,8 @@ const { express } = require("./deps");
 const { Server } = require("socket.io");
 const http = require("http");
 require('dotenv').config();
+const { installShutdownBackup } = require("./scripts/backupDatabase");
+installShutdownBackup();
 const client = require("./db");
 const app = express();
 const cors = require("cors");
@@ -25,15 +27,19 @@ const superadminPayments = require("./superadminPayments");
 const apisForTv = require("./apisForTvApp");
 const couponApis = require("./couponApis");
 const marketingApis = require("./marketingApis");
+const complianceApis = require("./complianceApis");
 const { log } = require("console");
 const { jsonwebtoken } = require("./deps")
+const { processAdLifecycle } = require("./services/adLifecycleService");
 
 app.use("/superadmin", superAdminApis);
 app.use("/superadmin", superadminAnalyticsApis);
 app.use("/superadmin/payments", superadminPayments);
 app.use("/superadmin", marketingApis);
+app.use("/superadmin/compliance", complianceApis);
 app.use("/advertiser", rootRouterAdvertiser); // e.g. GET /
 app.use("/admin", adminApis); // e.g. GET /
+app.use("/admin/compliance", complianceApis);
 app.use("/api", apiRoutes); // e.g. GET /api/users
 app.use("/tvApp", apisForTv); // e.g. GET /api/users
 app.use("/website", marketingApis);
@@ -125,4 +131,20 @@ client.query("LISTEN client_subscription_channel");
 
 server.listen(port, "0.0.0.0", () => {
   console.log(`🚀 Server running at: http://localhost:${port}`);
+});
+
+// Ad lifecycle automation:
+// - mark expired ads immediately by end_date
+// - notify advertisers about 2-day grace period
+// - delete expired ads (DB + S3) after grace
+setInterval(async () => {
+  try {
+    await processAdLifecycle();
+  } catch (err) {
+    console.error("Ad lifecycle background run failed:", err.message);
+  }
+}, 60 * 60 * 1000); // hourly
+
+processAdLifecycle().catch((err) => {
+  console.error("Initial ad lifecycle run failed:", err.message);
 });

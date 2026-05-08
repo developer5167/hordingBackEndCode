@@ -16,6 +16,7 @@ const router = express.Router();
 const timers = {};
 
 const checkValidClient = require("./middleware/checkValidClient");
+const { adTotalsFromSubtotal, loadClientAdBilling } = require("./services/adOrderPricing");
 
 // ----------------------
 // Subscription Helper
@@ -88,6 +89,40 @@ async function sendEmail(email, client_id) {
     return false;
   }
 }
+
+async function ensureSignupVerificationTable() {
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS signup_email_verifications (
+      email TEXT NOT NULL,
+      client_id UUID NOT NULL,
+      verified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (email, client_id)
+    )
+  `);
+}
+
+async function sendSignupOtpEmail(email, client_id) {
+  const OTP = Math.floor(100000 + Math.random() * 900000).toString();
+  const mailRequest = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: parseInt(process.env.SMTP_PORT, 10),
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  });
+  const mailingOptions = {
+    from: process.env.SMTP_FROM,
+    to: email,
+    subject: "Verify your email for signup",
+    html: `<body style='background:#f2f2f2;text-align:center;border-top:5px solid #2D317D;width:100%;'><div style='padding:35px 50px;'><h2 style='color:#2D317D;margin-bottom:2px;'>Digital Hording Manager</h2><p style='color:#888;font-size:12px;margin:0 0 20px;'>by SOTER SYSTEMS</p><p style='font-weight:bold;'>Your OTP for account signup is</p><h1 style='letter-spacing: 1.1rem;'> ${OTP} </h1><p style='font-weight:bold;'>OTP is valid for 3 minutes.</p></div><div style='background:#1b1f6d;padding:20px;color:white;font-size:12px;'>Digital Hording Manager &copy; SOTER SYSTEMS</div></body>`,
+  };
+  const data = await mailRequest.sendMail(mailingOptions);
+  const query = `insert into otp (email,otp,client_id) values($1,$2,$3)`;
+  await db.query(query, [email, OTP, client_id]);
+  countdown(3 * 60, email, client_id);
+  return data;
+}
 const countdown = (duration, email, client_id) => {
   let remainingTime = duration; // Time in seconds
   const timerInterval = setInterval(() => {
@@ -151,6 +186,61 @@ router.post("/verify-otp", checkValidClient, async (req, res) => {
     delete timers[email];
     console.log(err);
     res.status(500).send({ "message": "Something went wrong" });
+  }
+});
+
+router.post("/signup/send-otp", checkValidClient, async (req, res) => {
+  const { email } = req.body || {};
+  if (!email) return res.status(400).json({ message: "email is required" });
+  try {
+    const clientId = req.client_id;
+    const existing = await db.query(
+      "SELECT id FROM users WHERE email = $1 AND client_id = $2 LIMIT 1",
+      [String(email).toLowerCase().trim(), clientId]
+    );
+    if (existing.rowCount > 0) {
+      return res.status(409).json({ message: "email already registered for this client" });
+    }
+    await sendSignupOtpEmail(String(email).toLowerCase().trim(), clientId);
+    return res.status(200).json({ success: true, message: "OTP sent for signup verification" });
+  } catch (err) {
+    console.error("signup send otp error", err);
+    return res.status(500).json({ message: "Failed to send OTP" });
+  }
+});
+
+router.post("/signup/verify-otp", checkValidClient, async (req, res) => {
+  const { email, otp } = req.body || {};
+  if (!email || !otp) {
+    return res.status(400).json({ message: "email and otp are required" });
+  }
+  try {
+    const clientId = req.client_id;
+    const result = await db.query(
+      `SELECT otp FROM otp WHERE email = $1 AND client_id = $2 ORDER BY created_at DESC LIMIT 1`,
+      [String(email).toLowerCase().trim(), clientId]
+    );
+    if (result.rows.length === 0 || String(result.rows[0].otp) !== String(otp)) {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+    await db.query(`DELETE FROM otp WHERE email = $1 AND client_id = $2`, [
+      String(email).toLowerCase().trim(),
+      clientId,
+    ]);
+    await ensureSignupVerificationTable();
+    await db.query(
+      `INSERT INTO signup_email_verifications (email, client_id, verified_at)
+       VALUES ($1, $2, NOW())
+       ON CONFLICT (email, client_id)
+       DO UPDATE SET verified_at = NOW()`,
+      [String(email).toLowerCase().trim(), clientId]
+    );
+    clearInterval(timers[email]);
+    delete timers[email];
+    return res.status(200).json({ success: true, message: "Email verified for signup" });
+  } catch (err) {
+    console.error("signup verify otp error", err);
+    return res.status(500).json({ message: "Failed to verify OTP" });
   }
 });
 
@@ -303,7 +393,7 @@ router.get("/ads/my", checkValidClient, auth, async (req, res) => {
       return res.status(400).json({ success: false, message: "No active subscription" });
     }
 
-    const { status } = req.query;
+    const status = req.query.status ? String(req.query.status).toLowerCase().trim() : null;
 
     // Join with ad_devices to get device-level status
     let query = `
@@ -317,7 +407,10 @@ router.get("/ads/my", checkValidClient, auth, async (req, res) => {
         ad.device_id,
         ad.start_date,
         ad.end_date,
-        ad.status,
+        CASE
+          WHEN ad.end_date < NOW() THEN 'expired'
+          ELSE LOWER(ad.status)
+        END AS status,
         ad.status_updated_at,
         d.name AS device_name,
         d.location AS device_location
@@ -330,7 +423,7 @@ router.get("/ads/my", checkValidClient, auth, async (req, res) => {
 
     // Optional filter by status (device-level status)
     if (status) {
-      query += ` AND ad.status = $3`;
+      query += ` AND (CASE WHEN ad.end_date < NOW() THEN 'expired' ELSE LOWER(ad.status) END) = $3`;
       params.push(status);
     }
 
@@ -417,7 +510,10 @@ router.get("/ads/details", checkValidClient, auth, async (req, res) => {
         ad.device_id,
         ad.start_date,
         ad.end_date,
-        ad.status,
+        CASE
+          WHEN ad.end_date < NOW() THEN 'expired'
+          ELSE LOWER(ad.status)
+        END AS status,
         ad.status_updated_at,
         d.name AS device_name,
         d.location AS device_location
@@ -944,11 +1040,81 @@ router.post('/ads/:adId/devices/:deviceId/extend', checkValidClient, auth, async
   const { end_date } = req.body;
   if (!end_date) return res.status(400).json({ error: 'end_date_required' });
   try {
-    const upd = `UPDATE ad_devices SET end_date = $1, status_updated_at = now() WHERE ad_id = $2 AND device_id = $3 RETURNING *`;
+    await db.query('BEGIN');
+
+    const verifyOwnership = await db.query(
+      `SELECT user_id FROM ads WHERE id = $1 LIMIT 1`,
+      [adId]
+    );
+    if (verifyOwnership.rows.length === 0) {
+      await db.query('ROLLBACK');
+      return res.status(404).json({ error: 'ad_not_found' });
+    }
+    if (String(verifyOwnership.rows[0].user_id) !== String(req.user_id)) {
+      await db.query('ROLLBACK');
+      return res.status(403).json({ error: 'forbidden' });
+    }
+
+    const mappingRes = await db.query(
+      `SELECT end_date, status
+       FROM ad_devices
+       WHERE ad_id = $1 AND device_id = $2
+       LIMIT 1`,
+      [adId, deviceId]
+    );
+    if (mappingRes.rows.length === 0) {
+      await db.query('ROLLBACK');
+      return res.status(404).json({ error: 'mapping_not_found' });
+    }
+
+    const currentEndDate = new Date(mappingRes.rows[0].end_date);
+    const requestedEndDate = new Date(end_date);
+    const now = new Date();
+
+    if (Number.isNaN(requestedEndDate.getTime())) {
+      await db.query('ROLLBACK');
+      return res.status(400).json({ error: 'invalid_date_format' });
+    }
+
+    if (requestedEndDate <= currentEndDate) {
+      await db.query('ROLLBACK');
+      return res.status(400).json({ error: 'new_end_date_must_be_after_current_end_date' });
+    }
+
+    const isExpired = currentEndDate < now;
+    if (isExpired) {
+      const graceDeadline = new Date(currentEndDate.getTime() + 2 * 24 * 60 * 60 * 1000);
+      if (now > graceDeadline) {
+        await db.query('ROLLBACK');
+        return res.status(400).json({
+          error: 'grace_period_ended',
+          message: 'expired_ads_can_only_be_extended_within_2_days',
+        });
+      }
+    }
+
+    const upd = `
+      UPDATE ad_devices
+      SET end_date = $1,
+          status = CASE
+            WHEN end_date < NOW() AND NOW() <= (end_date + INTERVAL '2 days') THEN 'active'
+            ELSE status
+          END,
+          status_updated_at = now()
+      WHERE ad_id = $2 AND device_id = $3
+      RETURNING *
+    `;
     const updRes = await db.query(upd, [end_date, adId, deviceId]);
 
-    return res.json({ success: true, message: 'extended', device: updRes.rows[0] });
+    await db.query('COMMIT');
+    return res.json({
+      success: true,
+      message: isExpired ? 'extended_within_grace' : 'extended',
+      device: updRes.rows[0],
+      grace_applied: isExpired,
+    });
   } catch (err) {
+    try { await db.query('ROLLBACK'); } catch (_) { }
     console.error('Extend error', err);
     return res.status(500).json({ error: 'extend_failed', detail: err.message });
   }
@@ -1486,11 +1652,10 @@ router.post(
         };
       });
 
-      // Totals
       const subtotal = items.reduce((sum, i) => sum + i.total, 0);
-      const gst = subtotal * 0.18;
-      const handling = 30;
-      const grandTotal = subtotal + gst + handling;
+      const clientRow = await loadClientAdBilling(db, client_id);
+      const t = adTotalsFromSubtotal(subtotal, clientRow);
+      const grandTotal = t.grand_total;
 
       return res.json({
         success: true,
@@ -1502,10 +1667,18 @@ router.post(
           end_date,
           devices: items,
           totals: {
-            subtotal,
-            gst,
-            handling,
+            subtotal: t.subtotal,
+            gst: t.gst_amount,
+            gst_breakdown: t.gst_breakdown,
+            handling: 0,
             grand_total: grandTotal,
+            tax_mode: t.gst_breakdown.tax_mode,
+            ad_billing_gst_rate: t.ad_billing_gst_rate,
+            gst_registered: Boolean(clientRow?.gst_registered),
+            gst_rate_effective_pct:
+              subtotal > 0.001
+                ? Number(((t.gst_amount / subtotal) * 100).toFixed(4))
+                : 0,
           },
         },
       });
@@ -1780,10 +1953,10 @@ router.get("/dashboard", checkValidClient, auth, async (req, res) => {
     const countsQuery = `
       SELECT
         COUNT(*) FILTER (WHERE true)                             AS total_ads,
-        COUNT(*) FILTER (WHERE ad.status = 'active')             AS active_ads,
-        COUNT(*) FILTER (WHERE ad.status = 'in_review')          AS in_review,
-        COUNT(*) FILTER (WHERE ad.status = 'Rejected')           AS rejected,
-        COUNT(*) FILTER (WHERE ad.status = 'expired' OR ad.end_date < NOW()) AS expired
+        COUNT(*) FILTER (WHERE CASE WHEN ad.end_date < NOW() THEN 'expired' ELSE LOWER(ad.status) END = 'active') AS active_ads,
+        COUNT(*) FILTER (WHERE CASE WHEN ad.end_date < NOW() THEN 'expired' ELSE LOWER(ad.status) END = 'in_review') AS in_review,
+        COUNT(*) FILTER (WHERE CASE WHEN ad.end_date < NOW() THEN 'expired' ELSE LOWER(ad.status) END = 'rejected') AS rejected,
+        COUNT(*) FILTER (WHERE CASE WHEN ad.end_date < NOW() THEN 'expired' ELSE LOWER(ad.status) END = 'expired') AS expired
       FROM ad_devices ad
       JOIN ads a ON a.id = ad.ad_id
       WHERE a.user_id = $1 AND a.client_id = $2
@@ -1960,7 +2133,10 @@ router.get("/ads/recent", checkValidClient, auth, async (req, res) => {
         ad.device_id,
         ad.start_date,
         ad.end_date,
-        ad.status,
+        CASE
+          WHEN ad.end_date < NOW() THEN 'expired'
+          ELSE LOWER(ad.status)
+        END AS status,
         ad.status_updated_at,
         d.name AS device_name,
         d.location AS device_location
@@ -2347,6 +2523,7 @@ router.post("/signup", checkValidClient, async (req, res) => {
         .status(400)
         .json({ error: "password must be at least 6 characters" });
 
+    await ensureSignupVerificationTable();
     // Check if email already exists for this client
     const existing = await db.query(
       "SELECT id FROM users WHERE email = $1 AND client_id = $2 LIMIT 1",
@@ -2356,6 +2533,17 @@ router.post("/signup", checkValidClient, async (req, res) => {
       return res
         .status(409)
         .json({ error: "email already registered for this client" });
+    }
+
+    const emailVerification = await db.query(
+      `SELECT verified_at
+       FROM signup_email_verifications
+       WHERE email = $1 AND client_id = $2
+       LIMIT 1`,
+      [email.toLowerCase().trim(), clientId]
+    );
+    if (emailVerification.rowCount === 0) {
+      return res.status(400).json({ error: "email_not_verified_for_signup" });
     }
 
     // Hash password
@@ -2383,6 +2571,10 @@ router.post("/signup", checkValidClient, async (req, res) => {
     ];
 
     const { rows } = await db.query(insertQuery, values);
+    await db.query(
+      `DELETE FROM signup_email_verifications WHERE email = $1 AND client_id = $2`,
+      [email.toLowerCase().trim(), clientId]
+    );
     const created = rows[0];
 
     // return user (safe fields) + token
