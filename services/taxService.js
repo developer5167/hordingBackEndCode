@@ -24,6 +24,26 @@ function stateCodeFromGstin(gstin) {
   return v.slice(0, 2);
 }
 
+/**
+ * Client place of supply for GST — same fallbacks as typical B2B invoicing:
+ * explicit POS → state_code → first two digits of GSTIN.
+ */
+function resolvePlaceOfSupplyStateCode(row) {
+  if (!row) return null;
+  const pos = row.place_of_supply_state_code;
+  if (pos != null && String(pos).trim() !== "") {
+    return String(pos).trim();
+  }
+  const sc = row.state_code;
+  if (sc != null && String(sc).trim() !== "") {
+    return String(sc).trim();
+  }
+  if (row.gstin) {
+    return stateCodeFromGstin(row.gstin);
+  }
+  return null;
+}
+
 function computeGstBreakdown({
   amount = 0,
   gstRate = 18,
@@ -87,6 +107,7 @@ module.exports = {
   isValidGstin,
   isValidPan,
   stateCodeFromGstin,
+  resolvePlaceOfSupplyStateCode,
   computeGstBreakdown,
   getSupplierTaxNote,
 };

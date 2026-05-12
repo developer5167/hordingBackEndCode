@@ -5,6 +5,7 @@ const {
   stateCodeFromGstin,
   computeGstBreakdown,
   getSupplierTaxNote,
+  resolvePlaceOfSupplyStateCode,
 } = require("./services/taxService");
 
 const router = express.Router();
@@ -31,8 +32,19 @@ async function ensureComplianceTables() {
       supplier_pan TEXT,
       supplier_state_code TEXT,
       default_gst_rate NUMERIC NOT NULL DEFAULT 18,
+      app_fee_yearly_escalation_pct NUMERIC NOT NULL DEFAULT 10,
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
+  `);
+
+  await db.query(`
+    ALTER TABLE platform_billing_config
+      ADD COLUMN IF NOT EXISTS app_fee_yearly_escalation_pct NUMERIC NOT NULL DEFAULT 10
+  `);
+
+  await db.query(`
+    ALTER TABLE clients
+      ADD COLUMN IF NOT EXISTS app_fee_paid BOOLEAN DEFAULT FALSE
   `);
 
   await db.query(`
@@ -58,6 +70,27 @@ router.get("/platform-billing-config", async (_req, res) => {
   return res.json({ success: true, data: rows[0] || null });
 });
 
+/** Accept true/false from JSON or occasional string/number from clients */
+function parseOptionalBoolean(v) {
+  if (v === true || v === false) return v;
+  if (v === "true" || v === 1 || v === "1") return true;
+  if (v === "false" || v === 0 || v === "0") return false;
+  return null;
+}
+
+async function ensurePlatformBillingRowId() {
+  let r = await db.query(
+    `SELECT id FROM platform_billing_config ORDER BY updated_at DESC LIMIT 1`
+  );
+  if (r.rows.length) return r.rows[0].id;
+  const ins = await db.query(
+    `INSERT INTO platform_billing_config (supplier_legal_name, supplier_gst_registered, default_gst_rate)
+     VALUES ('SOTER SYSTEMS', FALSE, 18)
+     RETURNING id`
+  );
+  return ins.rows[0].id;
+}
+
 router.put("/platform-billing-config", async (req, res) => {
   const {
     supplier_legal_name,
@@ -66,6 +99,7 @@ router.put("/platform-billing-config", async (req, res) => {
     supplier_pan,
     supplier_state_code,
     default_gst_rate,
+    app_fee_yearly_escalation_pct,
   } = req.body || {};
 
   if (supplier_gstin && !isValidGstin(supplier_gstin)) {
@@ -75,7 +109,12 @@ router.put("/platform-billing-config", async (req, res) => {
     return res.status(400).json({ success: false, error: "invalid_pan" });
   }
 
-  const q = `
+  const gstReg = parseOptionalBoolean(supplier_gst_registered);
+
+  try {
+    const rowId = await ensurePlatformBillingRowId();
+
+    const q = `
     UPDATE platform_billing_config
     SET supplier_legal_name = COALESCE($1, supplier_legal_name),
         supplier_gst_registered = COALESCE($2, supplier_gst_registered),
@@ -83,22 +122,42 @@ router.put("/platform-billing-config", async (req, res) => {
         supplier_pan = COALESCE($4, supplier_pan),
         supplier_state_code = COALESCE($5, supplier_state_code),
         default_gst_rate = COALESCE($6, default_gst_rate),
+        app_fee_yearly_escalation_pct = COALESCE($7, app_fee_yearly_escalation_pct),
         updated_at = NOW()
-    WHERE id = (SELECT id FROM platform_billing_config ORDER BY updated_at DESC LIMIT 1)
+    WHERE id = $8
     RETURNING *
   `;
-  const { rows } = await db.query(q, [
-    supplier_legal_name || null,
-    typeof supplier_gst_registered === "boolean"
-      ? supplier_gst_registered
-      : null,
-    supplier_gstin ? String(supplier_gstin).toUpperCase() : null,
-    supplier_pan ? String(supplier_pan).toUpperCase() : null,
-    supplier_state_code || null,
-    default_gst_rate != null ? Number(default_gst_rate) : null,
-  ]);
+    const { rows } = await db.query(q, [
+      supplier_legal_name || null,
+      gstReg,
+      supplier_gstin ? String(supplier_gstin).toUpperCase() : null,
+      supplier_pan ? String(supplier_pan).toUpperCase() : null,
+      supplier_state_code != null && String(supplier_state_code).trim() !== ""
+        ? String(supplier_state_code).trim()
+        : null,
+      default_gst_rate != null ? Number(default_gst_rate) : null,
+      app_fee_yearly_escalation_pct != null
+        ? Number(app_fee_yearly_escalation_pct)
+        : null,
+      rowId,
+    ]);
 
-  return res.json({ success: true, data: rows[0] });
+    if (!rows.length) {
+      return res.status(500).json({
+        success: false,
+        error: "platform_billing_update_failed",
+      });
+    }
+
+    return res.json({ success: true, data: rows[0] });
+  } catch (err) {
+    console.error("platform-billing-config PUT:", err);
+    return res.status(500).json({
+      success: false,
+      error: "platform_billing_save_error",
+      detail: err.message,
+    });
+  }
 });
 
 router.get("/clients/:clientId/tax-profile", async (req, res) => {
@@ -284,12 +343,18 @@ router.post("/tax-preview", async (req, res) => {
   }
 
   let effectivePos = place_of_supply_state_code;
+  if (effectivePos != null && String(effectivePos).trim() !== "") {
+    effectivePos = String(effectivePos).trim();
+  } else {
+    effectivePos = null;
+  }
+
   if (!effectivePos && resolvedClientId) {
     const c = await db.query(
-      `SELECT place_of_supply_state_code FROM clients WHERE id = $1 LIMIT 1`,
+      `SELECT place_of_supply_state_code, state_code, gstin FROM clients WHERE id = $1 LIMIT 1`,
       [resolvedClientId]
     );
-    effectivePos = c.rows[0]?.place_of_supply_state_code || null;
+    effectivePos = resolvePlaceOfSupplyStateCode(c.rows[0]);
   }
 
   const breakdown = computeGstBreakdown({
@@ -304,7 +369,7 @@ router.post("/tax-preview", async (req, res) => {
     success: true,
     data: {
       ...breakdown,
-      gst_rate_applied: gstRate,
+      gst_rate_applied: supplierGstRegistered ? gstRate : 0,
       gst_rate_source: gstRateSource,
       tax_note: getSupplierTaxNote({
         supplierGstRegistered,

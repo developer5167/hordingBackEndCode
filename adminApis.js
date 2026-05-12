@@ -2403,6 +2403,15 @@ router.post("/use-wallet", checkValidClient, auth, async (req, res) => {
           tax_note: subtot.tax_note,
           credit: subtot.credit,
           new_plan_price: subtot.newPlanPrice,
+          subscription_component_rupees: subtot.subscription_component_rupees,
+          app_fee_component_rupees: subtot.app_fee_component_rupees,
+          app_fee_charged: subtot.app_fee_charged,
+          app_fee_paid_already: subtot.app_fee_paid_already,
+          app_fee_list_price: subtot.app_fee_list_price,
+          app_fee_yearly_escalation_pct: subtot.app_fee_yearly_escalation_pct,
+          supplier_gst_registered: Boolean(subtot.platformCfg?.supplier_gst_registered),
+          default_gst_rate: subtot.platformCfg?.default_gst_rate,
+          supplier_gstin: subtot.platformCfg?.supplier_gstin || null,
         },
       };
 
@@ -2424,6 +2433,11 @@ router.post("/use-wallet", checkValidClient, auth, async (req, res) => {
       );
 
       await db.query("COMMIT");
+      if (Number(subscriptionNotes.subscription_checkout.app_fee_charged || 0) > 0) {
+        await db.query(`UPDATE clients SET app_fee_paid = TRUE WHERE id = $1`, [
+          client_id,
+        ]);
+      }
       return res.json({
         success: true,
         subscription: ins.rows[0],

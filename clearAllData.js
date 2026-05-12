@@ -1,66 +1,50 @@
+/**
+ * Wipe all rows in every table under schema `public`. Tables, columns, and
+ * constraints stay; only data is removed (sequences reset).
+ *
+ *   node clearAllData.js
+ *
+ * Requires .env with DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME (same as app).
+ */
+require("dotenv").config({ path: require("path").join(__dirname, ".env") });
 const { Client } = require("pg");
 
-const client = new Client({
-  host: "localhost",
-  port: 5432,
-  user: "kcs",
-  password: "",
-  database: "hording_tenant_based",
-});
+async function main() {
+  const client = new Client({
+    host: process.env.DB_HOST,
+    port: parseInt(process.env.DB_PORT, 10) || 5432,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+  });
 
-// All tables in the correct order (child tables first to respect FK constraints)
-const tables = [
-  "ad_devices",
-  "ad_reviews",
-  "ad_statistics",
-  "company_ad_history",
-  "company_ads",
-  "emergency_ad_devices",
-  "emergency_ads",
-  "wallet_transactions",
-  "client_wallets",
-  "client_subscriptions",
-  "subscriptions",
-  "subscription_plans",
-  "payments",
-  "staffs_devices",
-  "staffs",
-  "otp",
-  "ads",
-  "devices",
-  "pricing_rules",
-  "pricing",
-  "roles",
-  "clients",
-  "users",
-];
+  await client.connect();
+  console.log("Connected. Truncating all public tables…");
 
-async function clearAllData() {
   try {
-    await client.connect();
-    console.log("✅ Connected to PostgreSQL\n");
-
-    // Disable triggers/FK checks temporarily using TRUNCATE ... CASCADE
-    console.log("🗑️  Clearing all table data...\n");
-
-    for (const table of tables) {
-      try {
-        await client.query(
-          `TRUNCATE TABLE "${table}" RESTART IDENTITY CASCADE;`
-        );
-        console.log(`  ✔ Cleared: ${table}`);
-      } catch (err) {
-        console.error(`  ✘ Failed to clear ${table}: ${err.message}`);
-      }
-    }
-
-    console.log("\n✅ All tables cleared successfully. Structures preserved.");
-  } catch (err) {
-    console.error("❌ Connection error:", err.message);
+    await client.query(`
+      DO $truncate$
+      DECLARE
+        stmt text;
+      BEGIN
+        SELECT 'TRUNCATE TABLE ' || string_agg(format('%I.%I', schemaname, tablename), ', ' ORDER BY tablename)
+               || ' RESTART IDENTITY CASCADE'
+        INTO stmt
+        FROM pg_tables
+        WHERE schemaname = 'public';
+        IF stmt IS NOT NULL THEN
+          EXECUTE stmt;
+        END IF;
+      END
+      $truncate$;
+    `);
+    console.log("Done. All table data cleared; schema unchanged.\n");
+  } catch (e) {
+    console.error("Truncate failed:", e.message);
+    process.exitCode = 1;
   } finally {
     await client.end();
-    console.log("🔌 Disconnected from PostgreSQL.");
   }
 }
 
-clearAllData();
+main();

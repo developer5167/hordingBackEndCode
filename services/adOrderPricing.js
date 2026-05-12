@@ -1,4 +1,8 @@
-const { computeGstBreakdown, stateCodeFromGstin } = require("./taxService");
+const {
+  computeGstBreakdown,
+  stateCodeFromGstin,
+  resolvePlaceOfSupplyStateCode,
+} = require("./taxService");
 
 async function computeAdSubtotalForAdId(db, clientId, adId) {
   const adRes = await db.query(
@@ -61,7 +65,7 @@ function adTotalsFromSubtotal(subtotal, clientRow) {
   const supplierState =
     (clientRow?.state_code && String(clientRow.state_code).trim()) ||
     stateCodeFromGstin(clientRow?.gstin);
-  const pos = clientRow?.place_of_supply_state_code || null;
+  const pos = resolvePlaceOfSupplyStateCode(clientRow);
   const bd = computeGstBreakdown({
     amount: subtotal,
     gstRate: Number(clientRow?.ad_billing_gst_rate ?? 18),

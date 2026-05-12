@@ -7,10 +7,15 @@ installShutdownBackup();
 const client = require("./db");
 const app = express();
 const cors = require("cors");
+const {
+  buildAllowedOriginSet,
+  corsOriginCallback,
+} = require("./corsConfig");
 const port = process.env.PORT || 3000;
 const webhook = require("./weebhook");
-// Middleware
-app.use(cors());
+// Middleware — browser SPAs / marketing site; append CORS_EXTRA_ORIGINS in .env if needed
+const allowedOrigins = buildAllowedOriginSet();
+app.use(cors({ origin: corsOriginCallback(allowedOrigins) }));
 app.use("/superadmin/payments/webhooks", webhook)
 app.use(express.json({
   verify: (req, res, buf) => {

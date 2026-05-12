@@ -2,20 +2,39 @@ const {
   computeGstBreakdown,
   stateCodeFromGstin,
   getSupplierTaxNote,
+  resolvePlaceOfSupplyStateCode,
 } = require("./taxService");
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
+async function ensureSubscriptionBillingColumns(db) {
+  await db.query(`
+    ALTER TABLE clients ADD COLUMN IF NOT EXISTS app_fee_paid BOOLEAN DEFAULT FALSE
+  `);
+}
 
 async function loadPlatformBillingConfig(db) {
   const cfgRes = await db.query(
     `SELECT * FROM platform_billing_config ORDER BY updated_at DESC LIMIT 1`
   );
-  return cfgRes.rows[0] || null;
+  const row = cfgRes.rows[0] || null;
+  if (!row) return null;
+  const v = row.supplier_gst_registered;
+  const supplier_gst_registered =
+    v === true ||
+    v === "t" ||
+    v === "true" ||
+    v === 1 ||
+    v === "1";
+  return { ...row, supplier_gst_registered };
 }
 
 async function loadClientPlaceForSubscription(db, client_id) {
+  await ensureSubscriptionBillingColumns(db);
   const r = await db.query(
-    `SELECT place_of_supply_state_code, state_code, gstin FROM clients WHERE id = $1 LIMIT 1`,
+    `SELECT place_of_supply_state_code, state_code, gstin,
+            COALESCE(app_fee_paid, FALSE) AS app_fee_paid
+     FROM clients WHERE id = $1 LIMIT 1`,
     [client_id]
   );
   return r.rows[0] || null;
@@ -26,17 +45,22 @@ async function loadClientPlaceForSubscription(db, client_id) {
  */
 function subscriptionGstOnTaxableBase(taxableBaseRupees, platformCfg, clientRow) {
   const cfg = platformCfg || {};
+  const supplierRegistered = Boolean(cfg.supplier_gst_registered);
   const supplierState =
     (cfg.supplier_state_code && String(cfg.supplier_state_code).trim()) ||
     stateCodeFromGstin(cfg.supplier_gstin);
-  const pos =
-    (clientRow && clientRow.place_of_supply_state_code) || null;
+  let pos = resolvePlaceOfSupplyStateCode(clientRow);
+  if (!pos && supplierRegistered && supplierState) {
+    const ss = String(supplierState).trim();
+    if (ss) pos = ss;
+  }
+  // Same rule as client ↔ advertiser: no GST unless supplier is registered in config.
   const breakdown = computeGstBreakdown({
     amount: Number(taxableBaseRupees),
-    gstRate: Number(cfg.default_gst_rate ?? 18),
+    gstRate: supplierRegistered ? Number(cfg.default_gst_rate ?? 18) : 0,
     supplierStateCode: supplierState || null,
     placeOfSupplyStateCode: pos || null,
-    gstRegistered: Boolean(cfg.supplier_gst_registered),
+    gstRegistered: supplierRegistered,
   });
   const supplierLegal = cfg.supplier_legal_name || "SOTER SYSTEMS";
   const tax_note = getSupplierTaxNote({
@@ -112,31 +136,59 @@ async function computeSubscriptionTotalsForPlanId(db, client_id, plan_id, opts =
   }
   const plan = planRes.rows[0];
   const newPlanPrice = Number(plan.amount || 0);
+  const appFeeList = Number(plan.app_fee || 0);
 
   const creditBlock = await computeSubscriptionCredit(db, client_id);
-  const serverTaxable = Number(
-    Math.max(0, newPlanPrice - creditBlock.credit).toFixed(2)
+  const clientRow = await loadClientPlaceForSubscription(db, client_id);
+  const platformCfg = await loadPlatformBillingConfig(db);
+
+  const appFeePaid = Boolean(clientRow && clientRow.app_fee_paid);
+  const appFeeDue = appFeeList > 0 && !appFeePaid;
+  const appFeeComponent = appFeeDue ? appFeeList : 0;
+
+  const subNet = Number(Math.max(0, newPlanPrice - creditBlock.credit).toFixed(2));
+  const serverTaxableSubscription = subNet;
+  const serverCombinedNoDiscount = Number(
+    (serverTaxableSubscription + appFeeComponent).toFixed(2)
   );
 
-  let taxableBase = serverTaxable;
+  let couponPct = null;
+  if (coupon_discount_pct != null && coupon_discount_pct !== "") {
+    const p = Number(coupon_discount_pct);
+    if (!Number.isNaN(p) && p > 0 && p <= 100) couponPct = p;
+  }
+
+  let taxableBase = serverCombinedNoDiscount;
 
   if (amount_override != null && amount_override !== "") {
     const ov = Number(amount_override);
     if (!Number.isNaN(ov) && ov >= 0) {
-      if (ov > serverTaxable + 0.05) {
-        return { error: "amount_override_exceeds_taxable", serverTaxable };
+      let maxAllowed = serverCombinedNoDiscount;
+      if (couponPct != null) {
+        maxAllowed = Number(
+          (
+            serverTaxableSubscription * (1 - couponPct / 100) +
+            appFeeComponent
+          ).toFixed(2)
+        );
+      }
+      if (ov > maxAllowed + 0.05) {
+        return { error: "amount_override_exceeds_taxable", serverTaxable: maxAllowed };
       }
       taxableBase = Number(ov.toFixed(2));
     }
-  } else if (coupon_discount_pct != null && coupon_discount_pct !== "") {
-    const p = Number(coupon_discount_pct);
-    if (!Number.isNaN(p) && p > 0 && p <= 100) {
-      taxableBase = Number((serverTaxable * (1 - p / 100)).toFixed(2));
-    }
+  } else if (couponPct != null) {
+    taxableBase = Number(
+      (serverTaxableSubscription * (1 - couponPct / 100) + appFeeComponent).toFixed(
+        2
+      )
+    );
   }
 
-  const platformCfg = await loadPlatformBillingConfig(db);
-  const clientRow = await loadClientPlaceForSubscription(db, client_id);
+  const subscription_component_rupees = Number(
+    Math.max(0, taxableBase - appFeeComponent).toFixed(2)
+  );
+
   const { breakdown, supplier_legal_name, tax_note } = subscriptionGstOnTaxableBase(
     taxableBase,
     platformCfg,
@@ -145,11 +197,20 @@ async function computeSubscriptionTotalsForPlanId(db, client_id, plan_id, opts =
 
   const totalDue = Number(breakdown.total_amount.toFixed(2));
 
+  const escalationPct = Number(
+    platformCfg?.app_fee_yearly_escalation_pct ?? 10
+  );
+
   return {
     plan,
     newPlanPrice,
+    app_fee_list_price: appFeeList,
+    app_fee_component_rupees: appFeeComponent,
+    app_fee_paid_already: appFeePaid,
+    app_fee_charged: appFeeComponent,
+    subscription_component_rupees,
     ...creditBlock,
-    server_taxable_base: serverTaxable,
+    server_taxable_base: serverCombinedNoDiscount,
     taxable_base: taxableBase,
     breakdown,
     total_due: totalDue,
@@ -158,6 +219,7 @@ async function computeSubscriptionTotalsForPlanId(db, client_id, plan_id, opts =
     supplier_legal_name,
     tax_note,
     gst_rate_source: "platform_subscription",
+    app_fee_yearly_escalation_pct: escalationPct,
   };
 }
 

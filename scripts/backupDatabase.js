@@ -6,7 +6,9 @@
  *
  * Env (same as app): DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
  * Optional: SKIP_SHUTDOWN_BACKUP=1 — skip hook when server exits (e.g. nodemon)
- * Optional: DB_BACKUP_DIR — absolute or relative path for .sql files (default: backend/backups)
+ * Optional: DB_BACKUP_DIR — absolute or relative path for .dump files (default: backend/backups)
+ *
+ * Output is PostgreSQL custom format (-Fc). Restore: pg_restore -h HOST -p PORT -U USER -d DBNAME file.dump
  */
 require("dotenv").config({ path: require("path").join(__dirname, "..", ".env") });
 const fs = require("fs");
@@ -41,7 +43,7 @@ function runBackupSync(reason = "manual") {
 
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   const safeReason = String(reason).replace(/[^a-zA-Z0-9_-]+/g, "_");
-  const filename = `db-backup_${stamp}_${safeReason}.sql`;
+  const filename = `db-backup_${stamp}_${safeReason}.dump`;
   const outfile = path.join(dir, filename);
 
   const env = { ...process.env, PGPASSWORD: password || "" };
@@ -56,7 +58,7 @@ function runBackupSync(reason = "manual") {
     "-d",
     database,
     "-F",
-    "p",
+    "c",
     "--no-owner",
     "-f",
     outfile,

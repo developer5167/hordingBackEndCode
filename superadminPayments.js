@@ -16,6 +16,13 @@ function toPaise(amountRupee) {
   return Math.round(Number(amountRupee) * 100);
 }
 
+/** Public key_id for checkout — must match the mode (test/live) used to create `order` */
+function clientRazorpayKeyId() {
+  const id = process.env.RAZORPAY_KEY_ID;
+  if (!id || String(id).trim() === "") return null;
+  return String(id).trim();
+}
+
 /* ---------------------------
    WALLET SERVICE HELPERS
    ---------------------------
@@ -232,6 +239,15 @@ router.post("/create-order", checkValidClient, auth, async (req, res) => {
         tax_note: subtot.tax_note,
         credit: subtot.credit,
         new_plan_price: subtot.newPlanPrice,
+        subscription_component_rupees: subtot.subscription_component_rupees,
+        app_fee_component_rupees: subtot.app_fee_component_rupees,
+        app_fee_charged: subtot.app_fee_charged,
+        app_fee_paid_already: subtot.app_fee_paid_already,
+        app_fee_list_price: subtot.app_fee_list_price,
+        app_fee_yearly_escalation_pct: subtot.app_fee_yearly_escalation_pct,
+        supplier_gst_registered: Boolean(subtot.platformCfg?.supplier_gst_registered),
+        default_gst_rate: subtot.platformCfg?.default_gst_rate,
+        supplier_gstin: subtot.platformCfg?.supplier_gstin || null,
       },
     };
 
@@ -272,6 +288,11 @@ router.post("/create-order", checkValidClient, auth, async (req, res) => {
         `UPDATE payments SET status='PAID', subscription_id=$2, razorpay_order_id=$3, updated_at=NOW() WHERE id=$1`,
         [paymentRow.id, insSub.rows[0].id, `wallet_${paymentRow.id}`]
       );
+      if (Number(subscriptionNotes.subscription_checkout.app_fee_charged || 0) > 0) {
+        await db.query(`UPDATE clients SET app_fee_paid = TRUE WHERE id = $1`, [
+          client_id,
+        ]);
+      }
 
       return res.json({
         success: true,
@@ -298,6 +319,7 @@ router.post("/create-order", checkValidClient, auth, async (req, res) => {
       order,
       payment: paymentRow,
       subscription_tax: subscriptionNotes.subscription_checkout,
+      razorpay_key_id: clientRazorpayKeyId(),
     });
   } catch (err) {
     console.error("create-order error:", err);
@@ -396,12 +418,7 @@ router.post("/verify-payment", checkValidClient, auth, async (req, res) => {
     let subscription_tax = null;
     if (sc && sc.breakdown && typeof sc.total_due === "number") {
       totalDue = Number(sc.total_due);
-      subscription_tax = {
-        taxable_base: sc.taxable_base,
-        breakdown: sc.breakdown,
-        tax_note: sc.tax_note,
-        credit: sc.credit,
-      };
+      subscription_tax = { ...sc };
     }
 
     const paidAmountRupees =
@@ -458,6 +475,13 @@ router.post("/verify-payment", checkValidClient, auth, async (req, res) => {
       if (existingSub) {
         await db.query(`UPDATE client_subscriptions SET status='expired', updated_at=NOW() WHERE id=$1`, [existingSub.id]);
       }
+    }
+
+    const scFull = paymentRow?.notes && paymentRow.notes.subscription_checkout;
+    if (scFull && Number(scFull.app_fee_charged || 0) > 0) {
+      await db.query(`UPDATE clients SET app_fee_paid = TRUE WHERE id = $1`, [
+        client_id,
+      ]);
     }
 
     return res.json({
@@ -1010,16 +1034,32 @@ router.post("/compute-proration", checkValidClient, auth, async (req, res) => {
           name: newPlan.name,
           price: subtot.newPlanPrice,
           app_fee: Number(newPlan.app_fee || 0),
+          app_fee_in_this_charge: Number(subtot.app_fee_component_rupees || 0),
+          app_fee_waived_already_paid: Boolean(
+            subtot.app_fee_paid_already && Number(newPlan.app_fee || 0) > 0
+          ),
           period: newPlan.period,
           max_devices: newPlan.max_devices,
           start_date: now.toISOString(),
           end_date: endDate.toISOString(),
+        },
+        platform_billing: {
+          supplier_gst_registered: Boolean(
+            subtot.platformCfg?.supplier_gst_registered
+          ),
+          supplier_gstin: subtot.platformCfg?.supplier_gstin || null,
+          supplier_legal_name: subtot.platformCfg?.supplier_legal_name || null,
+          default_gst_rate: Number(subtot.platformCfg?.default_gst_rate ?? 18),
+          app_fee_yearly_escalation_pct: subtot.app_fee_yearly_escalation_pct,
+          tax_note: subtot.tax_note,
         },
         proration: {
           credit,
           payable: subtot.taxable_base,
           taxable_base: subtot.taxable_base,
           server_taxable_before_discount: subtot.server_taxable_base,
+          subscription_component_rupees: subtot.subscription_component_rupees,
+          app_fee_component_rupees: subtot.app_fee_component_rupees,
           total_due: payableDisplay,
           gst: {
             ...breakdown,
