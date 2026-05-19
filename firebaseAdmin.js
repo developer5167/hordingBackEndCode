@@ -9,6 +9,7 @@ const serviceAccount = JSON.parse(
 );
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
+  storageBucket: "gs://swap-80375.appspot.com",
 });
 console.log("Firebase initialized successfully!");
 
