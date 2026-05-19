@@ -22,6 +22,11 @@ app.use(express.json({
     req.rawBody = buf;
   }
 }))
+app.use("/", (req, res) => {
+  res.send({
+    message: "Hording API is alive",
+  });
+});
 const rootRouterAdvertiser = require("./advertiserApis");
 const order = require("./order");
 const adminApis = require("./adminApis");
@@ -52,7 +57,6 @@ app.use("/advertiser/payments", order);
 app.use("/superadmin/coupons", couponApis);
 app.use("/admin/coupons", couponApis);
 app.use("/advertiser/coupons", couponApis);
-
 
 const server = http.createServer(app);
 const io = new Server(server, {
