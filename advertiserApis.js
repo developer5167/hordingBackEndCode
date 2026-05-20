@@ -97,6 +97,7 @@ async function sendEmail(email, client_id) {
     countdown(3 * 60, email, client_id);
     return true;
   } catch (excemption) {
+    console.error("Error in sendEmail:", excemption);
     return false;
   }
 }
@@ -117,10 +118,12 @@ async function sendSignupOtpEmail(email, client_id) {
   const mailRequest = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port: parseInt(process.env.SMTP_PORT, 10),
+    secure: true, // true for port 465
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
+    requireTLS: true,
   });
   const mailingOptions = {
     from: process.env.SMTP_FROM,
