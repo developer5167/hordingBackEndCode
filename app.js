@@ -22,7 +22,7 @@ app.use(express.json({
     req.rawBody = buf;
   }
 }))
-app.use("/", (req, res) => {
+app.use("/health", (req, res) => {
   res.send({
     message: "Hording API is alive",
   });
