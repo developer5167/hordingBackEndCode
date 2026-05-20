@@ -64,13 +64,24 @@ router.post("/send-otp", checkValidClient, async (req, res) => {
 });
 async function sendEmail(email, client_id) {
   const OTP = Math.floor(100000 + Math.random() * 900000).toString();
+  // const mailRequest = nodemailer.createTransport({
+  //   host: process.env.SMTP_HOST,
+  //   port: parseInt(process.env.SMTP_PORT, 10),
+  //   auth: {
+  //     user: process.env.SMTP_USER,
+  //     pass: process.env.SMTP_PASS,
+  //   },
+  // });
+
   const mailRequest = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT, 10),
+    port: parseInt(process.env.SMTP_PORT),
+    secure: true, // true for 465
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
+    requireTLS: true,
   });
   const mailingOptions = {
     from: process.env.SMTP_FROM,
