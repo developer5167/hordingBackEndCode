@@ -74,12 +74,12 @@ async function sendEmail(email, client_id) {
   // });
 
   const mailRequest = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT),
+    host: 'smtpout.secureserver.net',
+    port: 465,
     secure: true, // true for 465
     auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
+      user: 'support@sotersystems.in',
+      pass: 'Sam@@@5167',
     },
     requireTLS: true,
   });
