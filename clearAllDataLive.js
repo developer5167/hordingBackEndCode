@@ -2,24 +2,24 @@
  * Wipe all rows in every table under schema `public`. Tables, columns, and
  * constraints stay; only data is removed (sequences reset).
  *
- *   node clearAllData.js
+ * Usage:
+ *   node clearAllDataLive.js
  *
- * Requires .env with DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME (same as app).
+ * Uses process.env.DATABASE_URL from .env file for the connection.
  */
 require("dotenv").config({ path: require("path").join(__dirname, ".env") });
 const { Client } = require("pg");
 
 async function main() {
   const client = new Client({
-    host: process.env.DB_HOST,
-    port: parseInt(process.env.DB_PORT, 10) || 5432,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+      rejectUnauthorized: false // needed for self-signed certs on cloud providers
+    }
   });
 
   await client.connect();
-  console.log("Connected. Truncating all public tables…");
+  console.log(`Connected to database at ${process.env.DATABASE_URL.split('@')[1] || process.env.DATABASE_URL}. Truncating all public tables…`);
 
   try {
     await client.query(`

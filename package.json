@@ -8,7 +8,7 @@
     "start": "node app.js",
     "db:backup": "node scripts/backupDatabase.js",
     "db:reset": "node scripts/resetDevDatabase.js",
-    "db:clear-data": "node clearAllData.js"
+    "db:clearAllDataLive": "node clearAllDataLive.js"
   },
   "author": "",
   "license": "ISC",
