@@ -73,21 +73,18 @@ async function sendEmail(email, client_id) {
   //   },
   // });
 
-  const port = parseInt(process.env.SMTP_PORT, 10) || 465;
   const mailRequest = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
-    port: port,
-    secure: port === 465, // true for 465, false for 587
+    port: parseInt(process.env.SMTP_PORT),
+    secure: true, // true for 465
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
-    tls: {
-      rejectUnauthorized: false
-    }
+    requireTLS: true,
   });
   const mailingOptions = {
-    from: process.env.SMTP_FROM,
+    from: `"Digital Hording Manager" <${process.env.SMTP_USER}>`,
     to: email,
     subject: "Your OTP Code",
     html: `<body style='background:#f2f2f2;text-align:center;border-top:5px solid #2D317D;width:100%;'><div style='padding:35px 50px;'><h2 style='color:#2D317D;margin-bottom:2px;'>Digital Hording Manager</h2><p style='color:#888;font-size:12px;margin:0 0 20px;'>by SOTER SYSTEMS</p><p style='font-weight:bold;'>Dear Customer, Your OTP to Login  is</p><h1 style='letter-spacing: 1.1rem;'> ${OTP} </h1><p style='font-weight:bold;'>OTP is valid for 3 minutes.</p><p style='font-weight:bold;'> Thank you</p></div><div style='background:#1b1f6d;padding:20px;color:white;font-size:12px;'>Digital Hording Manager &copy; SOTER SYSTEMS</div></body>`,
@@ -118,21 +115,18 @@ async function ensureSignupVerificationTable() {
 
 async function sendSignupOtpEmail(email, client_id) {
   const OTP = Math.floor(100000 + Math.random() * 900000).toString();
-  const port = parseInt(process.env.SMTP_PORT, 10) || 465;
   const mailRequest = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
-    port: port,
-    secure: port === 465, // true for 465, false for 587
+    port: parseInt(process.env.SMTP_PORT),
+    secure: true, // true for 465
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
-    tls: {
-      rejectUnauthorized: false
-    }
+    requireTLS: true,
   });
   const mailingOptions = {
-    from: process.env.SMTP_FROM,
+    from: `"Digital Hording Manager" <${process.env.SMTP_USER}>`,
     to: email,
     subject: "Verify your email for signup",
     html: `<body style='background:#f2f2f2;text-align:center;border-top:5px solid #2D317D;width:100%;'><div style='padding:35px 50px;'><h2 style='color:#2D317D;margin-bottom:2px;'>Digital Hording Manager</h2><p style='color:#888;font-size:12px;margin:0 0 20px;'>by SOTER SYSTEMS</p><p style='font-weight:bold;'>Your OTP for account signup is</p><h1 style='letter-spacing: 1.1rem;'> ${OTP} </h1><p style='font-weight:bold;'>OTP is valid for 3 minutes.</p></div><div style='background:#1b1f6d;padding:20px;color:white;font-size:12px;'>Digital Hording Manager &copy; SOTER SYSTEMS</div></body>`,
