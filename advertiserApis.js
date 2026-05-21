@@ -73,15 +73,18 @@ async function sendEmail(email, client_id) {
   //   },
   // });
 
+  const port = parseInt(process.env.SMTP_PORT, 10) || 465;
   const mailRequest = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT),
-    secure: true, // true for 465
+    port: port,
+    secure: port === 465, // true for 465, false for 587
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
-    requireTLS: true,
+    tls: {
+      rejectUnauthorized: false
+    }
   });
   const mailingOptions = {
     from: process.env.SMTP_FROM,
@@ -115,15 +118,18 @@ async function ensureSignupVerificationTable() {
 
 async function sendSignupOtpEmail(email, client_id) {
   const OTP = Math.floor(100000 + Math.random() * 900000).toString();
+  const port = parseInt(process.env.SMTP_PORT, 10) || 465;
   const mailRequest = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT, 10),
-    secure: true, // true for port 465
+    port: port,
+    secure: port === 465, // true for 465, false for 587
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
-    requireTLS: true,
+    tls: {
+      rejectUnauthorized: false
+    }
   });
   const mailingOptions = {
     from: process.env.SMTP_FROM,
